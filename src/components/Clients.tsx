@@ -95,7 +95,7 @@ export default function Clients() {
   return (
     <>
       <div ref={spacerRef} className="h-screen w-full relative z-0 pointer-events-none" />
-      <section ref={containerRef} className="py-20 bg-black text-white overflow-hidden fixed top-0 left-0 w-full z-[15] h-screen flex flex-col justify-center opacity-0 invisible">
+      <section ref={containerRef} className="clients-fixed-section py-20 bg-black text-white overflow-hidden fixed top-0 left-0 w-full z-[15] h-screen flex flex-col justify-center opacity-0 invisible">
         <div className="container mx-auto px-4 mb-16">
           <Slide key={`title-${key}`} direction="left" triggerOnce={false}>
             <h2 className="text-[40px] font-normal max-w-3xl leading-tight text-[#D6D6D6]">
