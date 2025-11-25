@@ -137,6 +137,9 @@ export default function Tools() {
       tl.to(headerRef.current, { autoAlpha: 1, y: 0, duration: 1 }, "exit1+=1");
       tl.to(cardsRef.current[1], { autoAlpha: 1, scale: 1, duration: 1 }, "exit1+=1");
 
+      // Force a pause between cards so the first one fully closes before the second starts
+      tl.to({}, { duration: 2 });
+
       // 4. Zoom Card 2 (UcoBot)
       tl.addLabel("zoom2");
       tl.to(headerRef.current, { autoAlpha: 0, y: -50, duration: 0.5 }, "zoom2+=0.5");
@@ -205,9 +208,11 @@ export default function Tools() {
       tl.to(headerRef.current, { autoAlpha: 1, y: 0, duration: 1 }, "exit2+=1");
       tl.to(cardsRef.current[0], { autoAlpha: 1, scale: 1, duration: 1 }, "exit2+=1");
 
+      // Force a pause before footer reveal
+      tl.to({}, { duration: 2 });
+
       // 6. Reveal Footer Text & Move Cards Up
-      // Wait for previous animations to settle (exit2 ends around +2.1)
-      tl.addLabel("footerReveal", "exit2+=2.5");
+      tl.addLabel("footerReveal");
       
       // Move cards and header up to make room
       tl.to([headerRef.current, cardsContainerRef.current], { 
@@ -251,7 +256,7 @@ export default function Tools() {
                 ref={el => { cardsRef.current[index] = el }}
                 className="bg-white text-black rounded-[30px] md:rounded-[40px] p-6 md:p-10 hover:scale-[1.02] transition-transform duration-500 group relative overflow-hidden"
               >
-                <div className="card-bubble absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-gray-100 rounded-bl-[60px] md:rounded-bl-[100px] -mr-4 -mt-4 z-0 transition-colors group-hover:bg-gray-200"></div>
+                <div className="card-bubble absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-gray-100 rounded-full -mr-6 -mt-6 z-0 transition-colors group-hover:bg-gray-200"></div>
                 
                 <div className="relative z-10" ref={el => { cardContentsRef.current[index] = el }}>
                   <div className="flex justify-between items-start mb-6 md:mb-8">
@@ -286,11 +291,11 @@ export default function Tools() {
             ref={el => { detailsRef.current[index] = el }}
             className="absolute inset-0 w-full h-full z-50 flex items-center justify-center overflow-y-auto pointer-events-none text-black opacity-0 invisible"
           >
-            <div className="detail-bubble absolute top-0 right-0 z-0 w-24 h-24 md:w-48 md:h-48 bg-gray-100 rounded-bl-[60px] md:rounded-bl-[100px]"></div>
+            <div className="detail-bubble absolute top-0 right-0 z-0 w-48 h-48 md:w-96 md:h-96 bg-gray-100 rounded-full -mr-12 -mt-12 md:-mr-24 md:-mt-24"></div>
             <div className="container mx-auto px-4 py-10 md:py-0 flex flex-col md:flex-row items-center gap-8 md:gap-24 min-h-full md:min-h-0 relative z-10">
               <div className="w-full md:w-1/2 flex justify-center">
                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                 <img src={tool.detail.image} alt={tool.name} className="detail-image w-3/4 md:w-2/3 h-auto rounded-3xl shadow-2xl" />
+                 <img src={tool.detail.image} alt={tool.name} className="detail-image w-auto max-h-[30vh] md:max-h-[50vh] rounded-3xl shadow-2xl object-contain" />
               </div>
               <div className="w-full md:w-1/2 text-left pb-10 md:pb-0 detail-text">
                   <div className="flex flex-wrap gap-2 mb-4 md:mb-6">
