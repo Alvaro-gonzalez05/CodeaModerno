@@ -7,9 +7,9 @@ import Tools from "@/components/Tools";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-white selection:text-black">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-white selection:text-black overflow-x-hidden">
       <Header />
-      <main>
+      <main className="overflow-x-hidden w-full">
         <Hero />
         <div className="relative z-20">
           <Gallery />

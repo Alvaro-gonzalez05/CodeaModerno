@@ -119,23 +119,32 @@ export default function Tools() {
       if (d1Bubble) tl.to(d1Bubble, { y: -100, autoAlpha: 0, duration: 0.5 }, "exit1");
       tl.to(detail1, { autoAlpha: 0, pointerEvents: "none", duration: 0.5 }, "exit1+=0.3");
 
-      // Scale down the card
-      tl.to(cardsRef.current[0], { 
+      // Fade out expanded card
+      tl.to(cardsRef.current[0], { autoAlpha: 0, duration: 0.3 }, "exit1+=0.5");
+
+      // Reset props and position off-screen (Left)
+      tl.set(cardsRef.current[0], { 
         scale: 1, 
         borderRadius: isDesktop ? "40px" : "30px",
-        xPercent: 0, 
+        xPercent: -200, 
         yPercent: 0, 
-        zIndex: 1, 
-        duration: 1,
-        ease: "power2.inOut"
-      }, "exit1+=0.5");
+        zIndex: 1 
+      }, "exit1+=0.9");
+
+      // Slide in from Left
+      tl.to(cardsRef.current[0], { 
+        autoAlpha: 1, 
+        xPercent: 0, 
+        duration: 1, 
+        ease: "power2.out" 
+      }, "exit1+=1.0");
       
       // Fade in card content and bubble (Smoother timing)
       tl.to(cardContentsRef.current[0], { autoAlpha: 1, duration: 0.5 }, "exit1+=1.4"); 
       if (cardBubble1) tl.to(cardBubble1, { autoAlpha: 1, duration: 0.5 }, "exit1+=1.4");
       
-      tl.to(headerRef.current, { autoAlpha: 1, y: 0, duration: 1 }, "exit1+=1");
-      tl.to(cardsRef.current[1], { autoAlpha: 1, scale: 1, duration: 1 }, "exit1+=1");
+      tl.to(headerRef.current, { autoAlpha: 1, y: 0, duration: 1 }, "exit1+=1.1");
+      tl.to(cardsRef.current[1], { autoAlpha: 1, scale: 1, duration: 1 }, "exit1+=1.1");
 
       // Force a pause between cards so the first one fully closes before the second starts
       tl.to({}, { duration: 2 });
@@ -190,23 +199,32 @@ export default function Tools() {
       if (d2Bubble) tl.to(d2Bubble, { y: -100, autoAlpha: 0, duration: 0.5 }, "exit2");
       tl.to(detail2, { autoAlpha: 0, pointerEvents: "none", duration: 0.5 }, "exit2+=0.3");
       
-      // Scale down
-      tl.to(cardsRef.current[1], { 
+      // Fade out expanded card
+      tl.to(cardsRef.current[1], { autoAlpha: 0, duration: 0.3 }, "exit2+=0.5");
+
+      // Reset props and position off-screen (Right)
+      tl.set(cardsRef.current[1], { 
         scale: 1, 
         borderRadius: isDesktop ? "40px" : "30px",
-        xPercent: 0, 
+        xPercent: 200, 
         yPercent: 0, 
-        zIndex: 1, 
-        duration: 1,
-        ease: "power2.inOut"
-      }, "exit2+=0.5");
+        zIndex: 1 
+      }, "exit2+=0.9");
+
+      // Slide in from Right
+      tl.to(cardsRef.current[1], { 
+        autoAlpha: 1, 
+        xPercent: 0, 
+        duration: 1, 
+        ease: "power2.out" 
+      }, "exit2+=1.0");
       
       // Fade in card content and bubble (Smoother timing)
       tl.to(cardContentsRef.current[1], { autoAlpha: 1, duration: 0.5 }, "exit2+=1.4"); 
       if (cardBubble2) tl.to(cardBubble2, { autoAlpha: 1, duration: 0.5 }, "exit2+=1.4");
       
-      tl.to(headerRef.current, { autoAlpha: 1, y: 0, duration: 1 }, "exit2+=1");
-      tl.to(cardsRef.current[0], { autoAlpha: 1, scale: 1, duration: 1 }, "exit2+=1");
+      tl.to(headerRef.current, { autoAlpha: 1, y: 0, duration: 1 }, "exit2+=1.1");
+      tl.to(cardsRef.current[0], { autoAlpha: 1, scale: 1, duration: 1 }, "exit2+=1.1");
 
       // Force a pause before footer reveal
       tl.to({}, { duration: 2 });
@@ -232,10 +250,10 @@ export default function Tools() {
 
   return (
     <>
-      <div ref={spacerRef} className="h-[1200vh] w-full relative z-[30]" />
+      <div ref={spacerRef} className="h-[1200vh] w-full relative z-[30] overflow-hidden" />
       <section 
         ref={sectionRef} 
-        className="fixed top-0 left-0 w-full h-[100dvh] bg-black text-white py-4 md:py-20 flex flex-col items-center justify-start md:justify-center pt-32 md:pt-0 -translate-x-full overflow-hidden z-[45]"
+        className="fixed top-0 left-0 w-full max-w-[100vw] h-[100dvh] bg-black text-white py-4 md:py-20 flex flex-col items-center justify-start md:justify-center pt-32 md:pt-0 -translate-x-full overflow-hidden z-[45]"
       >
         <div ref={headerRef} className="container mx-auto px-4 relative z-10 flex-shrink-0">
           <div className="mb-4 md:mb-16 text-center">
@@ -289,9 +307,9 @@ export default function Tools() {
           <div 
             key={`detail-${index}`}
             ref={el => { detailsRef.current[index] = el }}
-            className="absolute inset-0 w-full h-full z-50 flex items-center justify-center overflow-y-auto pointer-events-none text-black opacity-0 invisible"
+            className="absolute inset-0 w-full h-full z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden pointer-events-none text-black opacity-0 invisible"
           >
-            <div className="detail-bubble absolute top-0 right-0 z-0 w-48 h-48 md:w-96 md:h-96 bg-gray-100 rounded-full -mr-12 -mt-12 md:-mr-24 md:-mt-24"></div>
+            <div className="detail-bubble absolute -top-12 -right-12 md:-top-24 md:-right-24 z-0 w-48 h-48 md:w-96 md:h-96 bg-gray-100 rounded-full"></div>
             <div className="container mx-auto px-4 py-10 md:py-0 flex flex-col md:flex-row items-center gap-8 md:gap-24 min-h-full md:min-h-0 relative z-10">
               <div className="w-full md:w-1/2 flex justify-center">
                  {/* eslint-disable-next-line @next/next/no-img-element */}
