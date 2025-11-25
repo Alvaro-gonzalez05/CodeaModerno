@@ -95,21 +95,21 @@ export default function Clients() {
   return (
     <>
       <div ref={spacerRef} className="h-screen w-full relative z-0 pointer-events-none" />
-      <section ref={containerRef} className="clients-fixed-section py-20 bg-black text-white overflow-hidden fixed top-0 left-0 w-full z-[15] h-screen flex flex-col justify-center opacity-0 invisible">
-        <div className="container mx-auto px-4 mb-16">
+      <section ref={containerRef} className="clients-fixed-section py-10 md:py-20 bg-black text-white overflow-hidden fixed top-0 left-0 w-full z-[15] h-screen flex flex-col justify-center opacity-0 invisible">
+        <div className="container mx-auto px-4 mb-8 md:mb-16">
           <Slide key={`title-${key}`} direction="left" triggerOnce={false}>
-            <h2 className="text-[40px] font-normal max-w-3xl leading-tight text-[#D6D6D6]">
+            <h2 className="text-3xl md:text-[40px] font-normal max-w-3xl leading-tight text-[#D6D6D6]">
               Potenciando las ventas de nuestros clientes
             </h2>
           </Slide>
         </div>
 
-        <div ref={rowsContainerRef} className="flex flex-col gap-8 opacity-0">
+        <div ref={rowsContainerRef} className="flex flex-col gap-4 md:gap-8 opacity-0">
           {/* Row 1: Right to Left */}
           <div className="flex whitespace-nowrap overflow-hidden">
-            <div ref={row1Ref} className="flex gap-16 items-center pr-16 w-max">
+            <div ref={row1Ref} className="flex gap-8 md:gap-16 items-center pr-8 md:pr-16 w-max">
               {[...clients, ...clients, ...clients, ...clients].map((client, i) => (
-                <span key={i} className="text-3xl md:text-5xl font-serif italic text-gray-400 hover:text-white transition-colors cursor-pointer">
+                <span key={i} className="text-2xl md:text-5xl font-serif italic text-gray-400 hover:text-white transition-colors cursor-pointer">
                   {client}
                 </span>
               ))}
@@ -118,9 +118,9 @@ export default function Clients() {
 
           {/* Row 2: Left to Right */}
           <div className="flex whitespace-nowrap overflow-hidden">
-            <div ref={row2Ref} className="flex gap-16 items-center pr-16 w-max">
+            <div ref={row2Ref} className="flex gap-8 md:gap-16 items-center pr-8 md:pr-16 w-max">
               {[...clients, ...clients, ...clients, ...clients].map((client, i) => (
-                <span key={i} className="text-3xl md:text-5xl font-serif italic text-gray-400 hover:text-white transition-colors cursor-pointer">
+                <span key={i} className="text-2xl md:text-5xl font-serif italic text-gray-400 hover:text-white transition-colors cursor-pointer">
                   {client}
                 </span>
               ))}

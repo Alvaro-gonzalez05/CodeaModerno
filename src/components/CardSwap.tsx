@@ -23,6 +23,7 @@ export interface CardSwapProps {
   skewAmount?: number;
   easing?: 'linear' | 'elastic';
   children: ReactNode;
+  className?: string;
 }
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -76,7 +77,8 @@ const CardSwap: React.FC<CardSwapProps> = ({
   onCardClick,
   skewAmount = 6,
   easing = 'elastic',
-  children
+  children,
+  className
 }) => {
   const config =
     easing === 'elastic'
@@ -209,7 +211,7 @@ const CardSwap: React.FC<CardSwapProps> = ({
   return (
     <div
       ref={container}
-      className="relative mx-auto perspective-[900px] overflow-visible"
+      className={`relative mx-auto perspective-[900px] overflow-visible ${className ?? ''}`.trim()}
       style={{ width, height }}
     >
       {rendered}
