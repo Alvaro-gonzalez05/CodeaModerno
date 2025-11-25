@@ -216,7 +216,7 @@ export default function Tools() {
       
       // Move cards and header up to make room
       tl.to([headerRef.current, cardsContainerRef.current], { 
-        y: -200, // Move up more to ensure no overlap
+        y: isDesktop ? -200 : -1000, // Move up much more on mobile to clear the footer area
         duration: 1, 
         ease: "power2.inOut" 
       }, "footerReveal");
