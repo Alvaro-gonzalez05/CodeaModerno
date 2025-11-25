@@ -200,14 +200,14 @@ export default function Tools() {
       <div ref={spacerRef} className="h-[1000vh] w-full relative z-[30]" />
       <section 
         ref={sectionRef} 
-        className="fixed top-0 left-0 w-full h-screen bg-black text-white py-20 flex flex-col items-center justify-center -translate-x-full overflow-hidden z-[35]"
+        className="fixed top-0 left-0 w-full h-screen bg-black text-white py-4 md:py-20 flex flex-col items-center justify-start md:justify-center pt-24 md:pt-0 -translate-x-full overflow-hidden z-[35]"
       >
-        <div ref={headerRef} className="container mx-auto px-4 relative z-10">
-          <div className="mb-8 md:mb-16 text-center">
-            <h2 className="text-4xl md:text-7xl font-bold mb-4 md:mb-6 tracking-tighter">
+        <div ref={headerRef} className="container mx-auto px-4 relative z-10 flex-shrink-0">
+          <div className="mb-4 md:mb-16 text-center">
+            <h2 className="text-3xl md:text-7xl font-bold mb-2 md:mb-6 tracking-tighter">
               Herramientas de Codea
             </h2>
-            <p className="text-base md:text-xl text-gray-400 max-w-2xl mx-auto">
+            <p className="text-sm md:text-xl text-gray-400 max-w-2xl mx-auto">
               Softwares que hemos desarrollado y cuentan con un modelo SaaS multiusuario, diseñados para escalar y resolver problemas complejos.
             </p>
           </div>
