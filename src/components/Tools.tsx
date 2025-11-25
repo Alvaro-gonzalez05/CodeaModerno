@@ -71,106 +71,136 @@ export default function Tools() {
 
       // 2. Zoom Card 1 (RestoPro)
       tl.addLabel("zoom1");
-      tl.to(headerRef.current, { autoAlpha: 0, y: -50, duration: 1 }, "zoom1");
-      tl.to(cardsRef.current[1], { autoAlpha: 0, scale: 0.5, duration: 1 }, "zoom1");
+      tl.to(headerRef.current, { autoAlpha: 0, y: -50, duration: 0.5 }, "zoom1");
+      tl.to(cardsRef.current[1], { autoAlpha: 0, scale: 0.5, duration: 0.5 }, "zoom1");
       
       tl.set(cardsRef.current[0], { zIndex: 40 }, "zoom1");
       
-      // Fade out content
-      tl.to(cardContentsRef.current[0], { autoAlpha: 0, duration: 0.1 }, "zoom1");
+      // Fade out content and bubble
+      tl.to(cardContentsRef.current[0], { autoAlpha: 0, duration: 0.3 }, "zoom1");
+      const cardBubble1 = cardsRef.current[0]?.querySelector('.card-bubble');
+      if (cardBubble1) tl.to(cardBubble1, { autoAlpha: 0, duration: 0.3 }, "zoom1");
 
       // Center and Scale
       tl.to(cardsRef.current[0], { 
-        scale: 30,
+        scale: 50,
+        borderRadius: 0,
         xPercent: isDesktop ? 55 : 0, // Move right on desktop
         yPercent: isDesktop ? 0 : 55, // Move down on mobile
         duration: 1.5, 
         ease: "power2.inOut" 
       }, "zoom1+=0.2");
       
-      // Reveal Detail 1
-      tl.to(detailsRef.current[0], { 
-        clipPath: "circle(150% at center)", 
-        autoAlpha: 1,
-        duration: 1.5,
-        ease: "power2.inOut"
-      }, "zoom1+=0.5");
+      // Reveal Detail 1 Content
+      const detail1 = detailsRef.current[0];
+      const d1Img = detail1?.querySelector('.detail-image');
+      const d1Text = detail1?.querySelector('.detail-text');
+      const d1Bubble = detail1?.querySelector('.detail-bubble');
+
+      // Initial states for Detail 1
+      if (detail1) gsap.set(detail1, { autoAlpha: 0, pointerEvents: "none" });
+      if (d1Img) gsap.set(d1Img, { x: -100, autoAlpha: 0 });
+      if (d1Text) gsap.set(d1Text, { x: 100, autoAlpha: 0 });
+      if (d1Bubble) gsap.set(d1Bubble, { y: -100, autoAlpha: 0 });
+
+      tl.to(detail1, { autoAlpha: 1, pointerEvents: "all", duration: 0.1 }, "zoom1+=1.5");
+      if (d1Img) tl.to(d1Img, { x: 0, autoAlpha: 1, duration: 1, ease: "power2.out" }, "zoom1+=1.6");
+      if (d1Text) tl.to(d1Text, { x: 0, autoAlpha: 1, duration: 1, ease: "power2.out" }, "zoom1+=1.6");
+      if (d1Bubble) tl.to(d1Bubble, { y: 0, autoAlpha: 1, duration: 1, ease: "power2.out" }, "zoom1+=1.6");
       
       // Hold Detail 1
-      tl.to({}, { duration: 2 });
+      tl.to({}, { duration: 3 });
 
       // 3. Exit Detail 1
       tl.addLabel("exit1");
-      // Fade out detail content FIRST (clean slate)
-      tl.to(detailsRef.current[0], { 
-        autoAlpha: 0,
-        duration: 0.3
-      }, "exit1");
       
-      // Reset clipPath silently
-      tl.set(detailsRef.current[0], { clipPath: "circle(0% at center)" }, "exit1+=0.3");
+      if (d1Img) tl.to(d1Img, { x: -100, autoAlpha: 0, duration: 0.5 }, "exit1");
+      if (d1Text) tl.to(d1Text, { x: 100, autoAlpha: 0, duration: 0.5 }, "exit1");
+      if (d1Bubble) tl.to(d1Bubble, { y: -100, autoAlpha: 0, duration: 0.5 }, "exit1");
+      tl.to(detail1, { autoAlpha: 0, pointerEvents: "none", duration: 0.5 }, "exit1+=0.3");
 
-      // Scale down the card (now just a white box) - Start LATER
-      tl.to(cardsRef.current[0], { scale: 1, xPercent: 0, yPercent: 0, zIndex: 1, duration: 1 }, "exit1+=0.5");
+      // Scale down the card
+      tl.to(cardsRef.current[0], { 
+        scale: 1, 
+        borderRadius: isDesktop ? "40px" : "30px",
+        xPercent: 0, 
+        yPercent: 0, 
+        zIndex: 1, 
+        duration: 1,
+        ease: "power2.inOut"
+      }, "exit1+=0.5");
       
-      // Ensure content is hidden well before scale starts
-      tl.to(cardContentsRef.current[0], { autoAlpha: 0, duration: 0.1 }, "exit1"); 
-      
-      // Fade in AFTER scale is fully done
-      tl.to(cardContentsRef.current[0], { autoAlpha: 1, duration: 0.5 }, "exit1+=1.6"); 
+      // Fade in card content and bubble (Smoother timing)
+      tl.to(cardContentsRef.current[0], { autoAlpha: 1, duration: 0.5 }, "exit1+=1.4"); 
+      if (cardBubble1) tl.to(cardBubble1, { autoAlpha: 1, duration: 0.5 }, "exit1+=1.4");
       
       tl.to(headerRef.current, { autoAlpha: 1, y: 0, duration: 1 }, "exit1+=1");
       tl.to(cardsRef.current[1], { autoAlpha: 1, scale: 1, duration: 1 }, "exit1+=1");
 
       // 4. Zoom Card 2 (UcoBot)
       tl.addLabel("zoom2");
-      tl.to(headerRef.current, { autoAlpha: 0, y: -50, duration: 1 }, "zoom2+=0.5");
-      tl.to(cardsRef.current[0], { autoAlpha: 0, scale: 0.5, duration: 1 }, "zoom2+=0.5");
+      tl.to(headerRef.current, { autoAlpha: 0, y: -50, duration: 0.5 }, "zoom2+=0.5");
+      tl.to(cardsRef.current[0], { autoAlpha: 0, scale: 0.5, duration: 0.5 }, "zoom2+=0.5");
       
       tl.set(cardsRef.current[1], { zIndex: 40 }, "zoom2+=0.5");
       
-      // Fade out content
-      tl.to(cardContentsRef.current[1], { autoAlpha: 0, duration: 0.1 }, "zoom2+=0.5");
+      // Fade out content and bubble
+      tl.to(cardContentsRef.current[1], { autoAlpha: 0, duration: 0.3 }, "zoom2+=0.5");
+      const cardBubble2 = cardsRef.current[1]?.querySelector('.card-bubble');
+      if (cardBubble2) tl.to(cardBubble2, { autoAlpha: 0, duration: 0.3 }, "zoom2+=0.5");
 
       // Center and Scale
       tl.to(cardsRef.current[1], { 
-        scale: 30,
+        scale: 50,
+        borderRadius: 0,
         xPercent: isDesktop ? -55 : 0, // Move left on desktop
         yPercent: isDesktop ? 0 : -55, // Move up on mobile
         duration: 1.5, 
         ease: "power2.inOut" 
       }, "zoom2+=0.7");
       
-      // Reveal Detail 2
-      tl.to(detailsRef.current[1], { 
-        clipPath: "circle(150% at center)", 
-        autoAlpha: 1,
-        duration: 1.5,
-        ease: "power2.inOut"
-      }, "zoom2+=1");
+      // Reveal Detail 2 Content
+      const detail2 = detailsRef.current[1];
+      const d2Img = detail2?.querySelector('.detail-image');
+      const d2Text = detail2?.querySelector('.detail-text');
+      const d2Bubble = detail2?.querySelector('.detail-bubble');
+
+      // Initial states for Detail 2
+      if (detail2) gsap.set(detail2, { autoAlpha: 0, pointerEvents: "none" });
+      if (d2Img) gsap.set(d2Img, { x: -100, autoAlpha: 0 });
+      if (d2Text) gsap.set(d2Text, { x: 100, autoAlpha: 0 });
+      if (d2Bubble) gsap.set(d2Bubble, { y: -100, autoAlpha: 0 });
+
+      tl.to(detail2, { autoAlpha: 1, pointerEvents: "all", duration: 0.1 }, "zoom2+=2.0");
+      if (d2Img) tl.to(d2Img, { x: 0, autoAlpha: 1, duration: 1, ease: "power2.out" }, "zoom2+=2.1");
+      if (d2Text) tl.to(d2Text, { x: 0, autoAlpha: 1, duration: 1, ease: "power2.out" }, "zoom2+=2.1");
+      if (d2Bubble) tl.to(d2Bubble, { y: 0, autoAlpha: 1, duration: 1, ease: "power2.out" }, "zoom2+=2.1");
 
       // Hold Detail 2
-      tl.to({}, { duration: 2 });
+      tl.to({}, { duration: 3 });
 
       // 5. Exit Detail 2
       tl.addLabel("exit2");
-      // Fade out detail content FIRST
-      tl.to(detailsRef.current[1], { 
-        autoAlpha: 0,
-        duration: 0.3
-      }, "exit2");
-
-      // Reset clipPath silently
-      tl.set(detailsRef.current[1], { clipPath: "circle(0% at center)" }, "exit2+=0.3");
       
-      // Scale down - Start LATER
-      tl.to(cardsRef.current[1], { scale: 1, xPercent: 0, yPercent: 0, zIndex: 1, duration: 1 }, "exit2+=0.5");
+      if (d2Img) tl.to(d2Img, { x: -100, autoAlpha: 0, duration: 0.5 }, "exit2");
+      if (d2Text) tl.to(d2Text, { x: 100, autoAlpha: 0, duration: 0.5 }, "exit2");
+      if (d2Bubble) tl.to(d2Bubble, { y: -100, autoAlpha: 0, duration: 0.5 }, "exit2");
+      tl.to(detail2, { autoAlpha: 0, pointerEvents: "none", duration: 0.5 }, "exit2+=0.3");
       
-      // Ensure content is hidden
-      tl.to(cardContentsRef.current[1], { autoAlpha: 0, duration: 0.1 }, "exit2"); 
+      // Scale down
+      tl.to(cardsRef.current[1], { 
+        scale: 1, 
+        borderRadius: isDesktop ? "40px" : "30px",
+        xPercent: 0, 
+        yPercent: 0, 
+        zIndex: 1, 
+        duration: 1,
+        ease: "power2.inOut"
+      }, "exit2+=0.5");
       
-      // Fade in AFTER scale
-      tl.to(cardContentsRef.current[1], { autoAlpha: 1, duration: 0.5 }, "exit2+=1.6"); 
+      // Fade in card content and bubble (Smoother timing)
+      tl.to(cardContentsRef.current[1], { autoAlpha: 1, duration: 0.5 }, "exit2+=1.4"); 
+      if (cardBubble2) tl.to(cardBubble2, { autoAlpha: 1, duration: 0.5 }, "exit2+=1.4");
       
       tl.to(headerRef.current, { autoAlpha: 1, y: 0, duration: 1 }, "exit2+=1");
       tl.to(cardsRef.current[0], { autoAlpha: 1, scale: 1, duration: 1 }, "exit2+=1");
@@ -197,10 +227,10 @@ export default function Tools() {
 
   return (
     <>
-      <div ref={spacerRef} className="h-[1000vh] w-full relative z-[30]" />
+      <div ref={spacerRef} className="h-[1200vh] w-full relative z-[30]" />
       <section 
         ref={sectionRef} 
-        className="fixed top-0 left-0 w-full h-screen bg-black text-white py-4 md:py-20 flex flex-col items-center justify-start md:justify-center pt-24 md:pt-0 -translate-x-full overflow-hidden z-[35]"
+        className="fixed top-0 left-0 w-full h-[100dvh] bg-black text-white py-4 md:py-20 flex flex-col items-center justify-start md:justify-center pt-32 md:pt-0 -translate-x-full overflow-hidden z-[45]"
       >
         <div ref={headerRef} className="container mx-auto px-4 relative z-10 flex-shrink-0">
           <div className="mb-4 md:mb-16 text-center">
@@ -221,7 +251,7 @@ export default function Tools() {
                 ref={el => { cardsRef.current[index] = el }}
                 className="bg-white text-black rounded-[30px] md:rounded-[40px] p-6 md:p-10 hover:scale-[1.02] transition-transform duration-500 group relative overflow-hidden"
               >
-                <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-gray-100 rounded-bl-[60px] md:rounded-bl-[100px] -mr-4 -mt-4 z-0 transition-colors group-hover:bg-gray-200"></div>
+                <div className="card-bubble absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-gray-100 rounded-bl-[60px] md:rounded-bl-[100px] -mr-4 -mt-4 z-0 transition-colors group-hover:bg-gray-200"></div>
                 
                 <div className="relative z-10" ref={el => { cardContentsRef.current[index] = el }}>
                   <div className="flex justify-between items-start mb-6 md:mb-8">
@@ -254,35 +284,35 @@ export default function Tools() {
           <div 
             key={`detail-${index}`}
             ref={el => { detailsRef.current[index] = el }}
-            className="absolute inset-0 w-full h-full bg-white text-black z-50 flex items-center justify-center opacity-0 invisible overflow-y-auto"
-            style={{ clipPath: "circle(0% at center)" }}
+            className="absolute inset-0 w-full h-full z-50 flex items-center justify-center overflow-y-auto pointer-events-none text-black opacity-0 invisible"
           >
-            <div className="container mx-auto px-4 py-10 md:py-0 flex flex-col md:flex-row items-center gap-8 md:gap-24 min-h-full md:min-h-0">
-              <div className="w-full md:w-1/2">
+            <div className="detail-bubble absolute top-0 right-0 z-0 w-24 h-24 md:w-48 md:h-48 bg-gray-100 rounded-bl-[60px] md:rounded-bl-[100px]"></div>
+            <div className="container mx-auto px-4 py-10 md:py-0 flex flex-col md:flex-row items-center gap-8 md:gap-24 min-h-full md:min-h-0 relative z-10">
+              <div className="w-full md:w-1/2 flex justify-center">
                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={tool.detail.image} alt={tool.name} className="w-full h-auto rounded-3xl shadow-2xl" />
+                 <img src={tool.detail.image} alt={tool.name} className="detail-image w-3/4 md:w-2/3 h-auto rounded-3xl shadow-2xl" />
               </div>
-              <div className="w-full md:w-1/2 text-left pb-10 md:pb-0">
-                <div className="flex flex-wrap gap-2 mb-4 md:mb-6">
-                  {tool.tags.map((tag, i) => (
-                    <span key={i} className="text-[10px] md:text-xs font-bold tracking-wide uppercase px-2 md:px-3 py-1 rounded-full bg-black text-white">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                <h2 className="text-4xl md:text-7xl font-bold mb-4 md:mb-6 tracking-tighter">{tool.name}</h2>
-                <h3 className="text-xl md:text-3xl font-bold mb-4 md:mb-6 text-gray-800">{tool.detail.title}</h3>
-                <p className="text-base md:text-xl text-gray-600 leading-relaxed mb-6 md:mb-8">
-                  {tool.detail.description}
-                </p>
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                  {tool.detail.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 md:gap-3 text-base md:text-lg font-medium">
-                      <span className="w-2 h-2 bg-black rounded-full flex-shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
+              <div className="w-full md:w-1/2 text-left pb-10 md:pb-0 detail-text">
+                  <div className="flex flex-wrap gap-2 mb-4 md:mb-6">
+                    {tool.tags.map((tag, i) => (
+                      <span key={i} className="text-[10px] md:text-xs font-bold tracking-wide uppercase px-2 md:px-3 py-1 rounded-full bg-black text-white">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <h2 className="text-4xl md:text-7xl font-bold mb-4 md:mb-6 tracking-tighter">{tool.name}</h2>
+                  <h3 className="text-xl md:text-3xl font-bold mb-4 md:mb-6 text-gray-800">{tool.detail.title}</h3>
+                  <p className="text-base md:text-xl text-gray-600 leading-relaxed mb-6 md:mb-8">
+                    {tool.detail.description}
+                  </p>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                    {tool.detail.features.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2 md:gap-3 text-base md:text-lg font-medium">
+                        <span className="w-2 h-2 bg-black rounded-full flex-shrink-0" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
               </div>
             </div>
           </div>

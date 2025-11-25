@@ -9,22 +9,22 @@ gsap.registerPlugin(ScrollTrigger);
 const services = [
   {
     title: "Desarrollo de Software a Medida",
-    description: "Creamos software que se adapta a tu negocio, no al revés. En CODEA diseñamos y desarrollamos soluciones digitales totalmente personalizadas que responden a tus objetivos, optimizan procesos y acompañan el crecimiento de tu empresa. Precisas, escalables y construidas con visión a largo plazo.",
+    description: "Software a medida que se adapta a tu negocio. Soluciones personalizadas, escalables y diseñadas para optimizar procesos y potenciar tu crecimiento a largo plazo.",
     cta: "Conocer más"
   },
   {
     title: "Desarrollo Web",
-    description: "Sitios modernos, rápidos y estratégicamente diseñados. Desarrollamos páginas web de alto rendimiento que fortalecen tu marca y ofrecen una experiencia fluida para tus usuarios. Desde la arquitectura hasta la entrega final, garantizamos calidad, velocidad y excelencia.",
+    description: "Sitios web modernos y de alto rendimiento. Diseño estratégico y velocidad para fortalecer tu marca y brindar una experiencia de usuario impecable.",
     cta: "Ver servicios"
   },
   {
     title: "Soluciones de E-commerce",
-    description: "Tu tienda online, lista para crecer. Creamos plataformas de e-commerce seguras, escalables y centradas en el usuario, pensadas para aumentar conversiones y simplificar la gestión. Una experiencia de compra eficiente para tus clientes y un motor de ventas poderoso para tu negocio.",
+    description: "Tiendas online seguras y escalables. Plataformas e-commerce diseñadas para aumentar conversiones, simplificar la gestión y potenciar tus ventas.",
     cta: "Empezar ahora"
   },
   {
     title: "Diseño UX/UI & Landing Pages",
-    description: "Experiencias digitales que conectan y convierten. Diseñamos interfaces intuitivas y landing pages de alto impacto basadas en principios de diseño centrados en el usuario. Profesionales, claras y visualmente atractivas: hechas para transformar visitantes en clientes.",
+    description: "Diseño que conecta y convierte. Interfaces intuitivas y landing pages de alto impacto, creadas para transformar visitantes en clientes.",
     cta: "Ver trabajos"
   }
 ];
@@ -67,6 +67,19 @@ export default function Gallery() {
       duration: 1
     }, "<");
 
+    // Entrance animation for cards
+    gsap.from(".gallery-card", {
+      x: 100,
+      opacity: 0,
+      duration: 0.8,
+      stagger: 0.1,
+      scrollTrigger: {
+        trigger: triggerRef.current,
+        start: "top 80%",
+        toggleActions: "play none none reverse"
+      }
+    });
+
   }, { scope: triggerRef });
 
   return (
@@ -78,13 +91,13 @@ export default function Gallery() {
           </h2>
         </div>
 
-        <div 
-          ref={sectionRef} 
-          className="flex flex-row items-center w-fit px-4 md:px-10 gap-6 md:gap-24 pl-[5vw] md:pl-[10vw]"
-        >
-          {services.map((service, index) => (
-            <div key={index} className="flex-shrink-0 relative w-[85vw] md:w-[600px] h-[55vh] md:h-[60vh] bg-[#F5F5F5] rounded-[30px] md:rounded-[40px] p-6 md:p-12 flex flex-col justify-between hover:bg-[#EAEAEA] transition-colors duration-500 group overflow-visible">
-              <div className="relative z-10">
+      <div 
+        ref={sectionRef} 
+        className="flex flex-row items-center w-fit px-4 md:px-10 gap-6 md:gap-24 pl-[5vw] md:pl-[10vw]"
+      >
+        {services.map((service, index) => (
+          <div key={index} className="gallery-card flex-shrink-0 relative w-[85vw] md:w-[600px] h-[55vh] md:h-[60vh] bg-[#F5F5F5] rounded-[30px] md:rounded-[40px] p-6 md:p-12 flex flex-col justify-between hover:bg-[#EAEAEA] transition-colors duration-500 group overflow-visible">
+            <div className="relative z-10">
                 <h3 className="text-2xl md:text-5xl font-bold tracking-tight mb-4 md:mb-6 leading-tight">
                   {service.title}
                 </h3>
