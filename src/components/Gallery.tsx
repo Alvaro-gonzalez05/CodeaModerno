@@ -83,7 +83,7 @@ export default function Gallery() {
   }, { scope: triggerRef });
 
   return (
-    <div className="bg-black w-full relative z-[20]">
+    <div className="w-full relative z-[20]">
       <section className="overflow-hidden h-dvh flex flex-col justify-center bg-white text-black rounded-[30px] md:rounded-[60px] relative" ref={triggerRef}>
         <div className="w-full text-center mb-4 md:mb-8 absolute top-6 md:top-10 left-0 z-30 px-4">
           <h2 className="text-3xl md:text-6xl font-bold tracking-tighter">

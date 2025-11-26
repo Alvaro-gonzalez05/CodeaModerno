@@ -27,7 +27,9 @@ export default function Hero() {
   }, [isVisible]);
 
   return (
-    <section className="relative sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden bg-black">
+    <>
+    <div className="h-screen w-full relative z-0" /> {/* Spacer to preserve layout flow */}
+    <section className="fixed top-0 left-0 h-screen w-full flex items-center justify-center overflow-hidden bg-black z-0">
       {/* Background video - put /hero-video.mp4 or /hero-video.webm into public/ */}
       <video
         className="absolute inset-0 w-full h-full object-cover"
@@ -50,10 +52,11 @@ export default function Hero() {
         </Slide>
         <Slide key={`subtitle-${key}`} direction="right" triggerOnce={false}>
           <p className="max-w-2xl mx-auto text-gray-300 text-lg md:text-xl leading-relaxed">
-            we help driven founders build the brands of tomorrow through websites, product design & branding.
+            Ayudamos a emprendedores visionarios a construir marcas del mañana a través de sitios webs y diversas soluciones tecnológicas.
           </p>
         </Slide>
       </div>
     </section>
+    </>
   );
 }
