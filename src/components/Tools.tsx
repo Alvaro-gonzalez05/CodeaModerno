@@ -40,8 +40,16 @@ export default function Tools() {
   const cardContentsRef = useRef<(HTMLDivElement | null)[]>([]);
   const detailsRef = useRef<(HTMLDivElement | null)[]>([]);
   const footerTextRef = useRef<HTMLDivElement>(null);
+  const footerSubtitleRef = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const whiteFooterRef = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
+    // Initial set for footer to ensure it's hidden
+    if (whiteFooterRef.current) {
+      gsap.set(whiteFooterRef.current, { yPercent: 100 });
+    }
+
     const mm = gsap.matchMedia();
     
     mm.add({
@@ -232,17 +240,50 @@ export default function Tools() {
       // 6. Reveal Footer Text & Move Cards Up
       tl.addLabel("footerReveal");
       
-      // Move cards and header up to make room
+      // Move cards and header up completely off screen
       tl.to([headerRef.current, cardsContainerRef.current], { 
-        y: isDesktop ? -200 : -1000, // Move up much more on mobile to clear the footer area
-        duration: 1, 
+        y: -window.innerHeight * 1.2, 
+        duration: 1.5, 
         ease: "power2.inOut" 
       }, "footerReveal");
 
       tl.fromTo(footerTextRef.current, 
-        { y: 100, autoAlpha: 0 },
+        { x: "100vw", autoAlpha: 1 },
+        { x: "0%", autoAlpha: 1, duration: 1.5, ease: "power2.out" },
+        "footerReveal+=0.5"
+      );
+
+      tl.fromTo(footerSubtitleRef.current,
+        { y: 50, autoAlpha: 0 },
         { y: 0, autoAlpha: 1, duration: 1, ease: "power2.out" },
-        "footerReveal"
+        "footerReveal+=1.0"
+      );
+
+      // 7. Separate Texts & Show CTA
+      tl.addLabel("ctaReveal");
+      
+      // Move Title Up
+      tl.to(footerTextRef.current, { y: -120, duration: 1, ease: "power2.out" }, "ctaReveal");
+      
+      // Move Subtitle Down
+      tl.to(footerSubtitleRef.current, { y: 10, duration: 1, ease: "power2.out" }, "ctaReveal");
+      
+      // Show CTA
+      tl.fromTo(ctaRef.current, 
+        { autoAlpha: 0, scale: 0.8 },
+        { autoAlpha: 1, scale: 1, duration: 0.5, ease: "back.out(1.7)" },
+        "ctaReveal+=0.5"
+      );
+
+      tl.to({}, { duration: 2 }); // Pause
+
+      // 8. Show Footer
+      tl.addLabel("footerEntry");
+
+      // Slide in White Footer
+      tl.to(whiteFooterRef.current,
+        { yPercent: 0, duration: 1.5, ease: "power2.out" },
+        "footerEntry"
       );
 
     });
@@ -250,11 +291,33 @@ export default function Tools() {
 
   return (
     <>
-      <div ref={spacerRef} className="h-[1200vh] w-full relative z-[30] overflow-hidden" />
+      <div ref={spacerRef} className="h-[1600vh] w-full relative z-[30] overflow-hidden" />
       <section 
         ref={sectionRef} 
         className="fixed top-0 left-0 w-full max-w-[100vw] h-[100dvh] bg-black text-white py-4 md:py-20 flex flex-col items-center justify-start md:justify-center pt-32 md:pt-0 -translate-x-full overflow-hidden z-[45]"
       >
+        {/* Video Background for Footer Text */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <video
+            className="absolute inset-0 w-full h-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+          >
+            <source src="/hero-video.mp4" type="video/mp4" />
+          </video>
+        </div>
+
+        {/* Mask Layer for Video Text Effect */}
+        <div className="absolute inset-0 z-[1] bg-black mix-blend-multiply pointer-events-none flex items-center justify-center">
+           <div ref={footerTextRef} className="opacity-0">
+            <h2 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter leading-none text-white text-center">
+              codea desarrollos
+            </h2>
+          </div>
+        </div>
+
         <div ref={headerRef} className="container mx-auto px-4 relative z-10 flex-shrink-0">
           <div className="mb-4 md:mb-16 text-center">
             <h2 className="text-3xl md:text-7xl font-bold mb-2 md:mb-6 tracking-tighter">
@@ -266,7 +329,7 @@ export default function Tools() {
           </div>
         </div>
 
-        <div ref={cardsContainerRef} className="container mx-auto px-4 relative z-0">
+        <div ref={cardsContainerRef} className="container mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 px-0 md:px-24 max-w-6xl mx-auto">
             {tools.map((tool, index) => (
               <div 
@@ -342,12 +405,76 @@ export default function Tools() {
         ))}
 
         {/* Footer Text */}
-        <div ref={footerTextRef} className="absolute bottom-10 md:bottom-20 left-0 w-full text-center z-20 opacity-0 px-4">
-          <h2 className="text-2xl md:text-5xl font-bold tracking-tighter flex flex-wrap justify-center items-baseline gap-2 md:gap-3">
-            <span>Transforma la</span>
-            <span className="font-serif italic font-normal">complejidad</span>
-            <span>en claridad</span>
-          </h2>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
+          {/* Placeholder to keep spacing correct, actual text is in mask layer */}
+          <div className="opacity-0 invisible">
+            <h2 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter leading-none text-white text-center">
+              codea desarrollos
+            </h2>
+          </div>
+          <div ref={footerSubtitleRef} className="mt-4 md:mt-8 opacity-0">
+            <h3 className="text-xl md:text-3xl font-bold tracking-tighter flex flex-wrap justify-center items-baseline gap-2 md:gap-3 text-gray-300">
+              <span>Transforma la</span>
+              <span className="font-serif italic font-normal">complejidad</span>
+              <span>en claridad</span>
+            </h3>
+          </div>
+        </div>
+
+        {/* CTA Button (Centered) */}
+        <div ref={ctaRef} className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none opacity-0">
+             <button className="pointer-events-auto bg-white text-black text-lg md:text-xl font-bold py-4 px-10 rounded-full hover:bg-gray-200 transition-colors shadow-lg hover:scale-105 transform duration-300">
+                Start a Project
+             </button>
+        </div>
+
+        {/* White Footer */}
+        <div ref={whiteFooterRef} className="absolute bottom-0 left-0 w-full h-[40vh] bg-white rounded-t-[60px] z-50 flex flex-col justify-center px-8 md:px-24 text-black">
+            
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 w-full items-center">
+                
+                {/* Brand Column */}
+                <div className="md:col-span-4 flex flex-col gap-4">
+                    <h3 className="text-4xl md:text-5xl font-bold tracking-tighter">Codea Desarrollos.</h3>
+                    <p className="text-gray-500 text-base max-w-xs leading-relaxed">
+                        Diseñamos el futuro digital de tu empresa con tecnología de vanguardia.
+                    </p>
+                    <p className="text-xs text-gray-400 mt-4 hidden md:block">© 2025 Codea Desarrollos</p>
+                </div>
+
+                {/* Center - Big Email & WhatsApp */}
+                <div className="md:col-span-4 flex flex-col items-center justify-center gap-6">
+                     <a href="mailto:hola@codea.com.ar" className="text-2xl md:text-4xl font-bold tracking-tight hover:text-gray-600 transition-colors border-b-2 border-black pb-1">
+                        hola@codea.com.ar
+                     </a>
+                     <a href="https://wa.me/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-[#25D366] text-white px-6 py-3 rounded-full hover:bg-[#128C7E] transition-all font-bold text-sm md:text-base shadow-md hover:shadow-lg transform hover:-translate-y-1 duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                        </svg>
+                        Contactar por WhatsApp
+                     </a>
+                </div>
+                
+                {/* Links Column */}
+                <div className="md:col-span-4 flex justify-start md:justify-end gap-12 md:gap-16">
+                    <div className="flex flex-col gap-4">
+                        <span className="font-bold text-lg">Menu</span>
+                        <a href="#work" className="text-gray-500 hover:text-black transition-colors">Proyectos</a>
+                        <a href="#about" className="text-gray-500 hover:text-black transition-colors">Nosotros</a>
+                        <a href="#services" className="text-gray-500 hover:text-black transition-colors">Servicios</a>
+                    </div>
+                    <div className="flex flex-col gap-4">
+                        <span className="font-bold text-lg">Social</span>
+                        <a href="#" className="text-gray-500 hover:text-black transition-colors">Instagram</a>
+                        <a href="#" className="text-gray-500 hover:text-black transition-colors">LinkedIn</a>
+                        <a href="#" className="text-gray-500 hover:text-black transition-colors">Twitter</a>
+                    </div>
+                </div>
+            </div>
+
+            <div className="md:hidden mt-8 pt-6 border-t border-gray-100 text-center">
+                <p className="text-xs text-gray-400">© 2025 Codea Desarrollos.</p>
+            </div>
         </div>
 
       </section>

@@ -47,7 +47,7 @@ export default function Header() {
   }, [isMenuOpen]);
 
   return (
-    <header className={`fixed top-0 left-0 w-full transition-opacity duration-300 ${isMenuOpen ? 'z-50' : 'z-10'} ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+    <header className={`fixed top-0 left-0 w-full transition-opacity duration-300 ${isMenuOpen ? 'z-50' : 'z-10'} ${isVisible || isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
       <Slide direction="down" triggerOnce={true}>
         <div className="flex justify-between items-center py-6 px-8 md:px-16 relative z-50">
           <div className={`text-2xl font-bold tracking-tighter ${isMenuOpen ? 'text-white' : 'text-white mix-blend-difference'}`}>
@@ -75,7 +75,7 @@ export default function Header() {
 
       {/* Mobile Menu Overlay */}
       {isMenuOpen && (
-        <div ref={menuRef} className="fixed inset-0 z-40 md:hidden bg-black w-full h-full flex flex-col items-center justify-center relative">
+        <div ref={menuRef} className="fixed inset-0 z-40 md:hidden bg-black w-full h-screen flex flex-col items-center justify-center">
               {/* Close Button inside Overlay */}
               <button 
                 className="absolute top-6 right-8 text-white focus:outline-none z-50"
