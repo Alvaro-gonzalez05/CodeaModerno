@@ -41,45 +41,45 @@ export default function LetsCode() {
     gsap.set(finalTextRef.current, { autoAlpha: 0, scale: 0.8 });
     gsap.set(buttonRef.current, { autoAlpha: 0, y: 20 });
 
-    // 1. Entrance Sequence
-    tl.to(arrowRef.current, { autoAlpha: 1, duration: 0.5 })
-      .to(letsRef.current, { autoAlpha: 1, duration: 0.5 }, "<0.1")
-      .to(codeRef.current, { x: 0, autoAlpha: 1, duration: 0.5, ease: "power2.out" }, "<0.1")
-      .to(yourRef.current, { x: 0, autoAlpha: 1, duration: 0.5, ease: "power2.out" }, "<0.1")
-      .to(businessRef.current, { x: 0, autoAlpha: 1, duration: 0.5, ease: "power2.out" }, "<0.1")
-      .to(globeRef.current, { autoAlpha: 1, duration: 0.5 }, "<");
+    // 1. Entrance Sequence (Much Slower)
+    tl.to(arrowRef.current, { autoAlpha: 1, duration: 2 })
+      .to(letsRef.current, { autoAlpha: 1, duration: 2 }, "<0.2")
+      .to(codeRef.current, { x: 0, autoAlpha: 1, duration: 4, ease: "power2.out" }, "<0.2")
+      .to(yourRef.current, { x: 0, autoAlpha: 1, duration: 4, ease: "power2.out" }, "<0.2")
+      .to(businessRef.current, { x: 0, autoAlpha: 1, duration: 4, ease: "power2.out" }, "<0.2")
+      .to(globeRef.current, { autoAlpha: 1, duration: 4 }, "<");
 
     // 2. Hold
-    tl.to({}, { duration: 2 });
+    tl.to({}, { duration: 0.5 });
 
-    // 3. Exit Sequence
+    // 3. Exit Sequence (Slower)
     // "YOUR" goes right
-    tl.to(yourRef.current, { x: "100vw", autoAlpha: 0, duration: 1, ease: "power2.in" });
+    tl.to(yourRef.current, { x: "100vw", autoAlpha: 0, duration: 3, ease: "power2.in" });
     
     // "CODE" and "BUSINESS" close gap
-    tl.to(codeRef.current, { y: "35%", duration: 1, ease: "power2.inOut" }, "<")
-      .to(businessRef.current, { y: "-35%", duration: 1, ease: "power2.inOut" }, "<");
+    tl.to(codeRef.current, { y: "35%", duration: 3, ease: "power2.inOut" }, "<")
+      .to(businessRef.current, { y: "-35%", duration: 3, ease: "power2.inOut" }, "<");
 
     // "CODE" and "BUSINESS" go left together
-    tl.to([codeRef.current, businessRef.current], { x: "-100vw", autoAlpha: 0, duration: 1, ease: "power2.in" }, "+=0.1");
+    tl.to([codeRef.current, businessRef.current], { x: "-100vw", autoAlpha: 0, duration: 3, ease: "power2.in" }, "+=0.1");
     
     // Fade out "Let's" and Arrow and Globe
-    tl.to([arrowRef.current, letsRef.current, globeRef.current], { autoAlpha: 0, duration: 1 }, "<");
+    tl.to([arrowRef.current, letsRef.current, globeRef.current], { autoAlpha: 0, duration: 3 }, "<");
 
-    // 4. Final Reveal
-    tl.to(finalTextRef.current, { autoAlpha: 1, scale: 1, duration: 1, ease: "back.out(1.7)" }, "-=0.3");
+    // 4. Final Reveal (Slower / More Scroll Distance)
+    tl.to(finalTextRef.current, { autoAlpha: 1, scale: 1, duration: 4, ease: "back.out(1.2)" }, "-=0.3");
 
     // Fade out stars
-    tl.to(".shape-star", { autoAlpha: 0, duration: 1 }, "<");
+    tl.to(".shape-star", { autoAlpha: 0, duration: 2 }, "<");
     
     // Fade out black overlay to reveal video (opacity 0.6 to match hero)
-    tl.to(".bg-overlay", { autoAlpha: 0.6, duration: 1 }, "<");
+    tl.to(".bg-overlay", { autoAlpha: 0.6, duration: 3 }, "<");
 
     // Move text up to make room for button
-    tl.to(finalTextRef.current, { y: -60, duration: 1, ease: "power2.inOut" });
+    tl.to(finalTextRef.current, { y: -60, duration: 2, ease: "power2.inOut" });
 
     // Reveal button
-    tl.to(buttonRef.current, { autoAlpha: 1, y: 0, duration: 1, ease: "power2.out" }, "<0.3");
+    tl.to(buttonRef.current, { autoAlpha: 1, y: 0, duration: 2, ease: "power2.out" }, "<0.5");
 
     // Parallax effect: Move elements up when Footer enters
     gsap.to(finalContainerRef.current, {
@@ -98,7 +98,7 @@ export default function LetsCode() {
 
   return (
     <>
-    <div ref={spacerRef} className="h-[250vh] w-full relative z-[25]" />
+    <div ref={spacerRef} className="h-[500vh] w-full relative z-[25]" />
     <section 
       ref={containerRef}
       className="lets-code-fixed-section fixed top-0 left-0 w-full h-screen text-white flex flex-col items-center justify-center overflow-hidden py-20 z-[30] opacity-0 invisible"

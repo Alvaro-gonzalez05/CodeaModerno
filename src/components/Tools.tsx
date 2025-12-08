@@ -151,11 +151,11 @@ export default function Tools() {
       <div ref={spacerRef} className="h-[250vh] w-full relative z-[30]" />
       <section 
         ref={containerRef} 
-        className="fixed top-0 left-0 w-full h-screen bg-black text-white py-20 overflow-hidden z-[35] -translate-x-full flex flex-col justify-center"
+        className="fixed top-0 left-0 w-full h-screen bg-black text-white py-10 overflow-hidden z-[35] -translate-x-full flex flex-col justify-center"
       >
         <div className="container mx-auto px-4 relative z-10">
-          <div className="mb-16 text-center">
-            <h2 className="text-3xl md:text-7xl font-bold mb-6 tracking-tighter">
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl md:text-6xl font-bold mb-4 tracking-tighter">
               Herramientas de Codea
             </h2>
             <p className="text-sm md:text-xl text-gray-400 max-w-2xl mx-auto">
@@ -163,11 +163,11 @@ export default function Tools() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
             {tools.map((tool, index) => (
               <div 
                 key={index} 
-                className="bg-white text-black rounded-[40px] p-10 hover:-translate-y-2 transition-all duration-300 group relative overflow-hidden shadow-xl min-h-[450px] flex flex-col"
+                className="bg-white text-black rounded-[30px] p-8 hover:-translate-y-2 transition-all duration-300 group relative overflow-hidden shadow-xl min-h-[380px] flex flex-col"
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gray-100 rounded-full -mr-6 -mt-6 z-0 transition-colors group-hover:bg-gray-200"></div>
                 
@@ -199,8 +199,8 @@ export default function Tools() {
             ))}
           </div>
 
-          <div ref={textRef} className="mt-16 text-center opacity-0">
-            <h3 className="text-3xl md:text-6xl font-bold tracking-tighter flex flex-wrap justify-center items-baseline gap-3">
+          <div ref={textRef} className="mt-10 text-center opacity-0">
+            <h3 className="text-2xl md:text-5xl font-bold tracking-tighter flex flex-wrap justify-center items-baseline gap-2">
               <span>Transforma</span>
               <span className="font-serif italic font-normal">complejidad</span>
               <span>en claridad</span>
