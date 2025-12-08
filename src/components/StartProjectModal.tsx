@@ -213,13 +213,17 @@ export default function StartProjectModal() {
 
         {/* Step 1: Project Details Form */}
         {step === 1 && (
-            <div ref={stepContainerRef} className="flex flex-col h-full p-6 md:p-8 overflow-y-auto custom-scrollbar">
+            <div 
+                ref={stepContainerRef} 
+                className="flex flex-col h-full p-6 md:p-8 overflow-y-auto custom-scrollbar overscroll-contain touch-pan-y"
+                data-lenis-prevent
+            >
                 <div className="mb-6 shrink-0">
                     <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Cuéntanos sobre tu proyecto</h2>
                     <p className="text-gray-400 text-sm">Ayúdanos a entender qué necesitas para prepararnos mejor.</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6 shrink-0">
                     <div className="space-y-5">
                         <div>
                             <label className="block text-xs font-medium text-gray-300 mb-1.5">Tu Nombre</label>
@@ -302,17 +306,17 @@ export default function StartProjectModal() {
                     </div>
                 </div>
 
-                <div className="mb-6 grow flex flex-col">
+                <div className="mb-6 flex flex-col shrink-0">
                     <label className="block text-xs font-medium text-gray-300 mb-1.5">Detalles del Proyecto</label>
                     <textarea 
-                        className="w-full bg-[#222] border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-white/30 transition-colors resize-none grow"
+                        className="w-full bg-[#222] border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-white/30 transition-colors resize-none h-32"
                         placeholder="Cuéntanos brevemente qué quieres lograr..."
                         value={formData.details}
                         onChange={(e) => setFormData({...formData, details: e.target.value})}
                     ></textarea>
                 </div>
 
-                <div className="mt-auto flex justify-end shrink-0">
+                <div className="mt-auto flex justify-end shrink-0 pb-2">
                     <button 
                         onClick={handleNext}
                         className="group flex items-center gap-2 px-6 py-3 bg-white text-black text-sm font-bold rounded-full hover:scale-105 transition-transform duration-300"
@@ -328,7 +332,11 @@ export default function StartProjectModal() {
 
         {/* Step 2: Calendar Booking (Cal.com style) */}
         {step === 2 && (
-            <div ref={stepContainerRef} className="flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden custom-scrollbar">
+            <div 
+                ref={stepContainerRef} 
+                className="flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden custom-scrollbar overscroll-contain touch-pan-y"
+                data-lenis-prevent
+            >
                 {/* Left Panel: Info */}
                 <div className="w-full md:w-1/4 bg-[#1a1a1a] p-5 border-r border-white/10 flex flex-col shrink-0">
                     <button onClick={handleBack} className="self-start mb-6 text-gray-400 hover:text-white flex items-center gap-2 text-xs">

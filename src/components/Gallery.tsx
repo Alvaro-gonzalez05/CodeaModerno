@@ -123,7 +123,7 @@ export default function Gallery() {
         </div>
         
         <div ref={textRef} className="w-screen text-center mt-4 z-10 absolute bottom-6 md:bottom-10 left-0 px-4">
-          <h2 className="text-xl md:text-5xl font-bold tracking-tighter flex flex-wrap justify-center items-baseline gap-2 md:gap-3">
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tighter flex flex-wrap justify-center items-baseline gap-2 md:gap-3">
             <span>Los grandes</span>
             <span className="font-serif italic font-normal">productos</span>
             <span>no nacen</span>
