@@ -76,14 +76,14 @@ export default function LetsCode() {
     tl.to(".bg-overlay", { autoAlpha: 0.6, duration: 3 }, "<");
 
     // Move text up to make room for button
-    tl.to(finalTextRef.current, { y: -60, duration: 2, ease: "power2.inOut" });
+    tl.to(finalTextRef.current, { y: -120, duration: 2, ease: "power2.inOut" });
 
     // Reveal button
     tl.to(buttonRef.current, { autoAlpha: 1, y: 0, duration: 2, ease: "power2.out" }, "<0.5");
 
     // Parallax effect: Move elements up when Footer enters
     gsap.to(finalContainerRef.current, {
-      y: "-=300",
+      y: "-=500",
       ease: "none",
       force3D: true,
       scrollTrigger: {
@@ -169,7 +169,7 @@ export default function LetsCode() {
           </div>
           
           <div className="relative">
-            <h2 className="text-[15vw] leading-[0.85] font-black tracking-tighter uppercase flex flex-col items-center">
+            <h2 className="text-[19vw] md:text-[15vw] leading-[0.85] font-black tracking-tighter uppercase flex flex-col items-center">
                 <span ref={codeRef} className="block">CODE</span>
                 <span ref={yourRef} className="block text-gray-500">YOUR</span>
                 <span ref={businessRef} className="block">BUSINESS</span>
@@ -185,7 +185,7 @@ export default function LetsCode() {
                 </div>
 
                 {/* Button Overlay */}
-                <div ref={buttonRef} className="absolute inset-0 flex items-center justify-center pointer-events-none pt-24 md:pt-32">
+                <div ref={buttonRef} className="absolute inset-0 flex items-center justify-center pointer-events-none pt-20 md:pt-32">
                     <button onClick={openModal} className="pointer-events-auto group flex items-center gap-3 px-8 py-4 bg-transparent border border-white text-white text-lg md:text-xl font-bold rounded-full hover:scale-105 transition-transform duration-300 hover:bg-white/10">
                         Empezar mi proyecto
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 group-hover:translate-x-1 transition-transform">
@@ -197,7 +197,7 @@ export default function LetsCode() {
           </div>
           
           {/* Globe icon similar to the one in the image */}
-          <div ref={globeRef} className="absolute bottom-0 right-8 md:right-24 translate-y-1/2 w-16 h-16 md:w-32 md:h-32 pointer-events-auto">
+          <div ref={globeRef} className="absolute -bottom-6 md:bottom-0 right-2 md:right-24 translate-y-1/2 w-14 h-14 md:w-32 md:h-32 pointer-events-auto">
              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full text-white animate-spin-slow">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M2 12h20" />

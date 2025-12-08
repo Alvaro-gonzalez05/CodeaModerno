@@ -178,7 +178,7 @@ export default function StartProjectModal() {
     >
       <div 
         ref={contentRef}
-        className="bg-[#111] w-full max-w-5xl h-[75vh] md:h-[650px] rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col relative will-change-transform"
+        className="bg-[#111] w-full max-w-5xl h-[85dvh] md:h-[650px] rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col relative will-change-transform"
       >
         {/* Success Overlay */}
         {isSuccess && (
@@ -328,9 +328,9 @@ export default function StartProjectModal() {
 
         {/* Step 2: Calendar Booking (Cal.com style) */}
         {step === 2 && (
-            <div ref={stepContainerRef} className="flex flex-col md:flex-row h-full">
+            <div ref={stepContainerRef} className="flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden custom-scrollbar">
                 {/* Left Panel: Info */}
-                <div className="w-full md:w-1/4 bg-[#1a1a1a] p-5 border-r border-white/10 flex flex-col">
+                <div className="w-full md:w-1/4 bg-[#1a1a1a] p-5 border-r border-white/10 flex flex-col shrink-0">
                     <button onClick={handleBack} className="self-start mb-6 text-gray-400 hover:text-white flex items-center gap-2 text-xs">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -421,8 +421,8 @@ export default function StartProjectModal() {
                 </div>
 
                 {/* Right Panel: Time Slots */}
-                <div className="w-full md:w-1/4 p-5 bg-[#111] flex flex-col">
-                    <div className="overflow-y-auto custom-scrollbar grow mb-4">
+                <div className="w-full md:w-1/4 p-5 bg-[#111] flex flex-col h-auto md:h-full shrink-0">
+                    <div className="md:overflow-y-auto custom-scrollbar grow mb-4">
                         <h3 className="text-sm font-medium text-white mb-4">
                             {selectedDate ? `Lunes ${selectedDate}` : 'Selecciona un día'}
                         </h3>

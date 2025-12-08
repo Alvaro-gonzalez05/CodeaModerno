@@ -151,56 +151,56 @@ export default function Tools() {
       <div ref={spacerRef} className="h-[250vh] w-full relative z-[30]" />
       <section 
         ref={containerRef} 
-        className="fixed top-0 left-0 w-full h-screen bg-black text-white py-10 overflow-hidden z-[35] -translate-x-full flex flex-col justify-center"
+        className="fixed top-0 left-0 w-full h-screen bg-black text-white py-4 md:py-10 overflow-hidden z-[35] -translate-x-full flex flex-col justify-center"
       >
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="mb-8 text-center">
-            <h2 className="text-3xl md:text-6xl font-bold mb-4 tracking-tighter">
+        <div className="container mx-auto px-4 relative z-10 h-full flex flex-col justify-center">
+          <div className="mb-4 md:mb-8 text-center">
+            <h2 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 tracking-tighter">
               Herramientas de Codea
             </h2>
-            <p className="text-sm md:text-xl text-gray-400 max-w-2xl mx-auto">
+            <p className="text-xs md:text-xl text-gray-400 max-w-2xl mx-auto px-2">
               Softwares que hemos desarrollado y cuentan con un modelo SaaS multiusuario, diseñados para escalar y resolver problemas complejos.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 max-w-5xl mx-auto w-full">
             {tools.map((tool, index) => (
               <div 
                 key={index} 
-                className="bg-white text-black rounded-[30px] p-8 hover:-translate-y-2 transition-all duration-300 group relative overflow-hidden shadow-xl min-h-[380px] flex flex-col"
+                className="bg-white text-black rounded-[20px] md:rounded-[30px] p-5 md:p-8 hover:-translate-y-2 transition-all duration-300 group relative overflow-hidden shadow-xl flex flex-col justify-between md:min-h-[380px]"
               >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gray-100 rounded-full -mr-6 -mt-6 z-0 transition-colors group-hover:bg-gray-200"></div>
+                <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-gray-100 rounded-full -mr-6 -mt-6 z-0 transition-colors group-hover:bg-gray-200"></div>
                 
                 <div className="relative z-10 flex flex-col h-full">
-                  <div className="flex justify-between items-start mb-8">
-                    <div className="flex flex-wrap gap-2">
+                  <div className="flex justify-between items-start mb-4 md:mb-8">
+                    <div className="flex flex-wrap gap-1 md:gap-2">
                       {tool.tags.map((tag, i) => (
-                        <span key={i} className="text-xs font-bold tracking-wide uppercase px-3 py-1 rounded-full bg-black text-white">
+                        <span key={i} className="text-[10px] md:text-xs font-bold tracking-wide uppercase px-2 py-0.5 md:px-3 md:py-1 rounded-full bg-black text-white">
                           {tag}
                         </span>
                       ))}
                     </div>
                   </div>
                   
-                  <h3 className="text-5xl font-bold mb-6 tracking-tight">{tool.name}</h3>
-                  <p className="text-lg text-gray-600 leading-relaxed mb-8">
+                  <h3 className="text-3xl md:text-5xl font-bold mb-2 md:mb-6 tracking-tight">{tool.name}</h3>
+                  <p className="text-sm md:text-lg text-gray-600 leading-relaxed mb-4 md:mb-8 line-clamp-3 md:line-clamp-none">
                     {tool.description}
                   </p>
                   
                   <button 
                     onClick={() => handleExplore(index)}
-                    className="flex items-center gap-3 text-lg font-bold group-hover:gap-5 transition-all duration-300 cursor-pointer mt-auto"
+                    className="flex items-center gap-2 md:gap-3 text-base md:text-lg font-bold group-hover:gap-4 md:group-hover:gap-5 transition-all duration-300 cursor-pointer mt-auto"
                   >
                     <span>Explorar</span>
-                    <span className="text-2xl">→</span>
+                    <span className="text-xl md:text-2xl">→</span>
                   </button>
                 </div>
               </div>
             ))}
           </div>
 
-          <div ref={textRef} className="mt-10 text-center opacity-0">
-            <h3 className="text-2xl md:text-5xl font-bold tracking-tighter flex flex-wrap justify-center items-baseline gap-2">
+          <div ref={textRef} className="mt-4 md:mt-10 text-center opacity-0">
+            <h3 className="text-3xl md:text-5xl font-bold tracking-tighter flex flex-wrap justify-center items-baseline gap-2">
               <span>Transforma</span>
               <span className="font-serif italic font-normal">complejidad</span>
               <span>en claridad</span>
@@ -222,28 +222,28 @@ export default function Tools() {
               ✕
             </button>
 
-            <div className="container mx-auto px-4 py-10 flex flex-col md:flex-row items-center gap-12 md:gap-24 h-full overflow-y-auto md:overflow-hidden">
-              <div className="w-full md:w-1/2 flex justify-center">
+            <div className="container mx-auto px-4 py-6 md:py-10 flex flex-col md:flex-row items-center gap-6 md:gap-24 h-full overflow-y-auto md:overflow-hidden">
+              <div className="w-full md:w-1/2 flex justify-center mt-12 md:mt-0">
                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                 <img src={tool.detail.image} alt={tool.name} className="detail-image w-full max-w-lg rounded-3xl shadow-2xl object-contain" />
+                 <img src={tool.detail.image} alt={tool.name} className="detail-image w-full max-w-xs md:max-w-lg rounded-3xl shadow-2xl object-contain" />
               </div>
-              <div className="w-full md:w-1/2 text-left detail-text">
-                  <div className="flex flex-wrap gap-2 mb-6">
+              <div className="w-full md:w-1/2 text-left detail-text pb-10 md:pb-0">
+                  <div className="flex flex-wrap gap-2 mb-4 md:mb-6">
                     {tool.tags.map((tag, i) => (
-                      <span key={i} className="text-xs font-bold tracking-wide uppercase px-3 py-1 rounded-full bg-black text-white">
+                      <span key={i} className="text-[10px] md:text-xs font-bold tracking-wide uppercase px-2 py-1 md:px-3 md:py-1 rounded-full bg-black text-white">
                         {tag}
                       </span>
                     ))}
                   </div>
-                  <h2 className="text-6xl md:text-7xl font-bold mb-4 tracking-tighter">{tool.name}</h2>
-                  <h3 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">{tool.detail.title}</h3>
-                  <p className="text-lg md:text-xl text-gray-600 leading-relaxed mb-8">
+                  <h2 className="text-4xl md:text-7xl font-bold mb-2 md:mb-4 tracking-tighter">{tool.name}</h2>
+                  <h3 className="text-xl md:text-3xl font-bold mb-4 md:mb-6 text-gray-800 leading-tight">{tool.detail.title}</h3>
+                  <p className="text-base md:text-xl text-gray-600 leading-relaxed mb-6 md:mb-8">
                     {tool.detail.description}
                   </p>
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                     {tool.detail.features.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-3 text-lg font-medium">
-                        <span className="w-2 h-2 bg-black rounded-full flex-shrink-0" />
+                      <li key={i} className="flex items-center gap-2 md:gap-3 text-base md:text-lg font-medium">
+                        <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-black rounded-full flex-shrink-0" />
                         {feature}
                       </li>
                     ))}

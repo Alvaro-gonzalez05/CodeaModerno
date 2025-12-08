@@ -142,7 +142,7 @@ export default function Process() {
         </div>
 
         <div ref={textRef} className="absolute bottom-6 md:bottom-10 left-0 w-full text-center z-20 opacity-0 px-4">
-          <h2 className="text-xl md:text-5xl font-bold tracking-tighter flex flex-wrap justify-center items-baseline gap-2 md:gap-3">
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tighter flex flex-wrap justify-center items-baseline gap-2 md:gap-3">
             <span>de la</span>
             <span className="font-serif italic font-normal">idea</span>
             <span>al</span>
