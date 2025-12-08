@@ -33,16 +33,18 @@ export default function Hero() {
     <div className="h-screen w-full relative z-0" /> {/* Spacer to preserve layout flow */}
     <section className="fixed top-0 left-0 h-screen w-full flex items-center justify-center overflow-hidden bg-black z-0">
       {/* Background video - put /hero-video.mp4 or /hero-video.webm into public/ */}
-      <video
-        className="absolute inset-0 w-full h-full object-cover"
-        autoPlay
-        muted
-        loop
-        playsInline
-        poster="/hero-poster.jpg"
-      >
-        <source src="/hero-video.mp4" type="video/mp4" />
-      </video>
+      <div className="absolute inset-0 bg-black">
+        <video
+            className="absolute inset-0 w-full h-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster="/hero-poster.jpg"
+        >
+            <source src="/hero-video.mp4" type="video/mp4" />
+        </video>
+      </div>
 
       {/* dark overlay so the white text stays readable */}
       <div className="absolute inset-0 bg-black/60 pointer-events-none" />

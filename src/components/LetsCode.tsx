@@ -104,7 +104,7 @@ export default function LetsCode() {
       className="lets-code-fixed-section fixed top-0 left-0 w-full h-screen text-white flex flex-col items-center justify-center overflow-hidden py-20 z-[30] opacity-0 invisible"
     >
        {/* Video Background (Always playing, hidden by black layer initially) */}
-       <div className="absolute inset-0 z-0">
+       <div className="absolute inset-0 z-0 bg-black">
           <video
             className="w-full h-full object-cover"
             autoPlay
