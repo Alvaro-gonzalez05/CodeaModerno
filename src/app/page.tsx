@@ -4,6 +4,8 @@ import Gallery from "@/components/Gallery";
 import Clients from "@/components/Clients";
 import Process from "@/components/Process";
 import Tools from "@/components/Tools";
+import LetsCode from "@/components/LetsCode";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
@@ -17,6 +19,8 @@ export default function Home() {
         <Clients />
         <Process />
         <Tools />
+        <LetsCode />
+        <Footer />
       </main>
     </div>
   );

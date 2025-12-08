@@ -1,8 +1,10 @@
 "use client";
 import { Slide } from "react-awesome-reveal";
 import { useState, useEffect } from "react";
+import { useModal } from "@/context/ModalContext";
 
 export default function Hero() {
+  const { openModal } = useModal();
   const [key, setKey] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
 
@@ -37,6 +39,7 @@ export default function Hero() {
         muted
         loop
         playsInline
+        poster="/hero-poster.jpg"
       >
         <source src="/hero-video.mp4" type="video/mp4" />
       </video>
@@ -54,6 +57,20 @@ export default function Hero() {
           <p className="max-w-2xl mx-auto text-gray-300 text-lg md:text-xl leading-relaxed">
             Ayudamos a emprendedores visionarios a construir marcas del mañana a través de sitios webs y diversas soluciones tecnológicas.
           </p>
+        </Slide>
+
+        <Slide key={`buttons-${key}`} direction="up" triggerOnce={false} delay={200}>
+          <div className="flex flex-col md:flex-row gap-4 justify-center mt-10 items-center">
+             <button onClick={openModal} className="group flex items-center gap-3 px-8 py-4 bg-white text-black text-lg font-bold rounded-full hover:scale-105 transition-transform duration-300 hover:bg-gray-200">
+                Empezar un proyecto
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 group-hover:translate-x-1 transition-transform">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+             </button>
+             <button className="px-8 py-4 bg-transparent border border-white text-white text-lg font-bold rounded-full hover:bg-white/10 hover:scale-105 transition-all duration-300">
+                Contáctanos
+             </button>
+          </div>
         </Slide>
       </div>
     </section>
