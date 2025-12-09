@@ -58,8 +58,8 @@ export default function Header() {
           
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center space-x-8 text-sm font-medium mix-blend-difference text-white">
-            <Link href="#work" className="hover:text-gray-300 transition-colors">trabajos</Link>
-            <Link href="#about" className="hover:text-gray-300 transition-colors">sobre nosotros</Link>
+            <Link href="/work" className="relative after:content-[''] after:absolute after:left-0 after:-bottom-1 after:w-0 after:h-[1px] after:bg-white after:transition-all after:duration-300 hover:after:w-full">trabajos</Link>
+            <Link href="/about" className="relative after:content-[''] after:absolute after:left-0 after:-bottom-1 after:w-0 after:h-[1px] after:bg-white after:transition-all after:duration-300 hover:after:w-full">sobre nosotros</Link>
             <button onClick={openModal} className="group flex items-center gap-2 px-5 py-2 bg-transparent border border-white rounded-full hover:bg-white hover:text-black transition-all duration-300">
                 Empezar un proyecto
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform">
@@ -94,8 +94,8 @@ export default function Header() {
               </button>
 
               <nav className="flex flex-col space-y-8 text-center text-2xl font-bold text-white items-center">
-                <Link href="#work" onClick={toggleMenu} className="hover:text-gray-300 transition-colors">trabajos</Link>
-                <Link href="#about" onClick={toggleMenu} className="hover:text-gray-300 transition-colors">sobre nosotros</Link>
+                <Link href="/work" onClick={toggleMenu} className="hover:text-gray-300 transition-colors">trabajos</Link>
+                <Link href="/about" onClick={toggleMenu} className="hover:text-gray-300 transition-colors">sobre nosotros</Link>
                 <button onClick={() => { toggleMenu(); openModal(); }} className="group flex items-center gap-3 px-6 py-3 bg-transparent border border-white rounded-full hover:bg-white hover:text-black transition-all text-xl">
                     Empezar un proyecto
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 group-hover:translate-x-1 transition-transform">
