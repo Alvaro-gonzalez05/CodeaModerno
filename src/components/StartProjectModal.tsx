@@ -26,7 +26,7 @@ export default function StartProjectModal() {
     email: '',
     phone: '',
     projectType: '',
-    budget: '',
+    budget: '0',
     details: '',
     date: '',
     time: ''
@@ -324,18 +324,18 @@ export default function StartProjectModal() {
                             <div className="px-1">
                                 <input 
                                     type="range" 
-                                    min="100" 
+                                    min="0" 
                                     max="10000" 
                                     step="100"
                                     className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-white"
                                     style={{
-                                        background: `linear-gradient(to right, white ${(((!isNaN(parseInt(formData.budget)) ? parseInt(formData.budget) : 1000) - 100) / (10000 - 100)) * 100}%, #222 ${(((!isNaN(parseInt(formData.budget)) ? parseInt(formData.budget) : 1000) - 100) / (10000 - 100)) * 100}%)`
+                                        background: `linear-gradient(to right, white ${(((!isNaN(parseInt(formData.budget)) ? parseInt(formData.budget) : 0) / 10000) * 100}%, #222 ${(((!isNaN(parseInt(formData.budget)) ? parseInt(formData.budget) : 0) / 10000) * 100}%)`
                                     }}
-                                    value={!isNaN(parseInt(formData.budget)) ? parseInt(formData.budget) : 1000}
+                                    value={!isNaN(parseInt(formData.budget)) ? parseInt(formData.budget) : 0}
                                     onChange={(e) => setFormData({...formData, budget: e.target.value})}
                                 />
                                 <div className="flex justify-between mt-2 text-[10px] text-gray-400 font-medium uppercase tracking-wider">
-                                    <span>$100</span>
+                                    <span>$0</span>
                                     <span>$5k</span>
                                     <span>$10k+</span>
                                 </div>
@@ -344,7 +344,7 @@ export default function StartProjectModal() {
                                     <input
                                         type="number"
                                         className="bg-transparent text-sm font-bold text-white focus:outline-none w-20 text-center border-b border-white/20 focus:border-white transition-colors appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                        value={!isNaN(parseInt(formData.budget)) ? parseInt(formData.budget) : 1000}
+                                        value={!isNaN(parseInt(formData.budget)) ? parseInt(formData.budget) : 0}
                                         onChange={(e) => setFormData({...formData, budget: e.target.value})}
                                     />
                                 </div>
