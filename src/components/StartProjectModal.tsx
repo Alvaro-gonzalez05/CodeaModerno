@@ -4,6 +4,7 @@ import { useModal } from '@/context/ModalContext';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { useLenis } from '@studio-freight/react-lenis';
+import { sendProjectEmail } from '@/app/actions';
 
 export default function StartProjectModal() {
   const { isModalOpen, closeModal } = useModal();
@@ -11,6 +12,8 @@ export default function StartProjectModal() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const containerRef = React.useRef<HTMLDivElement>(null);
   const contentRef = React.useRef<HTMLDivElement>(null);
   const stepContainerRef = React.useRef<HTMLDivElement>(null);
@@ -81,8 +84,22 @@ export default function StartProjectModal() {
     }
   }, [step, isModalOpen]);
 
+  const validateStep1 = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.name) newErrors.name = 'El nombre es requerido';
+    if (!formData.email) newErrors.email = 'El email es requerido';
+    if (!formData.phone) newErrors.phone = 'El teléfono es requerido';
+    if (!formData.projectType) newErrors.projectType = 'Selecciona un tipo de proyecto';
+    if (!formData.details) newErrors.details = 'Cuéntanos detalles del proyecto';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleNext = () => {
     if (step === 1) {
+        if (!validateStep1()) return;
+        
         gsap.to(stepContainerRef.current, {
             opacity: 0,
             x: -20,
@@ -103,10 +120,24 @@ export default function StartProjectModal() {
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedDate || !selectedTime) return;
     setIsSubmitting(true);
-    setIsSuccess(true);
+
+    const finalData = {
+        ...formData,
+        date: `Diciembre ${selectedDate}, 2025`,
+        time: selectedTime
+    };
+
+    const result = await sendProjectEmail(finalData);
+
+    if (result.success) {
+        setIsSuccess(true);
+    } else {
+        alert('Hubo un error al enviar la solicitud. Por favor intenta nuevamente.');
+        setIsSubmitting(false);
+    }
   };
 
   useGSAP(() => {
@@ -229,31 +260,43 @@ export default function StartProjectModal() {
                             <label className="block text-xs font-medium text-gray-300 mb-1.5">Tu Nombre</label>
                             <input 
                                 type="text" 
-                                className="w-full bg-[#222] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/30 transition-colors"
+                                className={`w-full bg-[#222] border rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none transition-colors ${errors.name ? 'border-red-500' : 'border-white/10 focus:border-white/30'}`}
                                 placeholder="John Doe"
                                 value={formData.name}
-                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                onChange={(e) => {
+                                    setFormData({...formData, name: e.target.value});
+                                    if (errors.name) setErrors({...errors, name: ''});
+                                }}
                             />
+                            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-300 mb-1.5">Email Corporativo</label>
                             <input 
                                 type="email" 
-                                className="w-full bg-[#222] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/30 transition-colors"
+                                className={`w-full bg-[#222] border rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none transition-colors ${errors.email ? 'border-red-500' : 'border-white/10 focus:border-white/30'}`}
                                 placeholder="john@company.com"
                                 value={formData.email}
-                                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                onChange={(e) => {
+                                    setFormData({...formData, email: e.target.value});
+                                    if (errors.email) setErrors({...errors, email: ''});
+                                }}
                             />
+                            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-300 mb-1.5">Teléfono</label>
                             <input 
                                 type="tel" 
-                                className="w-full bg-[#222] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/30 transition-colors"
+                                className={`w-full bg-[#222] border rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none transition-colors ${errors.phone ? 'border-red-500' : 'border-white/10 focus:border-white/30'}`}
                                 placeholder="+54 9 11 ..."
                                 value={formData.phone}
-                                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                onChange={(e) => {
+                                    setFormData({...formData, phone: e.target.value});
+                                    if (errors.phone) setErrors({...errors, phone: ''});
+                                }}
                             />
+                            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                         </div>
                     </div>
 
@@ -264,13 +307,17 @@ export default function StartProjectModal() {
                                 {['Sitio Web', 'E-commerce', 'Branding', 'App Web', 'Diseño', 'Otro'].map((type) => (
                                     <button
                                         key={type}
-                                        onClick={() => setFormData({...formData, projectType: type})}
-                                        className={`px-3 py-2.5 rounded-lg text-xs font-medium border transition-all ${formData.projectType === type ? 'bg-white text-black border-white' : 'bg-[#222] text-gray-300 border-white/10 hover:border-white/30'}`}
+                                        onClick={() => {
+                                            setFormData({...formData, projectType: type});
+                                            if (errors.projectType) setErrors({...errors, projectType: ''});
+                                        }}
+                                        className={`px-3 py-2.5 rounded-lg text-xs font-medium border transition-all ${formData.projectType === type ? 'bg-white text-black border-white' : 'bg-[#222] text-gray-300 border-white/10 hover:border-white/30'} ${errors.projectType && !formData.projectType ? 'border-red-500' : ''}`}
                                     >
                                         {type}
                                     </button>
                                 ))}
                             </div>
+                            {errors.projectType && <p className="text-red-500 text-xs mt-1">{errors.projectType}</p>}
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-300 mb-3">Presupuesto (USD)</label>
@@ -309,11 +356,15 @@ export default function StartProjectModal() {
                 <div className="mb-6 flex flex-col shrink-0">
                     <label className="block text-xs font-medium text-gray-300 mb-1.5">Detalles del Proyecto</label>
                     <textarea 
-                        className="w-full bg-[#222] border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-white/30 transition-colors resize-none h-32"
+                        className={`w-full bg-[#222] border rounded-lg px-4 py-3 text-sm text-white focus:outline-none transition-colors resize-none h-32 ${errors.details ? 'border-red-500' : 'border-white/10 focus:border-white/30'}`}
                         placeholder="Cuéntanos brevemente qué quieres lograr..."
                         value={formData.details}
-                        onChange={(e) => setFormData({...formData, details: e.target.value})}
+                        onChange={(e) => {
+                            setFormData({...formData, details: e.target.value});
+                            if (errors.details) setErrors({...errors, details: ''});
+                        }}
                     ></textarea>
+                    {errors.details && <p className="text-red-500 text-xs mt-1">{errors.details}</p>}
                 </div>
 
                 <div className="mt-auto flex justify-end shrink-0 pb-2">
