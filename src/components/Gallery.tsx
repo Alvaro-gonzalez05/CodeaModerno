@@ -100,9 +100,9 @@ export default function Gallery() {
         className="flex flex-row items-stretch w-fit px-4 md:px-10 gap-6 md:gap-24 pl-[5vw] md:pl-[10vw]"
       >
         {services.map((service, index) => (
-          <div key={index} className="gallery-card flex-shrink-0 relative w-[85vw] md:w-[600px] min-h-[45vh] md:min-h-[50vh] bg-[#F5F5F5] rounded-[30px] md:rounded-[40px] p-6 md:p-10 flex flex-col justify-center hover:bg-[#EAEAEA] transition-colors duration-500 group overflow-visible">
-            <div className="relative z-10 w-full md:w-[55%] flex flex-col gap-3 md:gap-6">
-                <h3 className="text-2xl md:text-5xl font-bold tracking-tight leading-tight">
+          <div key={index} className="gallery-card flex-shrink-0 relative w-[85vw] md:w-[600px] min-h-[45vh] md:min-h-[50vh] bg-[#F5F5F5] rounded-[30px] md:rounded-[40px] p-5 md:p-10 flex flex-col justify-center hover:bg-[#EAEAEA] transition-colors duration-500 group overflow-visible">
+            <div className="relative z-10 w-[65%] md:w-[55%] flex flex-col gap-3 md:gap-6">
+                <h3 className="text-xl md:text-5xl font-bold tracking-tight leading-tight">
                   {service.title}
                 </h3>
                 <p className="text-base md:text-xl text-gray-600 leading-relaxed">
@@ -115,7 +115,7 @@ export default function Gallery() {
             </div>
 
               {/* HD Phone Mockup */}
-              <div className="absolute -right-4 md:-right-12 top-1/2 -translate-y-1/2 w-[100px] md:w-[220px] z-20">
+              <div className="absolute -right-6 md:-right-12 top-1/2 -translate-y-1/2 w-[100px] md:w-[220px] z-20">
                 <div className="relative w-full aspect-[9/19] bg-black rounded-[1rem] md:rounded-[2.5rem] shadow-2xl border-[4px] md:border-[8px] border-[#121212] overflow-hidden ring-1 ring-white/10">
                   {/* Dynamic Island / Notch */}
                   <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[30%] h-[12px] md:h-[24px] bg-black rounded-full z-30"></div>
