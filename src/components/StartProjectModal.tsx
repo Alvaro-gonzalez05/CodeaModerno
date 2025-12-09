@@ -329,7 +329,7 @@ export default function StartProjectModal() {
                                     step="100"
                                     className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-white"
                                     style={{
-                                        background: `linear-gradient(to right, white ${(((!isNaN(parseInt(formData.budget)) ? parseInt(formData.budget) : 0) / 10000) * 100}%, #222 ${(((!isNaN(parseInt(formData.budget)) ? parseInt(formData.budget) : 0) / 10000) * 100}%)`
+                                        background: `linear-gradient(to right, white ${(((!isNaN(parseInt(formData.budget)) ? parseInt(formData.budget) : 0) / 10000) * 100)}%, #222 ${(((!isNaN(parseInt(formData.budget)) ? parseInt(formData.budget) : 0) / 10000) * 100)}%)`
                                     }}
                                     value={!isNaN(parseInt(formData.budget)) ? parseInt(formData.budget) : 0}
                                     onChange={(e) => setFormData({...formData, budget: e.target.value})}
