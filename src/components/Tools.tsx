@@ -245,11 +245,11 @@ export default function Tools() {
               ✕
             </button>
 
-            <div className="container mx-auto px-4 py-6 md:py-10 flex flex-col-reverse md:flex-row items-center gap-6 md:gap-24 h-full overflow-y-auto md:overflow-hidden">
-              <div className="w-full md:w-1/2 flex justify-center mt-12 md:mt-0">
+            <div className="container mx-auto px-4 py-6 md:py-10 flex flex-col md:flex-row items-center gap-6 md:gap-24 h-full overflow-y-auto md:overflow-hidden">
+              <div className="w-full md:w-1/2 flex justify-center md:mt-0 shrink-0">
                  {/* eslint-disable-next-line @next/next/no-img-element */}
                  {tool.detail.video ? (
-                   <div className="detail-image w-full max-w-md md:max-w-xl flex justify-center items-center">
+                   <div className="detail-image w-full max-w-[250px] md:max-w-xl flex justify-center items-center">
                      <video 
                        src={tool.detail.video} 
                        loop 
