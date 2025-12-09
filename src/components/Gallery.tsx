@@ -10,22 +10,26 @@ const services = [
   {
     title: "Desarrollo de Software a Medida",
     description: "Software a medida que se adapta a tu negocio. Soluciones personalizadas, escalables y diseñadas para optimizar procesos y potenciar tu crecimiento a largo plazo.",
-    cta: "Conocer más"
+    cta: "Conocer más",
+    image: "https://i.pinimg.com/736x/b4/85/5b/b4855bec7b4741b5319314fe928cdcf2.jpg"
   },
   {
     title: "Desarrollo Web",
     description: "Sitios web modernos y de alto rendimiento. Diseño estratégico y velocidad para fortalecer tu marca y brindar una experiencia de usuario impecable.",
-    cta: "Ver servicios"
+    cta: "Ver servicios",
+    image: "https://i.pinimg.com/736x/a7/93/0d/a7930d4ea24d514685774e10b0137133.jpg"
   },
   {
     title: "Soluciones de E-commerce",
     description: "Tiendas online seguras y escalables. Plataformas e-commerce diseñadas para aumentar conversiones, simplificar la gestión y potenciar tus ventas.",
-    cta: "Empezar ahora"
+    cta: "Empezar ahora",
+    image: "https://i.pinimg.com/736x/ee/25/27/ee252747f024b15d408bbd78f14c78b1.jpg"
   },
   {
     title: "Diseño UX/UI & Landing Pages",
     description: "Diseño que conecta y convierte. Interfaces intuitivas y landing pages de alto impacto, creadas para transformar visitantes en clientes.",
-    cta: "Ver trabajos"
+    cta: "Ver trabajos",
+    image: "https://i.pinimg.com/736x/4f/27/dc/4f27dc5973366a8599dc149d73d6ede0.jpg"
   }
 ];
 
@@ -106,13 +110,23 @@ export default function Gallery() {
                 </p>
               </div>
 
-              {/* Mockup Image */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src="/a.png" 
-                alt="Service Mockup" 
-                className="absolute -right-5 md:-right-19 top-1/2 -translate-y-1/2 w-[80px] md:w-[175px] h-auto object-contain drop-shadow-2xl pointer-events-none z-20" 
-              />
+              {/* HD Phone Mockup */}
+              <div className="absolute -right-4 md:-right-12 top-1/2 -translate-y-1/2 w-[100px] md:w-[220px] z-20">
+                <div className="relative w-full aspect-[9/19] bg-black rounded-[1rem] md:rounded-[2.5rem] shadow-2xl border-[4px] md:border-[8px] border-[#121212] overflow-hidden ring-1 ring-white/10">
+                  {/* Dynamic Island / Notch */}
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[30%] h-[12px] md:h-[24px] bg-black rounded-full z-30"></div>
+                  
+                  {/* Screen Content */}
+                  <img 
+                    src={service.image} 
+                    alt={service.title} 
+                    className="w-full h-full object-cover object-top bg-white" 
+                  />
+                  
+                  {/* Screen Reflection/Gloss (Optional for realism) */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent pointer-events-none z-20"></div>
+                </div>
+              </div>
 
               <div className="relative z-10 flex items-center gap-2 md:gap-4 text-lg md:text-xl font-medium group-hover:translate-x-2 transition-transform duration-300">
                 <span>{service.cta}</span>

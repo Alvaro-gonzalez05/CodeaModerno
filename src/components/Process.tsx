@@ -112,8 +112,13 @@ export default function Process() {
               skewAmount={3}
             >
               <Card className="bg-[#F5F5F5] border border-black/10 p-6 flex flex-col justify-start text-black">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/a.png" alt="Análisis" className="w-full h-32 md:h-48 object-contain mb-4 md:mb-6 rounded-lg bg-white/50" />
+                <div className="w-full h-[200px] md:h-[280px] mb-6 overflow-hidden rounded-2xl shadow-sm bg-white">
+                  <img 
+                    src="https://i.pinimg.com/736x/32/53/ee/3253ee0954569773f430926def883beb.jpg" 
+                    alt="Análisis" 
+                    className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-700" 
+                  />
+                </div>
                 <h3 className="text-2xl md:text-3xl font-bold mb-2">1 Análisis</h3>
                 <p className="text-gray-600 leading-relaxed text-xs md:text-sm">
                   Entendemos tus necesidades y diseñamos una estrategia eficiente con una arquitectura sólida, asegurando que tu idea sea escalable y sostenible a largo plazo.
@@ -121,8 +126,13 @@ export default function Process() {
               </Card>
               
               <Card className="bg-[#F5F5F5] border border-black/10 p-6 flex flex-col justify-start text-black">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/a.png" alt="Desarrollo" className="w-full h-32 md:h-48 object-contain mb-4 md:mb-6 rounded-lg bg-white/50" />
+                <div className="w-full h-[200px] md:h-[280px] mb-6 overflow-hidden rounded-2xl shadow-sm bg-white">
+                  <img 
+                    src="https://i.pinimg.com/736x/9d/1d/3e/9d1d3e1aca3f7e93eba1eb3fc5c64c54.jpg" 
+                    alt="Desarrollo" 
+                    className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-700" 
+                  />
+                </div>
                 <h3 className="text-2xl md:text-3xl font-bold mb-2">2 Desarrollo</h3>
                 <p className="text-gray-600 leading-relaxed text-xs md:text-sm">
                   Convertimos tu problema en una solución, creando aplicaciones robustas con tecnologías modernas como React, .NET, Flutter, enfocándonos en alto rendimiento.
@@ -130,8 +140,13 @@ export default function Process() {
               </Card>
               
               <Card className="bg-[#F5F5F5] border border-black/10 p-6 flex flex-col justify-start text-black">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/a.png" alt="Despliegue" className="w-full h-32 md:h-48 object-contain mb-4 md:mb-6 rounded-lg bg-white/50" />
+                <div className="w-full h-[200px] md:h-[280px] mb-6 overflow-hidden rounded-2xl shadow-sm bg-white">
+                  <img 
+                    src="https://i.pinimg.com/736x/c8/21/6a/c8216ac7bc1cb96da93a5593d0e0cb03.jpg" 
+                    alt="Despliegue" 
+                    className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-700" 
+                  />
+                </div>
                 <h3 className="text-2xl md:text-3xl font-bold mb-2">3 Despliegue</h3>
                 <p className="text-gray-600 leading-relaxed text-xs md:text-sm">
                   Entregamos un MVP desplegado y listo para usar, asegurando su correcto funcionamiento con pruebas finales y optimizaciones para ofrecer una experiencia fluida y eficiente.

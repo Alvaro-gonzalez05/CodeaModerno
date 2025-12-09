@@ -171,7 +171,7 @@ export default function LetsCode() {
           <div className="relative">
             <h2 className="text-[19vw] md:text-[15vw] leading-[0.85] font-black tracking-tighter uppercase flex flex-col items-center">
                 <span ref={codeRef} className="block">CODE</span>
-                <span ref={yourRef} className="block text-gray-500">YOUR</span>
+                <span ref={yourRef} className="block text-violet-400">YOUR</span>
                 <span ref={businessRef} className="block">BUSINESS</span>
             </h2>
             
