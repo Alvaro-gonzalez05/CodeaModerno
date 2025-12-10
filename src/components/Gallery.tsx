@@ -90,34 +90,34 @@ export default function Gallery() {
     <div className="w-full relative z-[20]">
       <section className="overflow-hidden h-dvh flex flex-col justify-center bg-white text-black rounded-[30px] md:rounded-[60px] relative" ref={triggerRef}>
         <div className="w-full text-center mb-4 md:mb-8 absolute top-4 md:top-8 left-0 z-30 px-4">
-          <h2 className="text-3xl md:text-6xl font-bold tracking-tighter">
+          <h2 className="text-5xl md:text-6xl font-bold tracking-tighter">
             ¿Qué hacemos?
           </h2>
         </div>
 
       <div 
         ref={sectionRef} 
-        className="flex flex-row items-stretch w-fit px-4 md:px-10 gap-4 md:gap-12 pl-[5vw] md:pl-[10vw]"
+        className="flex flex-row items-stretch w-fit px-4 md:px-10 gap-4 md:gap-12 pl-[5vw] md:pl-[10vw] pr-[5vw] md:pr-[10vw]"
       >
         {services.map((service, index) => (
-          <div key={index} className="gallery-card flex-shrink-0 relative w-[80vw] md:w-[450px] min-h-[35vh] md:min-h-[40vh] bg-[#F5F5F5] rounded-[20px] md:rounded-[30px] p-4 md:p-6 flex flex-col hover:bg-[#EAEAEA] transition-colors duration-500 group overflow-visible">
+          <div key={index} className="gallery-card flex-shrink-0 relative w-[75vw] md:w-[450px] min-h-[55vh] md:min-h-[40vh] bg-[#F5F5F5] rounded-[20px] md:rounded-[30px] p-6 md:p-6 flex flex-col hover:bg-[#EAEAEA] transition-colors duration-500 group overflow-visible">
             <div className="relative z-10 w-[65%] md:w-[60%] flex flex-col h-full justify-between">
                 <div className="flex flex-col gap-2 md:gap-4">
-                    <h3 className="text-lg md:text-3xl font-bold tracking-tight leading-tight">
+                    <h3 className="text-2xl md:text-3xl font-bold tracking-tight leading-tight">
                       {service.title}
                     </h3>
-                    <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+                    <p className="text-base md:text-base text-gray-600 leading-relaxed">
                       {service.description}
                     </p>
                 </div>
-                <div className="flex items-center gap-2 md:gap-3 text-sm md:text-lg font-medium group-hover:translate-x-2 transition-transform duration-300 mt-2 md:mt-3">
+                <div className="flex items-center gap-2 md:gap-3 text-base md:text-lg font-medium group-hover:translate-x-2 transition-transform duration-300 mt-2 md:mt-3">
                   <span>{service.cta}</span>
                   <span className="text-lg md:text-xl">→</span>
                 </div>
             </div>
 
               {/* HD Phone Mockup */}
-              <div className="absolute -right-4 md:-right-8 top-1/2 -translate-y-1/2 w-[80px] md:w-[160px] z-20">
+              <div className="absolute -right-4 md:-right-8 top-1/2 -translate-y-1/2 w-[110px] md:w-[160px] z-20">
                 <div className="relative w-full aspect-[9/19] bg-black rounded-[0.8rem] md:rounded-[2rem] shadow-2xl border-[3px] md:border-[6px] border-[#121212] overflow-hidden ring-1 ring-white/10">
                   {/* Dynamic Island / Notch */}
                   <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[30%] h-[8px] md:h-[18px] bg-black rounded-full z-30"></div>

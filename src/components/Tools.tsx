@@ -150,7 +150,7 @@ export default function Tools() {
 
   return (
     <>
-      <div ref={spacerRef} className="h-[250vh] w-full relative z-[30]" />
+      <div ref={spacerRef} className="h-[250vh] w-full relative z-[30] pointer-events-none" />
       <section 
         ref={containerRef} 
         className="fixed top-0 left-0 w-full h-screen bg-black text-white py-4 md:py-10 overflow-hidden z-[35] -translate-x-full flex flex-col justify-center"

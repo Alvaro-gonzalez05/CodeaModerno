@@ -18,7 +18,7 @@ export default function Process() {
     cardDistance: number;
     verticalDistance: number;
   }>({
-    width: 550,
+    width: 650,
     height: 450,
     cardDistance: 40,
     verticalDistance: 50
@@ -28,14 +28,14 @@ export default function Process() {
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setCardProps({
-          width: "80vw",
+          width: "85vw",
           height: 300,
           cardDistance: 15,
           verticalDistance: 20
         });
       } else {
         setCardProps({
-          width: 550,
+          width: 650,
           height: 450,
           cardDistance: 40,
           verticalDistance: 50
@@ -83,7 +83,7 @@ export default function Process() {
 
   return (
     <>
-      <div ref={spacerRef} className="h-[250vh] w-full relative z-[20]" />
+      <div ref={spacerRef} className="h-[250vh] w-full relative z-[20] pointer-events-none" />
       <section 
         ref={sectionRef} 
         className="process-fixed-section fixed top-0 left-0 w-full h-screen bg-white text-black py-10 md:py-20 flex flex-col items-center justify-center translate-x-full rounded-[30px] md:rounded-[60px] overflow-hidden z-[25]"
@@ -101,14 +101,14 @@ export default function Process() {
           </div>
 
           {/* Right Side: Card Swap */}
-          <div className="w-full md:w-1/2 h-[300px] md:h-[500px] flex justify-center items-center relative z-10">
+          <div className="w-full md:w-1/2 h-[300px] md:h-[500px] flex justify-center md:justify-start items-center relative z-10">
             <CardSwap
               width={cardProps.width}
               height={cardProps.height}
               cardDistance={cardProps.cardDistance}
               verticalDistance={cardProps.verticalDistance}
-              delay={4000}
-              pauseOnHover={true}
+              delay={7000}
+              pauseOnHover={false}
               skewAmount={3}
             >
               <Card className="bg-[#F5F5F5] border border-black/10 p-6 flex flex-col justify-start text-black">

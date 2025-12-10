@@ -98,7 +98,7 @@ export default function LetsCode() {
 
   return (
     <>
-    <div ref={spacerRef} className="h-[500vh] w-full relative z-[25]" />
+    <div ref={spacerRef} className="h-[500vh] w-full relative z-[25] pointer-events-none" />
     <section 
       ref={containerRef}
       className="lets-code-fixed-section fixed top-0 left-0 w-full h-screen text-white flex flex-col items-center justify-center overflow-hidden py-20 z-[30] opacity-0 invisible"

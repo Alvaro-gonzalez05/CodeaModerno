@@ -40,8 +40,18 @@ export default function Clients() {
   const [row2Clients, setRow2Clients] = useState(clients);
 
   useEffect(() => {
-    setRow1Clients(shuffleArray(clients));
-    setRow2Clients(shuffleArray(clients));
+    const r1 = shuffleArray(clients);
+    let r2 = shuffleArray(clients);
+
+    // Try to ensure no matching logos at the same index (Derangement)
+    let attempts = 0;
+    while (r1.some((c, i) => c.name === r2[i].name) && attempts < 20) {
+      r2 = shuffleArray(clients);
+      attempts++;
+    }
+
+    setRow1Clients(r1);
+    setRow2Clients(r2);
   }, []);
 
   useGSAP(() => {
@@ -134,20 +144,20 @@ export default function Clients() {
       <section ref={containerRef} className="clients-fixed-section py-10 md:py-20 bg-black text-white overflow-hidden fixed top-0 left-0 w-full z-[15] h-screen flex flex-col justify-center opacity-0 invisible">
         <div className="container mx-auto px-4 mb-8 md:mb-16">
           <Slide key={`title-${key}`} direction="left" triggerOnce={false}>
-            <h2 className="text-3xl md:text-[40px] font-normal max-w-3xl leading-tight text-[#D6D6D6]">
+            <h2 className="text-2xl md:text-[40px] font-normal max-w-3xl leading-tight text-[#D6D6D6]">
               Potenciando las ventas de nuestros clientes
             </h2>
           </Slide>
         </div>
 
-        <div ref={rowsContainerRef} className="flex flex-col gap-2 md:gap-4 opacity-0">
+        <div ref={rowsContainerRef} className="flex flex-col gap-2 md:gap-4 opacity-0 relative z-20">
           {/* Row 1: Right to Left */}
           <div className="flex whitespace-nowrap overflow-hidden">
             <div ref={row1Ref} className="flex gap-0 md:gap-0 items-center pr-0 md:pr-0 w-max">
               {[...row1Clients, ...row1Clients, ...row1Clients, ...row1Clients].map((client, i) => (
                 <div 
                   key={i} 
-                  className="relative h-52 md:h-80 w-96 md:w-[35rem] -mx-8 md:-mx-16 brightness-0 invert opacity-70 hover:opacity-100 hover:-translate-y-4 transition-all duration-300 cursor-pointer"
+                  className="relative h-24 sm:h-32 md:h-48 w-40 sm:w-64 md:w-96 -mx-4 md:-mx-8 brightness-0 invert opacity-70 hover:opacity-100 hover:-translate-y-4 transition-all duration-300 cursor-pointer"
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                 >
@@ -168,7 +178,7 @@ export default function Clients() {
               {[...row2Clients, ...row2Clients, ...row2Clients, ...row2Clients].map((client, i) => (
                 <div 
                   key={i} 
-                  className="relative h-52 md:h-80 w-96 md:w-[35rem] -mx-8 md:-mx-16 brightness-0 invert opacity-70 hover:opacity-100 hover:-translate-y-4 transition-all duration-300 cursor-pointer"
+                  className="relative h-24 sm:h-32 md:h-48 w-40 sm:w-64 md:w-96 -mx-4 md:-mx-8 brightness-0 invert opacity-70 hover:opacity-100 hover:-translate-y-4 transition-all duration-300 cursor-pointer"
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                 >
