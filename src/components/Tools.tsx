@@ -15,7 +15,7 @@ const tools = [
       title: "Control total de tu negocio gastronómico",
       description: "RestoPro centraliza todas las operaciones de tu local. Desde la toma de pedidos en la mesa con tablets, hasta la gestión de stock en tiempo real y reportes de rentabilidad. Optimiza los tiempos de cocina y mejora la experiencia de tus clientes.",
       features: ["Comandas Digitales", "Control de Stock y Recetas", "Facturación Fiscal Integrada", "Métricas en Tiempo Real"],
-      image: "https://i.pinimg.com/736x/07/9a/0d/079a0d2ff4d7dbd0fddc519916eb5425.jpg"
+      image: "/restopro.png"
     }
   },
   {
@@ -26,7 +26,7 @@ const tools = [
       title: "Atención al cliente 24/7 con IA",
       description: "UcoBot no es solo un chatbot, es un asistente inteligente capaz de entender el contexto, responder consultas complejas y calificar leads automáticamente. Integra todos tus canales de comunicación en una sola bandeja de entrada.",
       features: ["Procesamiento de Lenguaje Natural", "Multi-agente y Multi-canal", "Respuestas Automáticas", "Calificación de Leads"],
-      image: "/ucobot.png"
+      image: "/ucobot.png?v=2"
     }
   }
 ];
@@ -224,16 +224,20 @@ export default function Tools() {
 
             <div className="container mx-auto px-4 py-6 md:py-10 flex flex-col-reverse md:flex-row items-center gap-6 md:gap-24 h-full overflow-y-auto md:overflow-hidden">
               <div className="w-full md:w-1/2 flex justify-center mt-12 md:mt-0">
-                 <div className="detail-image relative w-[180px] md:w-[280px]">
-                    <div className="relative w-full aspect-[9/19] bg-black rounded-[1.5rem] md:rounded-[3rem] shadow-2xl border-[6px] md:border-[10px] border-[#121212] overflow-hidden ring-1 ring-white/10">
+                 <div className="detail-image relative w-[220px] md:w-[280px]">
+                    {/* Background Glow/Spheres */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[70%] bg-purple-600/20 rounded-full blur-[60px] -z-10"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[100%] bg-indigo-500/20 rounded-full blur-[50px] -z-10 translate-y-10"></div>
+
+                    <div className="relative w-full aspect-[9/19] bg-black rounded-[2rem] md:rounded-[3rem] shadow-2xl border-[8px] md:border-[10px] border-[#121212] overflow-hidden ring-1 ring-white/10">
                       {/* Dynamic Island / Notch */}
-                      <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[30%] h-[10px] md:h-[24px] bg-black rounded-full z-30"></div>
+                      <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[30%] h-[18px] md:h-[24px] bg-black rounded-full z-30"></div>
                       
                       {/* Screen Content */}
                       <img 
                         src={tool.detail.image} 
                         alt={tool.name} 
-                        className="w-full h-full object-cover object-top bg-white" 
+                        className="w-full h-full object-cover bg-white object-center"
                       />
                       
                       {/* Screen Reflection/Gloss */}
@@ -241,7 +245,7 @@ export default function Tools() {
                     </div>
                  </div>
               </div>
-              <div className="w-full md:w-1/2 text-left detail-text pb-10 md:pb-0">
+              <div className="w-full md:w-1/2 text-left detail-text pb-10 pt-14 md:pt-0 md:pb-0">
                   <div className="flex flex-wrap gap-2 mb-4 md:mb-6">
                     {tool.tags.map((tag, i) => (
                       <span key={i} className="text-[10px] md:text-xs font-bold tracking-wide uppercase px-2 py-1 md:px-3 md:py-1 rounded-full bg-black text-white">
