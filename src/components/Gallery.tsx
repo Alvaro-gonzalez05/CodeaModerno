@@ -16,19 +16,19 @@ const services = [
   {
     title: "Desarrollo Web",
     description: "Sitios web modernos y de alto rendimiento. Diseño estratégico y velocidad para fortalecer tu marca y brindar una experiencia de usuario impecable.",
-    cta: "Ver servicios",
+    cta: "Conocer más",
     image: "https://i.pinimg.com/736x/a7/93/0d/a7930d4ea24d514685774e10b0137133.jpg"
   },
   {
     title: "Soluciones de E-commerce",
     description: "Tiendas online seguras y escalables. Plataformas e-commerce diseñadas para aumentar conversiones, simplificar la gestión y potenciar tus ventas.",
-    cta: "Empezar ahora",
+    cta: "Conocer más",
     image: "https://i.pinimg.com/736x/ee/25/27/ee252747f024b15d408bbd78f14c78b1.jpg"
   },
   {
     title: "Diseño UX/UI & Landing Pages",
     description: "Diseño que conecta y convierte. Interfaces intuitivas y landing pages de alto impacto, creadas para transformar visitantes en clientes.",
-    cta: "Ver trabajos",
+    cta: "Conocer más",
     image: "https://i.pinimg.com/736x/4f/27/dc/4f27dc5973366a8599dc149d73d6ede0.jpg"
   }
 ];
@@ -97,28 +97,30 @@ export default function Gallery() {
 
       <div 
         ref={sectionRef} 
-        className="flex flex-row items-stretch w-fit px-4 md:px-10 gap-6 md:gap-24 pl-[5vw] md:pl-[10vw]"
+        className="flex flex-row items-stretch w-fit px-4 md:px-10 gap-4 md:gap-12 pl-[5vw] md:pl-[10vw]"
       >
         {services.map((service, index) => (
-          <div key={index} className="gallery-card flex-shrink-0 relative w-[85vw] md:w-[600px] min-h-[45vh] md:min-h-[50vh] bg-[#F5F5F5] rounded-[30px] md:rounded-[40px] p-5 md:p-10 flex flex-col justify-center hover:bg-[#EAEAEA] transition-colors duration-500 group overflow-visible">
-            <div className="relative z-10 w-[65%] md:w-[55%] flex flex-col gap-3 md:gap-6">
-                <h3 className="text-xl md:text-5xl font-bold tracking-tight leading-tight">
-                  {service.title}
-                </h3>
-                <p className="text-base md:text-xl text-gray-600 leading-relaxed">
-                  {service.description}
-                </p>
-                <div className="flex items-center gap-2 md:gap-4 text-lg md:text-xl font-medium group-hover:translate-x-2 transition-transform duration-300 mt-2 md:mt-4">
+          <div key={index} className="gallery-card flex-shrink-0 relative w-[80vw] md:w-[450px] min-h-[35vh] md:min-h-[40vh] bg-[#F5F5F5] rounded-[20px] md:rounded-[30px] p-4 md:p-6 flex flex-col hover:bg-[#EAEAEA] transition-colors duration-500 group overflow-visible">
+            <div className="relative z-10 w-[65%] md:w-[60%] flex flex-col h-full justify-between">
+                <div className="flex flex-col gap-2 md:gap-4">
+                    <h3 className="text-lg md:text-3xl font-bold tracking-tight leading-tight">
+                      {service.title}
+                    </h3>
+                    <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+                      {service.description}
+                    </p>
+                </div>
+                <div className="flex items-center gap-2 md:gap-3 text-sm md:text-lg font-medium group-hover:translate-x-2 transition-transform duration-300 mt-2 md:mt-3">
                   <span>{service.cta}</span>
-                  <span className="text-xl md:text-2xl">→</span>
+                  <span className="text-lg md:text-xl">→</span>
                 </div>
             </div>
 
               {/* HD Phone Mockup */}
-              <div className="absolute -right-6 md:-right-12 top-1/2 -translate-y-1/2 w-[100px] md:w-[220px] z-20">
-                <div className="relative w-full aspect-[9/19] bg-black rounded-[1rem] md:rounded-[2.5rem] shadow-2xl border-[4px] md:border-[8px] border-[#121212] overflow-hidden ring-1 ring-white/10">
+              <div className="absolute -right-4 md:-right-8 top-1/2 -translate-y-1/2 w-[80px] md:w-[160px] z-20">
+                <div className="relative w-full aspect-[9/19] bg-black rounded-[0.8rem] md:rounded-[2rem] shadow-2xl border-[3px] md:border-[6px] border-[#121212] overflow-hidden ring-1 ring-white/10">
                   {/* Dynamic Island / Notch */}
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[30%] h-[12px] md:h-[24px] bg-black rounded-full z-30"></div>
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[30%] h-[8px] md:h-[18px] bg-black rounded-full z-30"></div>
                   
                   {/* Screen Content */}
                   <img 

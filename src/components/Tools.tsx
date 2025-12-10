@@ -26,8 +26,7 @@ const tools = [
       title: "Atención al cliente 24/7 con IA",
       description: "UcoBot no es solo un chatbot, es un asistente inteligente capaz de entender el contexto, responder consultas complejas y calificar leads automáticamente. Integra todos tus canales de comunicación en una sola bandeja de entrada.",
       features: ["Procesamiento de Lenguaje Natural", "Multi-agente y Multi-canal", "Respuestas Automáticas", "Calificación de Leads"],
-      image: "/a.png",
-      video: "/robot.mp4"
+      image: "/ucobot.png"
     }
   }
 ];
@@ -45,12 +44,6 @@ export default function Tools() {
       // Open animation
       const detailEl = detailsRef.current[activeTool];
       if (detailEl) {
-        // Start video immediately to avoid delay
-        const video = detailEl.querySelector('video');
-        if (video) {
-            video.play().catch(() => {});
-        }
-
         const tl = gsap.timeline();
         
         tl.set(detailEl, { autoAlpha: 1, pointerEvents: "all" });
@@ -66,17 +59,8 @@ export default function Tools() {
         const text = detailEl.querySelector('.detail-text');
         
         if (img) {
-          const video = img.querySelector('video');
-          const isVideo = !!video;
-          
-          // If it's a video, ensure it plays
-          if (video) {
-            video.play().catch(() => {});
-          }
-
-          // For video wrapper, avoid transform animation to prevent stutter
           tl.fromTo(img, 
-            { x: isVideo ? 0 : -50, autoAlpha: 0 },
+            { x: -50, autoAlpha: 0 },
             { x: 0, autoAlpha: 1, duration: 0.6, ease: "power2.out" },
             "-=0.4"
           );
@@ -152,13 +136,6 @@ export default function Tools() {
   const handleClose = () => {
     const detailEl = detailsRef.current[activeTool!];
     if (detailEl) {
-        // Pause video when closing to save resources
-        const video = detailEl.querySelector('video');
-        if (video) {
-            video.pause();
-            video.currentTime = 0; // Reset on close so it's ready for next time
-        }
-
         gsap.to(detailEl, {
             autoAlpha: 0,
             duration: 0.3,
@@ -245,23 +222,24 @@ export default function Tools() {
               ✕
             </button>
 
-            <div className="container mx-auto px-4 py-6 md:py-10 flex flex-col md:flex-row items-center gap-6 md:gap-24 h-full overflow-y-auto md:overflow-hidden">
-              <div className="w-full md:w-1/2 flex justify-center md:mt-0 shrink-0">
-                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                 {tool.detail.video ? (
-                   <div className="detail-image w-full max-w-[250px] md:max-w-xl flex justify-center items-center">
-                     <video 
-                       src={tool.detail.video} 
-                       loop 
-                       muted 
-                       playsInline 
-                       preload="auto"
-                       className="w-full h-full object-contain contrast-125 brightness-100 saturate-200 [mask-image:radial-gradient(circle,black_30%,transparent_70%)]"
-                     />
-                   </div>
-                 ) : (
-                   <img src={tool.detail.image} alt={tool.name} className="detail-image w-full max-w-xs md:max-w-lg rounded-3xl shadow-2xl object-contain" />
-                 )}
+            <div className="container mx-auto px-4 py-6 md:py-10 flex flex-col-reverse md:flex-row items-center gap-6 md:gap-24 h-full overflow-y-auto md:overflow-hidden">
+              <div className="w-full md:w-1/2 flex justify-center mt-12 md:mt-0">
+                 <div className="detail-image relative w-[180px] md:w-[280px]">
+                    <div className="relative w-full aspect-[9/19] bg-black rounded-[1.5rem] md:rounded-[3rem] shadow-2xl border-[6px] md:border-[10px] border-[#121212] overflow-hidden ring-1 ring-white/10">
+                      {/* Dynamic Island / Notch */}
+                      <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[30%] h-[10px] md:h-[24px] bg-black rounded-full z-30"></div>
+                      
+                      {/* Screen Content */}
+                      <img 
+                        src={tool.detail.image} 
+                        alt={tool.name} 
+                        className="w-full h-full object-cover object-top bg-white" 
+                      />
+                      
+                      {/* Screen Reflection/Gloss */}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent pointer-events-none z-20"></div>
+                    </div>
+                 </div>
               </div>
               <div className="w-full md:w-1/2 text-left detail-text pb-10 md:pb-0">
                   <div className="flex flex-wrap gap-2 mb-4 md:mb-6">
