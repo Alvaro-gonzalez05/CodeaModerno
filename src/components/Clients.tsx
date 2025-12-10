@@ -1,5 +1,6 @@
 "use client";
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import Image from 'next/image';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -8,9 +9,23 @@ import { Slide, Fade } from "react-awesome-reveal";
 gsap.registerPlugin(ScrollTrigger);
 
 const clients = [
-  "Penguin", "AWADA", "prestigio", "JANSPORT", "CHEEKY", 
-  "LONGCHAMP", "PEPE ganga", "EQUUS", "VERS", "prestigio"
+  { name: "Birita", src: "/clients/birita.svg" },
+  { name: "Lithium", src: "/clients/lithium.svg" },
+  { name: "El Sitio", src: "/clients/elsitio.svg" },
+  { name: "Move", src: "/clients/move.svg" },
+  { name: "Restobar", src: "/clients/restobar.svg" },
+  { name: "Sune", src: "/clients/sune_v2.svg" },
+  { name: "Wine", src: "/clients/wine.svg" },
 ];
+
+function shuffleArray(array: typeof clients) {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+}
 
 export default function Clients() {
   const row1Ref = useRef<HTMLDivElement>(null);
@@ -18,7 +33,16 @@ export default function Clients() {
   const containerRef = useRef<HTMLDivElement>(null);
   const spacerRef = useRef<HTMLDivElement>(null);
   const rowsContainerRef = useRef<HTMLDivElement>(null);
+  const tl1Ref = useRef<gsap.core.Tween | null>(null);
+  const tl2Ref = useRef<gsap.core.Tween | null>(null);
   const [key, setKey] = useState(0);
+  const [row1Clients, setRow1Clients] = useState(clients);
+  const [row2Clients, setRow2Clients] = useState(clients);
+
+  useEffect(() => {
+    setRow1Clients(shuffleArray(clients));
+    setRow2Clients(shuffleArray(clients));
+  }, []);
 
   useGSAP(() => {
     const row1 = row1Ref.current;
@@ -28,7 +52,7 @@ export default function Clients() {
 
     // Initial infinite scroll animations
     // Row 1: Right to Left (0 -> -50%)
-    const tl1 = gsap.to(row1, {
+    tl1Ref.current = gsap.to(row1, {
       xPercent: -50,
       duration: 80,
       ease: "none",
@@ -37,7 +61,7 @@ export default function Clients() {
 
     // Row 2: Left to Right (-50% -> 0)
     gsap.set(row2, { xPercent: -50 });
-    const tl2 = gsap.to(row2, {
+    tl2Ref.current = gsap.to(row2, {
       xPercent: 0,
       duration: 80,
       ease: "none",
@@ -54,18 +78,20 @@ export default function Clients() {
         // Smoother velocity effect
         const timeScale = 1 + Math.abs(velocity / 3000); 
         
-        gsap.to([tl1, tl2], {
-          timeScale: timeScale,
-          duration: 0.5,
-          overwrite: true
-        });
-        
-        // Return to normal speed
-        gsap.to([tl1, tl2], {
-          timeScale: 1,
-          duration: 1.5,
-          delay: 0.1
-        });
+        if (tl1Ref.current && tl2Ref.current) {
+          gsap.to([tl1Ref.current, tl2Ref.current], {
+            timeScale: timeScale,
+            duration: 0.5,
+            overwrite: true
+          });
+          
+          // Return to normal speed
+          gsap.to([tl1Ref.current, tl2Ref.current], {
+            timeScale: 1,
+            duration: 1.5,
+            delay: 0.1
+          });
+        }
       }
     });
 
@@ -92,6 +118,16 @@ export default function Clients() {
 
   }, { scope: containerRef });
 
+  const handleMouseEnter = () => {
+    tl1Ref.current?.pause();
+    tl2Ref.current?.pause();
+  };
+
+  const handleMouseLeave = () => {
+    tl1Ref.current?.play();
+    tl2Ref.current?.play();
+  };
+
   return (
     <>
       <div ref={spacerRef} className="h-screen w-full relative z-0 pointer-events-none" />
@@ -104,25 +140,45 @@ export default function Clients() {
           </Slide>
         </div>
 
-        <div ref={rowsContainerRef} className="flex flex-col gap-4 md:gap-8 opacity-0">
+        <div ref={rowsContainerRef} className="flex flex-col gap-2 md:gap-4 opacity-0">
           {/* Row 1: Right to Left */}
           <div className="flex whitespace-nowrap overflow-hidden">
-            <div ref={row1Ref} className="flex gap-8 md:gap-16 items-center pr-8 md:pr-16 w-max">
-              {[...clients, ...clients, ...clients, ...clients].map((client, i) => (
-                <span key={i} className="text-2xl md:text-5xl font-serif italic text-gray-400 hover:text-white transition-colors cursor-pointer">
-                  {client}
-                </span>
+            <div ref={row1Ref} className="flex gap-0 md:gap-0 items-center pr-0 md:pr-0 w-max">
+              {[...row1Clients, ...row1Clients, ...row1Clients, ...row1Clients].map((client, i) => (
+                <div 
+                  key={i} 
+                  className="relative h-52 md:h-80 w-96 md:w-[35rem] -mx-8 md:-mx-16 brightness-0 invert opacity-70 hover:opacity-100 hover:-translate-y-4 transition-all duration-300 cursor-pointer"
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  <Image
+                    src={client.src}
+                    alt={client.name}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
               ))}
             </div>
           </div>
 
           {/* Row 2: Left to Right */}
           <div className="flex whitespace-nowrap overflow-hidden">
-            <div ref={row2Ref} className="flex gap-8 md:gap-16 items-center pr-8 md:pr-16 w-max">
-              {[...clients, ...clients, ...clients, ...clients].map((client, i) => (
-                <span key={i} className="text-2xl md:text-5xl font-serif italic text-gray-400 hover:text-white transition-colors cursor-pointer">
-                  {client}
-                </span>
+            <div ref={row2Ref} className="flex gap-0 md:gap-0 items-center pr-0 md:pr-0 w-max">
+              {[...row2Clients, ...row2Clients, ...row2Clients, ...row2Clients].map((client, i) => (
+                <div 
+                  key={i} 
+                  className="relative h-52 md:h-80 w-96 md:w-[35rem] -mx-8 md:-mx-16 brightness-0 invert opacity-70 hover:opacity-100 hover:-translate-y-4 transition-all duration-300 cursor-pointer"
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  <Image
+                    src={client.src}
+                    alt={client.name}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
               ))}
             </div>
           </div>

@@ -11,6 +11,7 @@ const tools = [
     name: "RestoPro",
     description: "Sistema integral de gestión para restaurantes, bares y cafeterías. Control de mesas, pedidos, inventario y facturación en tiempo real.",
     tags: ["Gastronomía", "Gestión", "POS"],
+    link: "https://restopro-five.vercel.app/",
     detail: {
       title: "Control total de tu negocio gastronómico",
       description: "RestoPro centraliza todas las operaciones de tu local. Desde la toma de pedidos en la mesa con tablets, hasta la gestión de stock en tiempo real y reportes de rentabilidad. Optimiza los tiempos de cocina y mejora la experiencia de tus clientes.",
@@ -22,6 +23,7 @@ const tools = [
     name: "UcoBot",
     description: "Asistencia Inteligente Omnicanal. Crea chatbots personalizados para WhatsApp, Instagram, TikTok y Messenger para automatizar la atención al cliente.",
     tags: ["IA", "Chatbots", "Omnicanal"],
+    link: "https://chatbot-sass-eight.vercel.app/",
     detail: {
       title: "Atención al cliente 24/7 con IA",
       description: "UcoBot no es solo un chatbot, es un asistente inteligente capaz de entender el contexto, responder consultas complejas y calificar leads automáticamente. Integra todos tus canales de comunicación en una sola bandeja de entrada.",
@@ -266,6 +268,18 @@ export default function Tools() {
                       </li>
                     ))}
                   </ul>
+
+                  <div className="mt-8 md:mt-10">
+                    <a 
+                      href={tool.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 md:gap-3 px-6 py-3 md:px-8 md:py-4 bg-black text-white rounded-full text-base md:text-lg font-bold hover:bg-gray-800 transition-colors group"
+                    >
+                      <span>Visitar sitio</span>
+                      <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </a>
+                  </div>
               </div>
             </div>
           </div>
