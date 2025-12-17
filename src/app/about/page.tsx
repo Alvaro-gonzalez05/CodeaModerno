@@ -1,7 +1,12 @@
-"use client";
+import type { Metadata } from "next";
 import Header from "@/components/Header";
 import UnderDevelopmentSection from "@/components/UnderDevelopmentSection";
 import Footer from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "Nosotros",
+  description: "Conoce más sobre Codea Desarrollos, nuestra misión y el equipo detrás de las soluciones tecnológicas.",
+};
 
 export default function AboutPage() {
   return (
