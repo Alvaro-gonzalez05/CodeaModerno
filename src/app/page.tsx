@@ -6,6 +6,13 @@ import Process from "@/components/Process";
 import Tools from "@/components/Tools";
 import LetsCode from "@/components/LetsCode";
 import Footer from "@/components/Footer";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: '/',
+  },
+};
 
 export default function Home() {
   const jsonLd = [

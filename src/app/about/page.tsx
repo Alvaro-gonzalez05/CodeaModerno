@@ -6,6 +6,9 @@ import Footer from "@/components/Footer";
 export const metadata: Metadata = {
   title: "Nosotros",
   description: "Conoce más sobre Codea Desarrollos, nuestra misión y el equipo detrás de las soluciones tecnológicas.",
+  alternates: {
+    canonical: '/about',
+  },
 };
 
 export default function AboutPage() {

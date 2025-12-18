@@ -49,6 +49,10 @@ export const metadata: Metadata = {
     locale: 'es_AR',
     type: 'website',
   },
+  icons: {
+    icon: '/icon.svg',
+    apple: '/icon.svg',
+  },
   robots: {
     index: true,
     follow: true,
