@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://codeadesarrollos.com'),
+  alternates: {
+    canonical: '/',
+  },
   title: {
     default: "Codea Desarrollos | Software Factory Mendoza & Global",
     template: "%s | Codea Desarrollos"
