@@ -34,7 +34,7 @@ export default function AuthAnimationWrapper({ children }: { children: React.Rea
         
         // Deshabilitar botón para prevenir doble clic
         const submitBtn = formElement.querySelector('button[type="submit"]') || formElement.querySelector('button');
-        if (submitBtn) {
+        if (submitBtn && submitBtn instanceof HTMLButtonElement) {
            submitBtn.setAttribute('disabled', 'true');
            submitBtn.innerText = 'Cargando...';
         }
