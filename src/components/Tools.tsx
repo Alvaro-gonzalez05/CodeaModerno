@@ -98,6 +98,7 @@ export default function Tools() {
 
     tl.to(containerRef.current, {
       x: "0%",
+      y: "0%",
       ease: "none",
       duration: 1
     });
@@ -153,14 +154,18 @@ export default function Tools() {
       <div ref={spacerRef} className="h-[250vh] w-full relative z-[30] pointer-events-none" />
       <section 
         ref={containerRef} 
-        className="fixed top-0 left-0 w-full h-screen bg-black text-white py-4 md:py-10 overflow-hidden z-[35] -translate-x-full flex flex-col justify-center"
+        className="fixed top-0 left-0 w-full h-screen bg-black text-white py-4 md:py-10 overflow-hidden z-[35] translate-y-full md:translate-y-0 md:-translate-x-full flex flex-col justify-center"
       >
         <div className="container mx-auto px-4 relative z-10 h-full flex flex-col justify-center">
-          <div className="mb-4 md:mb-8 text-center">
-            <h2 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 tracking-tighter">
-              Herramientas de Codea
+          <div className="mb-8 md:mb-12 text-center flex flex-col items-center">
+            <p className="text-xs md:text-sm tracking-[0.3em] font-bold mb-4 uppercase" style={{ color: 'hsl(76, 85%, 67%)' }}>
+              Nuestros Propios SaaS
+            </p>
+            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter leading-[0.9] text-white mb-4">
+              <span className="text-transparent" style={{ WebkitTextStroke: '2px white' }}>HERRAMIENTAS</span> DE <br className="hidden md:block"/>
+              CODEA
             </h2>
-            <p className="text-xs md:text-xl text-gray-400 max-w-2xl mx-auto px-2">
+            <p className="text-xs md:text-base text-gray-400 max-w-2xl mx-auto px-2 leading-relaxed">
               Softwares que hemos desarrollado y cuentan con un modelo SaaS multiusuario, diseñados para escalar y resolver problemas complejos.
             </p>
           </div>
@@ -171,7 +176,7 @@ export default function Tools() {
                 key={index} 
                 className="bg-white text-black rounded-[20px] md:rounded-[30px] p-5 md:p-8 hover:-translate-y-2 transition-all duration-300 group relative overflow-hidden shadow-xl flex flex-col justify-between md:min-h-[380px]"
               >
-                <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br from-purple-100 to-violet-200 rounded-full -mr-6 -mt-6 z-0 transition-all duration-500 group-hover:scale-110 group-hover:from-purple-200 group-hover:to-violet-300"></div>
+                <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-[hsl(76,85%,67%)] rounded-full -mr-6 -mt-6 z-0 transition-all duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100"></div>
                 
                 <div className="relative z-10 flex flex-col h-full">
                   <div className="flex justify-between items-start mb-4 md:mb-8">
@@ -228,8 +233,8 @@ export default function Tools() {
               <div className="w-full md:w-1/2 flex justify-center mt-12 md:mt-0">
                  <div className="detail-image relative w-[220px] md:w-[280px]">
                     {/* Background Glow/Spheres */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[70%] bg-purple-600/20 rounded-full blur-[60px] -z-10"></div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[100%] bg-indigo-500/20 rounded-full blur-[50px] -z-10 translate-y-10"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[70%] bg-[hsl(76,85%,67%)]/20 rounded-full blur-[60px] -z-10"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[100%] bg-[hsl(76,85%,67%)]/30 rounded-full blur-[50px] -z-10 translate-y-10"></div>
 
                     <div className="relative w-full aspect-[9/19] bg-black rounded-[2rem] md:rounded-[3rem] shadow-2xl border-[8px] md:border-[10px] border-[#121212] overflow-hidden ring-1 ring-white/10">
                       {/* Dynamic Island / Notch */}

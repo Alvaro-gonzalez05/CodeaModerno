@@ -66,6 +66,7 @@ export default function Process() {
 
     tl.to(sectionRef.current, {
       x: "0%",
+      y: "0%",
       ease: "none",
       duration: 1
     });
@@ -86,14 +87,18 @@ export default function Process() {
       <div ref={spacerRef} className="h-[250vh] w-full relative z-[20] pointer-events-none" />
       <section 
         ref={sectionRef} 
-        className="process-fixed-section fixed top-0 left-0 w-full h-screen bg-white text-black py-10 md:py-20 flex flex-col items-center justify-center translate-x-full rounded-[30px] md:rounded-[60px] overflow-hidden z-[25]"
+        className="process-fixed-section fixed top-0 left-0 w-full h-screen bg-white text-black py-10 md:py-20 flex flex-col items-center justify-center translate-y-full md:translate-y-0 md:translate-x-full rounded-[30px] md:rounded-[60px] overflow-hidden z-[25]"
       >
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-center md:justify-between gap-12 md:gap-12 h-auto">
           
           {/* Left Side: Title & Description */}
           <div className="w-full md:w-1/2 text-left pl-4 md:pl-10 mt-0 md:mt-0 relative z-20">
-            <h2 className="text-4xl md:text-7xl font-bold mb-4 md:mb-8 tracking-tighter">
-              Procesos
+            <p className="text-xs md:text-sm tracking-[0.3em] font-bold mb-4 uppercase" style={{ color: 'hsl(76, 85%, 67%)' }}>
+              Nuestro Método
+            </p>
+            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter leading-[0.9] text-black mb-4 md:mb-8">
+              NUESTROS <br />
+              <span className="text-transparent" style={{ WebkitTextStroke: '2px black' }}>PROCESOS</span>
             </h2>
             <p className="text-base md:text-xl text-gray-600 max-w-md leading-relaxed">
               Nuestro método de trabajo está diseñado para transformar ideas complejas en productos digitales excepcionales, paso a paso.

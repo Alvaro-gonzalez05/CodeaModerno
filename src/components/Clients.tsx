@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -140,24 +141,34 @@ export default function Clients() {
 
   return (
     <>
-      <div ref={spacerRef} className="h-screen w-full relative z-0 pointer-events-none" />
-      <section ref={containerRef} className="clients-fixed-section py-10 md:py-20 bg-black text-white overflow-hidden fixed top-0 left-0 w-full z-[15] h-screen flex flex-col justify-center opacity-0 invisible">
-        <div className="container mx-auto px-4 mb-8 md:mb-16">
-          <Slide key={`title-${key}`} direction="left" triggerOnce={false}>
-            <h2 className="text-2xl md:text-[40px] font-normal max-w-3xl leading-tight text-[#D6D6D6]">
-              Potenciando las ventas de nuestros clientes
-            </h2>
-          </Slide>
+      <div ref={spacerRef} className="h-[150vh] w-full relative z-0 pointer-events-none" />
+      <section ref={containerRef} className="clients-fixed-section py-20 md:py-32 bg-black text-white overflow-hidden fixed top-0 left-0 w-full z-[15] h-screen flex flex-col justify-center opacity-0 invisible">
+        
+        <div className="container mx-auto px-4 mb-12 md:mb-24 flex flex-col md:flex-row justify-between md:items-end gap-6 relative z-30">
+          <div>
+            <p className="text-xs md:text-sm tracking-[0.3em] text-[#c2f254] font-bold mb-4 uppercase" style={{ color: 'hsl(76, 85%, 67%)' }}>
+              Nuestra Experiencia
+            </p>
+            <Slide key={`title-${key}`} direction="up" triggerOnce={false}>
+              <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter leading-[0.9] text-white">
+                POTENCIANDO LAS <br className="hidden md:block"/>
+                <span className="text-transparent border-text" style={{ WebkitTextStroke: '2px white' }}>VENTAS</span> DE <br className="hidden md:block"/>
+                NUESTROS CLIENTES
+              </h2>
+            </Slide>
+          </div>
         </div>
 
-        <div ref={rowsContainerRef} className="flex flex-col gap-2 md:gap-4 opacity-0 relative z-20">
+        <div ref={rowsContainerRef} className="flex flex-col gap-4 md:gap-8 opacity-0 relative z-20">
           {/* Row 1: Right to Left */}
-          <div className="flex whitespace-nowrap overflow-hidden">
-            <div ref={row1Ref} className="flex gap-0 md:gap-0 items-center pr-0 md:pr-0 w-max">
+          <div className="flex whitespace-nowrap overflow-hidden relative">
+            <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-y-1/2 pointer-events-none z-0"></div>
+            <div ref={row1Ref} className="flex gap-0 md:gap-0 items-center pr-0 md:pr-0 w-max z-10 relative">
               {[...row1Clients, ...row1Clients, ...row1Clients, ...row1Clients].map((client, i) => (
-                <div 
+                <Link
+                  href="/trabajos"
                   key={i} 
-                  className="relative h-24 sm:h-32 md:h-48 w-40 sm:w-64 md:w-96 -mx-4 md:-mx-8 brightness-0 invert opacity-70 hover:opacity-100 hover:-translate-y-4 transition-all duration-300 cursor-pointer"
+                  className="relative h-24 sm:h-32 md:h-48 w-40 sm:w-64 md:w-96 mx-4 md:mx-8 brightness-0 invert opacity-40 hover:opacity-100 hover:brightness-100 hover:invert-0 hover:-translate-y-4 transition-all duration-500 cursor-pointer block z-20"
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                 >
@@ -167,18 +178,20 @@ export default function Clients() {
                     fill
                     className="object-contain"
                   />
-                </div>
+                </Link>
               ))}
             </div>
           </div>
 
           {/* Row 2: Left to Right */}
-          <div className="flex whitespace-nowrap overflow-hidden">
-            <div ref={row2Ref} className="flex gap-0 md:gap-0 items-center pr-0 md:pr-0 w-max">
+          <div className="flex whitespace-nowrap overflow-hidden relative">
+            <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-y-1/2 pointer-events-none z-0"></div>
+            <div ref={row2Ref} className="flex gap-0 md:gap-0 items-center pr-0 md:pr-0 w-max z-10 relative">
               {[...row2Clients, ...row2Clients, ...row2Clients, ...row2Clients].map((client, i) => (
-                <div 
+                <Link
+                  href="/trabajos"
                   key={i} 
-                  className="relative h-24 sm:h-32 md:h-48 w-40 sm:w-64 md:w-96 -mx-4 md:-mx-8 brightness-0 invert opacity-70 hover:opacity-100 hover:-translate-y-4 transition-all duration-300 cursor-pointer"
+                  className="relative h-24 sm:h-32 md:h-48 w-40 sm:w-64 md:w-96 mx-4 md:mx-8 brightness-0 invert opacity-40 hover:opacity-100 hover:brightness-100 hover:invert-0 hover:-translate-y-4 transition-all duration-500 cursor-pointer block z-20"
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                 >
@@ -188,7 +201,7 @@ export default function Clients() {
                     fill
                     className="object-contain"
                   />
-                </div>
+                </Link>
               ))}
             </div>
           </div>

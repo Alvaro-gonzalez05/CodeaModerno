@@ -170,8 +170,8 @@ export default function LetsCode() {
           
           <div className="relative">
             <h2 className="text-[19vw] md:text-[15vw] leading-[0.85] font-black tracking-tighter uppercase flex flex-col items-center">
-                <span ref={codeRef} className="block">CODE</span>
-                <span ref={yourRef} className="block text-violet-400">YOUR</span>
+                <span ref={codeRef} className="block text-transparent" style={{ WebkitTextStroke: '2px white' }}>CODE</span>
+                <span ref={yourRef} className="block text-[hsl(76,85%,67%)]">YOUR</span>
                 <span ref={businessRef} className="block">BUSINESS</span>
             </h2>
             
@@ -186,7 +186,7 @@ export default function LetsCode() {
 
                 {/* Button Overlay */}
                 <div ref={buttonRef} className="absolute inset-0 flex items-center justify-center pointer-events-none pt-20 md:pt-32">
-                    <button onClick={openModal} className="pointer-events-auto group flex items-center gap-3 px-8 py-4 bg-transparent border border-white text-white text-lg md:text-xl font-bold rounded-full hover:scale-105 transition-transform duration-300 hover:bg-white/10">
+                    <button onClick={openModal} className="pointer-events-auto group flex items-center gap-3 px-8 py-4 bg-[hsl(76,85%,67%)] text-black border border-[hsl(76,85%,67%)] text-lg md:text-xl font-bold rounded-full hover:scale-105 transition-transform duration-300">
                         Empezar mi proyecto
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 group-hover:translate-x-1 transition-transform">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
