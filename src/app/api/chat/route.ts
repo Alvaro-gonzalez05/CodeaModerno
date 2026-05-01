@@ -247,8 +247,10 @@ const tools = [
             countries: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING }, description: 'Códigos de país ISO (default ["AR"])' },
             age_min: { type: SchemaType.NUMBER, description: 'Edad mínima (default 18)' },
             age_max: { type: SchemaType.NUMBER, description: 'Edad máxima (default 65)' },
+            link_url: { type: SchemaType.STRING, description: 'URL de destino del CTA (ej. https://cliente.com/servicios). REQUERIDA por Meta. Preguntále al usuario cuál usar — NUNCA inventes ni asumas una URL por defecto.' },
+            call_to_action: { type: SchemaType.STRING, description: 'Tipo de CTA: LEARN_MORE, SHOP_NOW, SIGN_UP, CONTACT_US, BOOK_TRAVEL, DOWNLOAD, MESSAGE_PAGE. REQUERIDO. Preguntále al usuario cuál usar.' },
           },
-          required: ['project_id', 'media_id', 'daily_budget', 'days'],
+          required: ['project_id', 'media_id', 'daily_budget', 'days', 'link_url', 'call_to_action'],
         },
       },
     ],
@@ -478,6 +480,8 @@ async function executeFunction(name: string, args: any, userId: string) {
         countries: args.countries,
         ageMin: args.age_min,
         ageMax: args.age_max,
+        linkUrl: args.link_url,
+        callToAction: args.call_to_action,
       });
       console.log('[ig_boost_post] result:', JSON.stringify(r, null, 2));
       return r;
@@ -532,7 +536,8 @@ Gestión de Redes (Instagram + Meta Ads):
 - Cuando te pidan diagnosticar performance: usá ig_analyze_posts y ig_get_account_insights, después explicá con datos concretos qué funciona y qué no (engagement rate, alcance, top posts, peores posts).
 - Cuando te pidan un "plan de pauta": combiná ig_analyze_posts (para detectar el mejor post a promocionar) + ig_get_account_insights (para entender la audiencia y demografía) + ig_get_ads_overview (para ver histórico de spend y CPC). Devolvé una recomendación estructurada con: 1) qué post promocionar y por qué, 2) presupuesto diario sugerido en ARS, 3) duración, 4) objetivo (engagement / awareness / traffic), 5) audiencia (países, edades), 6) métricas KPI a vigilar.
 - Cuando te pidan diagnosticar campañas: usá ig_get_ads_overview y mará banderas: CTR < 1% (creatividad débil), CPC alto vs benchmark del rubro, frecuencia >3 (saturación), spend sin conversiones.
-- ACCIONES DE ESCRITURA EN META ADS (ig_pause_campaign, ig_resume_campaign, ig_update_campaign_budget, ig_boost_post): SIEMPRE pedí confirmación al usuario antes de ejecutar, mostrándole exactamente qué va a pasar (nombre de campaña, monto, etc.). NUNCA ejecutés ig_boost_post sin que el usuario confirme explícitamente media_id, presupuesto y días. ig_boost_post crea todo en estado PAUSADO por seguridad — avisá esto al usuario.
+- ACCIONES DE ESCRITURA EN META ADS (ig_pause_campaign, ig_resume_campaign, ig_update_campaign_budget, ig_boost_post): SIEMPRE pedí confirmación al usuario antes de ejecutar, mostrándole exactamente qué va a pasar (nombre de campaña, monto, etc.). NUNCA ejecutés ig_boost_post sin que el usuario confirme explícitamente media_id, presupuesto, días, link_url y call_to_action. Para ig_boost_post DEBÉS preguntarle al usuario qué URL de destino quiere y qué llamada a la acción (LEARN_MORE/SHOP_NOW/SIGN_UP/CONTACT_US/BOOK_TRAVEL/DOWNLOAD/MESSAGE_PAGE) — NUNCA asumas valores por defecto, cada cliente tiene su propio sitio. ig_boost_post crea todo en estado PAUSADO por seguridad — avisá esto al usuario.
+- DESPUÉS DE ig_boost_post EXITOSO: el resultado incluye "post" (con caption, media_type, permalink, thumbnail) y "links" (instagram_post, ads_manager_campaign, ads_manager_adset, ads_manager_ad). SIEMPRE mostrale al usuario un resumen visual con: 1) qué post se promocionó (caption corto + tipo de media + link al post de IG como [Ver post en Instagram](permalink)), 2) link al Ads Manager de la campaña como [Abrir en Meta Ads Manager](ads_manager_campaign), 3) IDs por si los necesita. Usá markdown con links clickeables.
 - MUY IMPORTANTE: NUNCA asumas que una función va a fallar basándote en intentos anteriores del historial. Si el usuario te pide ejecutar una acción, SIEMPRE llamá la función real sin importar si falló antes. Solo reportá errores reales que vengan de la respuesta de la función, nunca inventes ni predijas errores.
 
 Formato de respuestas:

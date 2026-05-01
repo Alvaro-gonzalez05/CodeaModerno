@@ -374,6 +374,8 @@ export interface BoostPostOptions {
   countries?: string[]; // ['AR'] por defecto
   ageMin?: number;
   ageMax?: number;
+  linkUrl?: string; // URL de destino (requerida por Meta para boosts con CTA)
+  callToAction?: string; // p.ej. LEARN_MORE, SHOP_NOW, SIGN_UP, BOOK_TRAVEL, CONTACT_US, DOWNLOAD
 }
 
 // Crea Campaign + Ad Set + Ad para promocionar un post existente de IG.
@@ -395,7 +397,10 @@ export async function boostInstagramPost(
 
   const token = conn.ads_token;
   const actId = conn.ad_account_id;
-  const objective = opts.objective || 'OUTCOME_ENGAGEMENT';
+  // Si el usuario provee link_url + CTA, forzamos OUTCOME_TRAFFIC porque es el único
+  // objetivo compatible con un CTA con link externo. OUTCOME_ENGAGEMENT con POST_ENGAGEMENT
+  // no acepta destination_type WEBSITE.
+  const objective = opts.linkUrl ? 'OUTCOME_TRAFFIC' : (opts.objective || 'OUTCOME_ENGAGEMENT');
   const countries = opts.countries?.length ? opts.countries : ['AR'];
 
   // 1. Campaign
@@ -450,6 +455,7 @@ export async function boostInstagramPost(
       billing_event: billingEvent,
       optimization_goal: optimizationGoal,
       bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
+      destination_type: objective === 'OUTCOME_TRAFFIC' ? 'WEBSITE' : 'ON_POST',
       start_time: String(startTime),
       end_time: String(endTime),
       targeting: JSON.stringify(targeting),
@@ -479,14 +485,33 @@ export async function boostInstagramPost(
 
   console.log('[boostIG] using igActorId:', igActorId, '| pageId:', pageId);
 
+  if (!opts.linkUrl) {
+    return {
+      error: 'Falta linkUrl: Meta exige una URL de destino para boosts con OUTCOME_ENGAGEMENT/TRAFFIC. Pedile al usuario la URL antes de ejecutar.',
+      campaign_id: campaign.id,
+      adset_id: adset.id,
+    };
+  }
+  if (!opts.callToAction) {
+    return {
+      error: 'Falta callToAction: Meta exige un CTA (LEARN_MORE, SHOP_NOW, SIGN_UP, CONTACT_US, BOOK_TRAVEL, DOWNLOAD, MESSAGE_PAGE). Pedile al usuario cuál usar.',
+      campaign_id: campaign.id,
+      adset_id: adset.id,
+    };
+  }
+  const creativeBody: Record<string, string> = {
+    name: `[UcoBot] Creative ${opts.mediaId}`,
+    source_instagram_media_id: opts.mediaId,
+    call_to_action: JSON.stringify({
+      type: opts.callToAction,
+      value: { link: opts.linkUrl },
+    }),
+    access_token: token,
+  };
   const creativeRes = await fetch(`${FB_API}/${actId}/adcreatives`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      name: `[UcoBot] Creative ${opts.mediaId}`,
-      source_instagram_media_id: opts.mediaId,
-      access_token: token,
-    }).toString(),
+    body: new URLSearchParams(creativeBody).toString(),
   });
   const creative = await creativeRes.json();
   console.log('[boostIG] creative response:', JSON.stringify(creative, null, 2));
@@ -511,15 +536,49 @@ export async function boostInstagramPost(
     }).toString(),
   });
   const ad = await adRes.json();
+  console.log('[boostIG] ad response:', JSON.stringify(ad, null, 2));
   if (ad.error) {
+    const e = ad.error;
+    const details = [
+      e.message,
+      e.error_user_title,
+      e.error_user_msg,
+      e.error_subcode ? `subcode ${e.error_subcode}` : null,
+      e.code ? `code ${e.code}` : null,
+    ].filter(Boolean).join(' | ');
     return {
-      error: `Ad: ${ad.error.message}`,
+      error: `Ad: ${details}`,
       campaign_id: campaign.id,
       adset_id: adset.id,
       creative_id: creative.id,
     };
   }
 
+  // Fetch metadata del post boosteado para que el usuario pueda verificarlo.
+  let postPreview: {
+    permalink?: string;
+    media_type?: string;
+    caption?: string;
+    thumbnail_url?: string;
+    media_url?: string;
+  } = {};
+  try {
+    const postRes = await fetch(
+      `${IG_API}/${opts.mediaId}?fields=permalink,media_type,caption,thumbnail_url,media_url&access_token=${encodeURIComponent(conn.access_token)}`
+    );
+    const postData = await postRes.json();
+    if (!postData.error) {
+      postPreview = {
+        permalink: postData.permalink,
+        media_type: postData.media_type,
+        caption: postData.caption ? String(postData.caption).slice(0, 140) : undefined,
+        thumbnail_url: postData.thumbnail_url,
+        media_url: postData.media_url,
+      };
+    }
+  } catch (_) { /* ignore preview errors */ }
+
+  const actIdNum = actId.replace(/^act_/, '');
   return {
     success: true,
     message:
@@ -528,5 +587,12 @@ export async function boostInstagramPost(
     adset_id: adset.id,
     creative_id: creative.id,
     ad_id: ad.id,
+    post: postPreview,
+    links: {
+      instagram_post: postPreview.permalink,
+      ads_manager_campaign: `https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=${actIdNum}&selected_campaign_ids=${campaign.id}`,
+      ads_manager_adset: `https://adsmanager.facebook.com/adsmanager/manage/adsets?act=${actIdNum}&selected_adset_ids=${adset.id}`,
+      ads_manager_ad: `https://adsmanager.facebook.com/adsmanager/manage/ads?act=${actIdNum}&selected_ad_ids=${ad.id}`,
+    },
   };
 }
