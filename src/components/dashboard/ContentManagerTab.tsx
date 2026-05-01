@@ -34,6 +34,7 @@ interface InsightMetric {
   values: { value: number; end_time: string }[];
   title: string;
   description: string;
+  total_value?: { value: number };
 }
 
 const formatNumber = (n: number) => {
@@ -739,7 +740,7 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
                   const values: Array<{ value: number; end_time?: string }> = Array.isArray(metric.values) ? metric.values : [];
                   const hasTotalValue = typeof metric.total_value?.value === 'number';
                   const total = hasTotalValue
-                    ? metric.total_value.value
+                    ? metric.total_value!.value
                     : values.reduce((sum: number, v: any) => sum + (v.value || 0), 0);
                   const avg = values.length > 0
                     ? Math.round(total / values.length)
