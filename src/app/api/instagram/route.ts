@@ -370,41 +370,64 @@ export async function POST(request: NextRequest) {
         }
 
         const { base, userPath } = getApiBase(conn.access_token, conn.ig_user_id);
+        const tokenParam = encodeURIComponent(conn.access_token);
         const since = Math.floor(Date.now() / 1000) - 30 * 86400;
         const until = Math.floor(Date.now() / 1000);
 
-        // Fetch multiple metric groups in parallel (some may fail depending on account type)
-        const [engagementRes, growthRes, demographicsRes] = await Promise.all([
-          // Engagement metrics (day period)
+        // IG Graph API v21:
+        //  - Time-series metrics keep period=day (reach, follower_count)
+        //  - Aggregated metrics MUST be queried with metric_type=total_value
+        //  - follower_demographics requires a `breakdown` parameter (age | gender | city | country)
+        const timeSeriesMetrics = 'reach,follower_count';
+        const totalValueMetrics =
+          'accounts_engaged,total_interactions,likes,comments,shares,saves,replies,profile_views,follows_and_unfollows,profile_links_taps';
+        const demographicBreakdowns = ['age', 'gender', 'city', 'country'] as const;
+
+        const [timeSeriesRes, totalValueRes, ...demoResponses] = await Promise.all([
           fetch(
-            `${base}/${userPath}/insights?metric=reach,accounts_engaged,total_interactions,likes,comments,shares,saves,replies,profile_views&period=day&since=${since}&until=${until}&access_token=${encodeURIComponent(conn.access_token)}`
+            `${base}/${userPath}/insights?metric=${timeSeriesMetrics}&period=day&since=${since}&until=${until}&access_token=${tokenParam}`
           ),
-          // Growth metrics (day period)
           fetch(
-            `${base}/${userPath}/insights?metric=follower_count,follows_and_unfollows,profile_links_taps&period=day&since=${since}&until=${until}&access_token=${encodeURIComponent(conn.access_token)}`
+            `${base}/${userPath}/insights?metric=${totalValueMetrics}&metric_type=total_value&period=day&since=${since}&until=${until}&access_token=${tokenParam}`
           ),
-          // Demographics (lifetime period) 
-          fetch(
-            `${base}/${userPath}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&access_token=${encodeURIComponent(conn.access_token)}`
+          ...demographicBreakdowns.map((breakdown) =>
+            fetch(
+              `${base}/${userPath}/insights?metric=follower_demographics&period=lifetime&metric_type=total_value&breakdown=${breakdown}&access_token=${tokenParam}`
+            )
           ),
         ]);
 
-        const [engagementData, growthData, demographicsData] = await Promise.all([
-          engagementRes.json(),
-          growthRes.json(),
-          demographicsRes.json(),
+        const [timeSeriesData, totalValueData, ...demoDataRaw] = await Promise.all([
+          timeSeriesRes.json(),
+          totalValueRes.json(),
+          ...demoResponses.map((r) => r.json()),
         ]);
 
         const allInsights = [
-          ...(engagementData.data || []),
-          ...(growthData.data || []),
+          ...(timeSeriesData.data || []),
+          ...(totalValueData.data || []),
         ];
 
-        const demographics = demographicsData.data?.[0]?.total_value?.breakdowns || null;
+        const demographics: Record<string, any[]> = {};
+        demographicBreakdowns.forEach((breakdown, idx) => {
+          const data = demoDataRaw[idx];
+          const breakdowns = data?.data?.[0]?.total_value?.breakdowns;
+          if (Array.isArray(breakdowns) && breakdowns.length) {
+            const results = breakdowns[0]?.results || [];
+            if (results.length) demographics[breakdown] = results;
+          }
+        });
 
-        return NextResponse.json({ 
+        const apiErrors = [
+          timeSeriesData.error?.message,
+          totalValueData.error?.message,
+          ...demoDataRaw.map((d: any) => d?.error?.message),
+        ].filter(Boolean);
+
+        return NextResponse.json({
           insights: allInsights,
-          demographics,
+          demographics: Object.keys(demographics).length ? demographics : null,
+          apiErrors: apiErrors.length ? apiErrors : undefined,
         });
       }
 
@@ -530,14 +553,14 @@ export async function POST(request: NextRequest) {
       }
 
       case 'connect_ads': {
-        const { adsToken } = body;
+        const { adsToken, adAccountId } = body;
         if (!adsToken) {
           return NextResponse.json({ error: 'adsToken requerido' }, { status: 400 });
         }
 
         // Verify the token works by fetching ad accounts
         const verifyRes = await fetch(
-          `${FB_API}/me/adaccounts?fields=id,name,account_status,currency&access_token=${encodeURIComponent(adsToken)}`
+          `${FB_API}/me/adaccounts?fields=id,name,account_status,currency,amount_spent,balance&access_token=${encodeURIComponent(adsToken)}`
         );
         const verifyData = await verifyRes.json();
 
@@ -548,17 +571,144 @@ export async function POST(request: NextRequest) {
           }, { status: 400 });
         }
 
-        if (!verifyData.data?.length) {
+        const accounts = verifyData.data || [];
+        if (!accounts.length) {
           return NextResponse.json({ error: 'No se encontraron cuentas publicitarias vinculadas a este token.' }, { status: 400 });
         }
 
-        const adAccount = verifyData.data[0];
+        // If user already chose an account, use that. Otherwise:
+        // - 1 account: auto-pick
+        // - multiple: return the list so the UI can show a selector
+        let chosen: any;
+        if (adAccountId) {
+          chosen = accounts.find((a: any) => a.id === adAccountId);
+          if (!chosen) {
+            return NextResponse.json({ error: 'La cuenta publicitaria seleccionada no está disponible con este token.' }, { status: 400 });
+          }
+        } else if (accounts.length === 1) {
+          chosen = accounts[0];
+        } else {
+          return NextResponse.json({
+            multiple_accounts: true,
+            accounts: accounts.map((a: any) => ({
+              id: a.id,
+              name: a.name,
+              currency: a.currency,
+              status: a.account_status, // 1 = active, 2 = disabled, 3 = pending, etc.
+            })),
+            // Save the token now so user doesn't need to re-paste it on selection step
+            token_saved: true,
+          });
+        }
+
+        // Check if a row exists for this project (with or without IGAA)
+        const { data: existing } = await supabase
+          .from('project_social_connections')
+          .select('id, access_token, ig_user_id')
+          .eq('project_id', projectId)
+          .eq('platform', 'instagram')
+          .maybeSingle();
+
+        let upsertError: any = null;
+        if (existing) {
+          // Row exists — only patch ads fields, preserve any IGAA token
+          const { error } = await supabase
+            .from('project_social_connections')
+            .update({
+              ads_token: adsToken,
+              ad_account_id: chosen.id,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existing.id);
+          upsertError = error;
+        } else {
+          // No row — insert with EAA as placeholder access_token (IGAA still needed for IG features)
+          const { error } = await supabase
+            .from('project_social_connections')
+            .insert({
+              project_id: projectId,
+              platform: 'instagram',
+              access_token: adsToken,
+              ads_token: adsToken,
+              ad_account_id: chosen.id,
+              is_active: false,
+            });
+          upsertError = error;
+        }
+
+        if (upsertError) {
+          return NextResponse.json({ error: upsertError.message }, { status: 500 });
+        }
+
+        return NextResponse.json({
+          success: true,
+          adAccount: { id: chosen.id, name: chosen.name, currency: chosen.currency },
+          needs_igaa: !existing?.ig_user_id,
+        });
+      }
+
+      case 'list_ad_accounts': {
+        // List ad accounts available with the currently saved ads_token (for changing the chosen account)
+        const { data: conn } = await supabase
+          .from('project_social_connections')
+          .select('ads_token, ad_account_id')
+          .eq('project_id', projectId)
+          .eq('platform', 'instagram')
+          .single();
+
+        if (!conn?.ads_token) {
+          return NextResponse.json({ error: 'No hay token de publicidad guardado.' }, { status: 400 });
+        }
+
+        const r = await fetch(
+          `${FB_API}/me/adaccounts?fields=id,name,account_status,currency&access_token=${encodeURIComponent(conn.ads_token)}`
+        );
+        const j = await r.json();
+        if (j.error) {
+          return NextResponse.json({ error: j.error.message }, { status: 400 });
+        }
+
+        return NextResponse.json({
+          current_id: conn.ad_account_id,
+          accounts: (j.data || []).map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            currency: a.currency,
+            status: a.account_status,
+          })),
+        });
+      }
+
+      case 'select_ad_account': {
+        const { adAccountId } = body;
+        if (!adAccountId) {
+          return NextResponse.json({ error: 'adAccountId requerido' }, { status: 400 });
+        }
+
+        const { data: conn } = await supabase
+          .from('project_social_connections')
+          .select('ads_token')
+          .eq('project_id', projectId)
+          .eq('platform', 'instagram')
+          .single();
+
+        if (!conn?.ads_token) {
+          return NextResponse.json({ error: 'No hay token de publicidad guardado.' }, { status: 400 });
+        }
+
+        // Verify the chosen account is accessible with the saved token
+        const r = await fetch(
+          `${FB_API}/${adAccountId}?fields=id,name,currency&access_token=${encodeURIComponent(conn.ads_token)}`
+        );
+        const j = await r.json();
+        if (j.error) {
+          return NextResponse.json({ error: j.error.message }, { status: 400 });
+        }
 
         const { error: updateError } = await supabase
           .from('project_social_connections')
           .update({
-            ads_token: adsToken,
-            ad_account_id: adAccount.id,
+            ad_account_id: adAccountId,
             updated_at: new Date().toISOString(),
           })
           .eq('project_id', projectId)
@@ -568,9 +718,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: updateError.message }, { status: 500 });
         }
 
-        return NextResponse.json({ 
-          success: true, 
-          adAccount: { id: adAccount.id, name: adAccount.name, currency: adAccount.currency }
+        return NextResponse.json({
+          success: true,
+          adAccount: { id: j.id, name: j.name, currency: j.currency },
         });
       }
 

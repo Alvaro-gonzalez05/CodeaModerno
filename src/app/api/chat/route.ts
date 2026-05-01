@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { createClient } from '@/lib/supabase/server';
+import {
+  getConnection,
+  fetchProfile,
+  fetchAccountInsights,
+  analyzePosts,
+  fetchAdsOverview,
+  pauseCampaign,
+  resumeCampaign,
+  updateCampaignBudget,
+  boostInstagramPost,
+} from '@/lib/instagram/helpers';
 
 // --- Gemini Tool Declarations ---
 const tools = [
@@ -128,6 +139,116 @@ const tools = [
             project_id: { type: SchemaType.STRING, description: 'UUID del proyecto' },
           },
           required: ['project_id'],
+        },
+      },
+
+      // ====== INSTAGRAM / META ADS ======
+      {
+        name: 'ig_get_profile',
+        description:
+          'Obtener el perfil de Instagram conectado al proyecto (username, seguidores, seguidos, cantidad de posts, bio, web, foto).',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            project_id: { type: SchemaType.STRING, description: 'UUID del proyecto' },
+          },
+          required: ['project_id'],
+        },
+      },
+      {
+        name: 'ig_get_account_insights',
+        description:
+          'Obtener métricas agregadas de la cuenta de Instagram en los últimos 30 días: reach, interacciones, likes, comentarios, shares, saves, replies, vistas al perfil, evolución de seguidores, taps en links, y demografía (edad, género, ciudad, país).',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            project_id: { type: SchemaType.STRING, description: 'UUID del proyecto' },
+          },
+          required: ['project_id'],
+        },
+      },
+      {
+        name: 'ig_analyze_posts',
+        description:
+          'Analiza los últimos N posts del IG: trae cada post con sus métricas (likes, comments, shares, saves, reach, total_interactions) y calcula engagement rate. Devuelve los TOP 3 posts por engagement, los PEORES 3, y promedios. Usalo cuando el usuario pida diagnosticar performance, detectar fallas o identificar qué contenido funciona mejor.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            project_id: { type: SchemaType.STRING, description: 'UUID del proyecto' },
+            limit: { type: SchemaType.NUMBER, description: 'Cantidad de posts a analizar (default 12, máx 25)' },
+          },
+          required: ['project_id'],
+        },
+      },
+      {
+        name: 'ig_get_ads_overview',
+        description:
+          'Obtener el resumen de publicidad de Meta Ads del proyecto: cuenta publicitaria (nombre, moneda, gasto, balance), campañas con métricas (impresiones, alcance, clicks, spend, CPC, CPM, CTR), anuncios y resumen de spend de los últimos 90 días. Usalo para diagnosticar campañas (CPC alto, CTR bajo, mal rendimiento).',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            project_id: { type: SchemaType.STRING, description: 'UUID del proyecto' },
+          },
+          required: ['project_id'],
+        },
+      },
+      {
+        name: 'ig_pause_campaign',
+        description:
+          'Pausar una campaña activa de Meta Ads. SIEMPRE confirmá con el usuario antes de ejecutar (mostrá el nombre de la campaña).',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            project_id: { type: SchemaType.STRING, description: 'UUID del proyecto' },
+            campaign_id: { type: SchemaType.STRING, description: 'ID de la campaña' },
+          },
+          required: ['project_id', 'campaign_id'],
+        },
+      },
+      {
+        name: 'ig_resume_campaign',
+        description:
+          'Reactivar una campaña pausada de Meta Ads. SIEMPRE confirmá con el usuario antes de ejecutar.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            project_id: { type: SchemaType.STRING, description: 'UUID del proyecto' },
+            campaign_id: { type: SchemaType.STRING, description: 'ID de la campaña' },
+          },
+          required: ['project_id', 'campaign_id'],
+        },
+      },
+      {
+        name: 'ig_update_campaign_budget',
+        description:
+          'Modificar el presupuesto diario de una campaña de Meta Ads. El monto se pasa en la moneda principal (ej. ARS) — el sistema lo convierte a unidades menores. SIEMPRE confirmá con el usuario antes de ejecutar.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            project_id: { type: SchemaType.STRING, description: 'UUID del proyecto' },
+            campaign_id: { type: SchemaType.STRING, description: 'ID de la campaña' },
+            daily_budget: { type: SchemaType.NUMBER, description: 'Nuevo presupuesto diario en moneda principal (ej. 2000 = $2000 ARS)' },
+          },
+          required: ['project_id', 'campaign_id', 'daily_budget'],
+        },
+      },
+      {
+        name: 'ig_boost_post',
+        description:
+          'Crear una campaña de Meta Ads para promocionar un post existente de Instagram. Crea Campaign + AdSet + Ad en estado PAUSADO (el usuario debe activar manualmente en Meta para seguridad). SIEMPRE pedí confirmación al usuario, mostrando media_id, presupuesto diario, días, países y objetivo antes de ejecutar.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            project_id: { type: SchemaType.STRING, description: 'UUID del proyecto' },
+            media_id: { type: SchemaType.STRING, description: 'ID del post de Instagram a promocionar' },
+            daily_budget: { type: SchemaType.NUMBER, description: 'Presupuesto diario en moneda principal (ej. 2000 = $2000 ARS)' },
+            days: { type: SchemaType.NUMBER, description: 'Cantidad de días que correrá la campaña' },
+            objective: { type: SchemaType.STRING, description: 'Objetivo: OUTCOME_ENGAGEMENT (default), OUTCOME_AWARENESS, OUTCOME_TRAFFIC' },
+            countries: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING }, description: 'Códigos de país ISO (default ["AR"])' },
+            age_min: { type: SchemaType.NUMBER, description: 'Edad mínima (default 18)' },
+            age_max: { type: SchemaType.NUMBER, description: 'Edad máxima (default 65)' },
+          },
+          required: ['project_id', 'media_id', 'daily_budget', 'days'],
         },
       },
     ],
@@ -267,6 +388,101 @@ async function executeFunction(name: string, args: any, userId: string) {
       return error ? { error: error.message } : { services: data };
     }
 
+    // ====== INSTAGRAM / META ADS ======
+    case 'ig_get_profile': {
+      const conn = await getConnection(supabase, args.project_id);
+      if (!conn) return { error: 'No hay conexión de Instagram en este proyecto.' };
+      const profile = await fetchProfile(conn);
+      if (profile.error) return { error: profile.error.message };
+      return { profile, ig_username: conn.ig_username, ig_user_id: conn.ig_user_id };
+    }
+
+    case 'ig_get_account_insights': {
+      const conn = await getConnection(supabase, args.project_id);
+      if (!conn) return { error: 'No hay conexión de Instagram en este proyecto.' };
+      const data = await fetchAccountInsights(conn);
+      return {
+        period: 'last_30_days',
+        totals: data.totals,
+        demographics: data.demographics,
+      };
+    }
+
+    case 'ig_analyze_posts': {
+      const conn = await getConnection(supabase, args.project_id);
+      if (!conn) return { error: 'No hay conexión de Instagram en este proyecto.' };
+      const limit = Math.min(args.limit || 12, 25);
+      const result = await analyzePosts(conn, limit);
+      // Recortar caption a 200 chars para no inflar el contexto
+      const trim = (p: any) => ({ ...p, caption: p.caption ? p.caption.slice(0, 200) : null });
+      return {
+        analyzed: result.posts.length,
+        averages: result.averages,
+        best: result.best.map(trim),
+        worst: result.worst.map(trim),
+      };
+    }
+
+    case 'ig_get_ads_overview': {
+      const conn = await getConnection(supabase, args.project_id);
+      if (!conn) return { error: 'No hay conexión de Instagram en este proyecto.' };
+      const data = await fetchAdsOverview(conn);
+      if ('error' in data) {
+        if (data.error === 'no_ads_token')
+          return { error: 'El proyecto no tiene un ads_token (token de Facebook Marketing). Pediselo al usuario o que lo conecte desde el dashboard.' };
+        if (data.error === 'ads_token_expired')
+          return { error: 'El ads_token expiró. Hay que reconectarlo desde el dashboard.' };
+        if (data.error === 'no_ad_accounts')
+          return { error: 'El ads_token no tiene cuentas publicitarias accesibles.' };
+      }
+      return data;
+    }
+
+    case 'ig_pause_campaign': {
+      const conn = await getConnection(supabase, args.project_id);
+      if (!conn) return { error: 'No hay conexión de Instagram en este proyecto.' };
+      const r = await pauseCampaign(conn, args.campaign_id);
+      if (r.error) return { error: typeof r.error === 'string' ? r.error : r.error.message };
+      return { success: true, message: `Campaña ${args.campaign_id} pausada.` };
+    }
+
+    case 'ig_resume_campaign': {
+      const conn = await getConnection(supabase, args.project_id);
+      if (!conn) return { error: 'No hay conexión de Instagram en este proyecto.' };
+      const r = await resumeCampaign(conn, args.campaign_id);
+      if (r.error) return { error: typeof r.error === 'string' ? r.error : r.error.message };
+      return { success: true, message: `Campaña ${args.campaign_id} reactivada.` };
+    }
+
+    case 'ig_update_campaign_budget': {
+      const conn = await getConnection(supabase, args.project_id);
+      if (!conn) return { error: 'No hay conexión de Instagram en este proyecto.' };
+      // Convertir moneda principal a unidades menores (Meta usa centavos)
+      const minor = Math.round(args.daily_budget * 100);
+      const r = await updateCampaignBudget(conn, args.campaign_id, minor);
+      if (r.error) return { error: typeof r.error === 'string' ? r.error : r.error.message };
+      return { success: true, message: `Presupuesto diario actualizado a ${args.daily_budget}.` };
+    }
+
+    case 'ig_boost_post': {
+      const conn = await getConnection(supabase, args.project_id);
+      if (!conn) return { error: 'No hay conexión de Instagram en este proyecto.' };
+      const minor = Math.round(args.daily_budget * 100);
+      console.log('[ig_boost_post] args:', JSON.stringify(args, null, 2));
+      console.log('[ig_boost_post] dailyBudgetMinorUnits:', minor, '| ad_account_id:', conn.ad_account_id, '| ig_user_id:', conn.ig_user_id);
+      const r = await boostInstagramPost(conn, {
+        mediaId: args.media_id,
+        dailyBudgetMinorUnits: minor,
+        durationDays: args.days,
+        objective: args.objective,
+        countries: args.countries,
+        ageMin: args.age_min,
+        ageMax: args.age_max,
+      });
+      console.log('[ig_boost_post] result:', JSON.stringify(r, null, 2));
+      return r;
+    }
+
     default:
       return { error: `Función desconocida: ${name}` };
   }
@@ -310,6 +526,14 @@ Tu rol:
 - Siempre que el usuario pida algo ambiguo, consultá los datos primero para dar una respuesta precisa.
 - Si te piden crear una tarea, usá el project_id actual a menos que digan otro proyecto.
 - Si te piden asignar a alguien y no sabés el UUID, buscá los perfiles primero.
+
+Gestión de Redes (Instagram + Meta Ads):
+- Si el proyecto tiene servicio de gestión de redes, tenés tools "ig_*" para leer perfil, métricas, posts y campañas.
+- Cuando te pidan diagnosticar performance: usá ig_analyze_posts y ig_get_account_insights, después explicá con datos concretos qué funciona y qué no (engagement rate, alcance, top posts, peores posts).
+- Cuando te pidan un "plan de pauta": combiná ig_analyze_posts (para detectar el mejor post a promocionar) + ig_get_account_insights (para entender la audiencia y demografía) + ig_get_ads_overview (para ver histórico de spend y CPC). Devolvé una recomendación estructurada con: 1) qué post promocionar y por qué, 2) presupuesto diario sugerido en ARS, 3) duración, 4) objetivo (engagement / awareness / traffic), 5) audiencia (países, edades), 6) métricas KPI a vigilar.
+- Cuando te pidan diagnosticar campañas: usá ig_get_ads_overview y mará banderas: CTR < 1% (creatividad débil), CPC alto vs benchmark del rubro, frecuencia >3 (saturación), spend sin conversiones.
+- ACCIONES DE ESCRITURA EN META ADS (ig_pause_campaign, ig_resume_campaign, ig_update_campaign_budget, ig_boost_post): SIEMPRE pedí confirmación al usuario antes de ejecutar, mostrándole exactamente qué va a pasar (nombre de campaña, monto, etc.). NUNCA ejecutés ig_boost_post sin que el usuario confirme explícitamente media_id, presupuesto y días. ig_boost_post crea todo en estado PAUSADO por seguridad — avisá esto al usuario.
+- MUY IMPORTANTE: NUNCA asumas que una función va a fallar basándote en intentos anteriores del historial. Si el usuario te pide ejecutar una acción, SIEMPRE llamá la función real sin importar si falló antes. Solo reportá errores reales que vengan de la respuesta de la función, nunca inventes ni predijas errores.
 
 Formato de respuestas:
 - Usá markdown para formatear (negritas, listas, etc).

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Globe, Link2, Unlink, RefreshCcw, Heart, MessageCircle, Eye, Users, UserPlus, ImageIcon, BarChart3, ExternalLink, AlertTriangle, CheckCircle2, Loader2, ChevronDown, ChevronLeft, ChevronRight, TrendingUp, DollarSign, MousePointerClick, Megaphone, Target, Bookmark, Share2, Reply, UserCheck, LinkIcon } from 'lucide-react';
 
 interface Profile {
@@ -59,6 +60,11 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
   const [adsTokenInput, setAdsTokenInput] = useState('');
   const [isConnectingAds, setIsConnectingAds] = useState(false);
   const [hasAdsToken, setHasAdsToken] = useState(false);
+  // When the EAA token returns multiple ad accounts, let the user pick one
+  const [adAccountChoices, setAdAccountChoices] = useState<any[] | null>(null);
+  const [pendingAdsToken, setPendingAdsToken] = useState('');
+  const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
+  const [insightsApiErrors, setInsightsApiErrors] = useState<string[]>([]);
   const [mediaInsights, setMediaInsights] = useState<any>(null);
   const [isLoadingMediaInsights, setIsLoadingMediaInsights] = useState(false);
   const [error, setError] = useState('');
@@ -68,6 +74,7 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [carouselChildren, setCarouselChildren] = useState<any[]>([]);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselDir, setCarouselDir] = useState<'left' | 'right'>('right'); // direction of last slide
   const [isLoadingCarousel, setIsLoadingCarousel] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
@@ -76,6 +83,21 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
   useEffect(() => {
     checkConnection();
   }, [projectId]);
+
+  // Lock scroll while the media modal is open. Dashboard's <main> is the scroll
+  // container (not body), so we lock both.
+  useEffect(() => {
+    if (!selectedMedia) return;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const mainEl = document.querySelector('main');
+    const previousMainOverflow = mainEl ? (mainEl as HTMLElement).style.overflow : '';
+    if (mainEl) (mainEl as HTMLElement).style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      if (mainEl) (mainEl as HTMLElement).style.overflow = previousMainOverflow;
+    };
+  }, [selectedMedia]);
 
   const apiCall = async (action: string, extra: Record<string, any> = {}) => {
     const res = await fetch('/api/instagram', {
@@ -181,10 +203,12 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
 
   const loadInsights = async () => {
     setIsLoadingInsights(true);
+    setInsightsApiErrors([]);
     try {
       const data = await apiCall('get_insights');
       if (data.insights) setInsights(data.insights);
       if (data.demographics) setDemographics(data.demographics);
+      if (data.apiErrors) setInsightsApiErrors(data.apiErrors);
       if (data.error) setError(data.error);
     } catch {
       // silent
@@ -215,24 +239,67 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
     setIsLoadingAds(false);
   };
 
-  const connectAdsToken = async () => {
-    if (!adsTokenInput.trim()) return;
+  const connectAdsToken = async (selectedAccountId?: string) => {
+    const tokenToUse = selectedAccountId ? pendingAdsToken : adsTokenInput.trim();
+    if (!tokenToUse) return;
     setIsConnectingAds(true);
     setAdsError('');
     try {
-      const data = await apiCall('connect_ads', { adsToken: adsTokenInput.trim() });
-      if (data.error) {
+      const payload: Record<string, any> = { adsToken: tokenToUse };
+      if (selectedAccountId) payload.adAccountId = selectedAccountId;
+      const data = await apiCall('connect_ads', payload);
+
+      if (data.multiple_accounts) {
+        // User must pick which ad account to use
+        setAdAccountChoices(data.accounts);
+        setPendingAdsToken(tokenToUse);
+        setAdsError('');
+      } else if (data.error) {
         setAdsError(data.hint || data.error);
       } else {
         setHasAdsToken(true);
         setAdsTokenInput('');
-        // Now load ads data
+        setPendingAdsToken('');
+        setAdAccountChoices(null);
         await loadAds();
       }
     } catch {
       setAdsError('Error al conectar token de publicidad');
     }
     setIsConnectingAds(false);
+  };
+
+  const switchAdAccount = async (newAccountId: string) => {
+    setIsSwitchingAccount(true);
+    setAdsError('');
+    try {
+      const data = await apiCall('select_ad_account', { adAccountId: newAccountId });
+      if (data.error) {
+        setAdsError(data.error);
+      } else {
+        setAdAccountChoices(null);
+        await loadAds();
+      }
+    } catch {
+      setAdsError('Error al cambiar de cuenta');
+    }
+    setIsSwitchingAccount(false);
+  };
+
+  const openAccountSwitcher = async () => {
+    setIsSwitchingAccount(true);
+    setAdsError('');
+    try {
+      const data = await apiCall('list_ad_accounts');
+      if (data.error) {
+        setAdsError(data.error);
+      } else {
+        setAdAccountChoices(data.accounts || []);
+      }
+    } catch {
+      setAdsError('Error al listar cuentas');
+    }
+    setIsSwitchingAccount(false);
   };
 
   const disconnectAdsToken = async () => {
@@ -648,15 +715,35 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <BarChart3 size={32} className="text-white/10" />
               <p className="text-sm text-white/30">No hay datos de estadísticas disponibles</p>
-              <p className="text-xs text-white/20">Las estadísticas requieren una cuenta Business con al menos 100 seguidores.</p>
+              {insightsApiErrors.length > 0 ? (
+                <div className="max-w-md w-full mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left">
+                  <p className="text-[10px] uppercase tracking-widest text-amber-400 font-bold mb-1">Mensaje de la API de Meta</p>
+                  {insightsApiErrors.map((e, i) => (
+                    <p key={i} className="text-xs text-amber-200/80">{e}</p>
+                  ))}
+                  <p className="text-[10px] text-amber-200/40 mt-2">
+                    Verificá que el token IGAA tenga el permiso <strong>instagram_manage_insights</strong>, que la cuenta sea Business/Creator (no personal) y que esté vinculada a una Página de Facebook.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-white/20">Las estadísticas requieren una cuenta Business con al menos 100 seguidores.</p>
+              )}
             </div>
           ) : (
             <>
               {/* Metric Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {insights.map((metric) => {
-                  const total = metric.values.reduce((sum, v) => sum + (v.value || 0), 0);
-                  const avg = Math.round(total / Math.max(metric.values.length, 1));
+                  // IG v21: aggregated metrics return { total_value: { value } } and have no `values` array.
+                  // Time-series metrics (reach, follower_count) still return `values: [{ value, end_time }]`.
+                  const values: Array<{ value: number; end_time?: string }> = Array.isArray(metric.values) ? metric.values : [];
+                  const hasTotalValue = typeof metric.total_value?.value === 'number';
+                  const total = hasTotalValue
+                    ? metric.total_value.value
+                    : values.reduce((sum: number, v: any) => sum + (v.value || 0), 0);
+                  const avg = values.length > 0
+                    ? Math.round(total / values.length)
+                    : total;
                   const metricIcons: Record<string, any> = {
                     reach: <Users size={18} />,
                     follower_count: <UserPlus size={18} />,
@@ -674,12 +761,12 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
 
                   // follower_count is cumulative, show last value instead of total
                   const isFollowerCount = metric.name === 'follower_count';
-                  const displayTotal = isFollowerCount 
-                    ? metric.values[metric.values.length - 1]?.value || 0
+                  const displayTotal = isFollowerCount
+                    ? values[values.length - 1]?.value || 0
                     : total;
                   const displayAvg = isFollowerCount
-                    ? (metric.values.length >= 2 
-                        ? (metric.values[metric.values.length - 1]?.value || 0) - (metric.values[0]?.value || 0)
+                    ? (values.length >= 2
+                        ? (values[values.length - 1]?.value || 0) - (values[0]?.value || 0)
                         : 0)
                     : avg;
                   const avgLabel = isFollowerCount ? 'Cambio en 30d' : 'Promedio diario';
@@ -708,65 +795,87 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
                           <p className="text-[10px] text-white/30">{avgLabel}</p>
                         </div>
                       </div>
-                      {/* Mini bar chart */}
-                      <div className="flex items-end gap-[2px] mt-3 h-10">
-                        {metric.values.slice(-30).map((v, i) => {
-                          const max = Math.max(...metric.values.map(x => x.value || 0), 1);
-                          const height = ((v.value || 0) / max) * 100;
-                          return (
-                            <div
-                              key={i}
-                              className="flex-1 bg-[hsl(76,85%,67%)]/30 rounded-t-sm min-h-[2px] transition-all hover:bg-[hsl(76,85%,67%)]/60"
-                              style={{ height: `${Math.max(height, 4)}%` }}
-                              title={`${v.value || 0} — ${new Date(v.end_time).toLocaleDateString('es-AR')}`}
-                            />
-                          );
-                        })}
-                      </div>
+                      {/* Mini bar chart — only for time-series metrics that include daily values */}
+                      {values.length > 0 && (
+                        <div className="flex items-end gap-[2px] mt-3 h-10 group/chart">
+                          {values.slice(-30).map((v: any, i: number) => {
+                            const max = Math.max(...values.map((x: any) => x.value || 0), 1);
+                            const height = ((v.value || 0) / max) * 100;
+                            const dateLabel = v.end_time
+                              ? new Date(v.end_time).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+                              : null;
+                            return (
+                              <div
+                                key={i}
+                                className="relative flex-1 group/bar"
+                                style={{ height: '100%', display: 'flex', alignItems: 'flex-end' }}
+                              >
+                                <div
+                                  className="w-full bg-[hsl(76,85%,67%)]/30 rounded-t-sm min-h-[2px] transition-all group-hover/bar:bg-[hsl(76,85%,67%)]/70"
+                                  style={{ height: `${Math.max(height, 4)}%` }}
+                                />
+                                {/* Tooltip */}
+                                {(v.value || 0) > 0 && (
+                                  <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/bar:flex flex-col items-center z-20">
+                                    <div className="bg-[#1a1a1a] border border-white/15 rounded-lg px-2 py-1 text-center shadow-xl whitespace-nowrap">
+                                      <p className="text-xs font-bold text-white leading-tight">{formatNumber(v.value || 0)}</p>
+                                      {dateLabel && <p className="text-[9px] text-white/40 leading-tight">{dateLabel}</p>}
+                                    </div>
+                                    <div className="w-1.5 h-1.5 bg-[#1a1a1a] border-r border-b border-white/15 rotate-45 -mt-[5px]" />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
 
-              {/* Demographics */}
-              {demographics && demographics.length > 0 && (
+              {/* Demographics — shape is now { age:[], gender:[], city:[], country:[] } keyed by breakdown */}
+              {demographics && Object.keys(demographics).length > 0 && (
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                   <h4 className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
                     <Users size={16} className="text-[hsl(76,85%,67%)]" /> Demografía de Seguidores
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {demographics.map((breakdown: any, bIdx: number) => (
-                      <div key={bIdx}>
-                        <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-3">
-                          {breakdown.dimension_keys?.[0] === 'city' ? 'Por Ciudad' :
-                           breakdown.dimension_keys?.[0] === 'country' ? 'Por País' :
-                           breakdown.dimension_keys?.[0] === 'age' ? 'Por Edad' :
-                           breakdown.dimension_keys?.[0] === 'gender' ? 'Por Género' :
-                           breakdown.dimension_keys?.[0] || 'Distribución'}
-                        </p>
-                        <div className="space-y-2">
-                          {(breakdown.results || [])
-                            .sort((a: any, b: any) => (b.value || 0) - (a.value || 0))
-                            .slice(0, 8)
-                            .map((item: any, i: number) => {
-                              const maxVal = Math.max(...(breakdown.results || []).map((r: any) => r.value || 0), 1);
-                              const pct = ((item.value || 0) / maxVal) * 100;
-                              return (
-                                <div key={i} className="flex items-center gap-3">
-                                  <span className="text-xs text-white/50 w-20 truncate">{item.dimension_values?.[0] || '?'}</span>
-                                  <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                                    <div
-                                      className="h-full bg-[hsl(76,85%,67%)]/50 rounded-full"
-                                      style={{ width: `${pct}%` }}
-                                    />
+                    {Object.entries(demographics as Record<string, any[]>).map(([breakdown, results]) => {
+                      const label =
+                        breakdown === 'city' ? 'Por Ciudad' :
+                        breakdown === 'country' ? 'Por País' :
+                        breakdown === 'age' ? 'Por Edad' :
+                        breakdown === 'gender' ? 'Por Género' : breakdown;
+                      const list = Array.isArray(results) ? results : [];
+                      const maxVal = Math.max(...list.map((r: any) => r.value || 0), 1);
+                      return (
+                        <div key={breakdown}>
+                          <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-3">{label}</p>
+                          <div className="space-y-2">
+                            {list
+                              .slice()
+                              .sort((a: any, b: any) => (b.value || 0) - (a.value || 0))
+                              .slice(0, 8)
+                              .map((item: any, i: number) => {
+                                const pct = ((item.value || 0) / maxVal) * 100;
+                                return (
+                                  <div key={i} className="flex items-center gap-3">
+                                    <span className="text-xs text-white/50 w-20 truncate">{item.dimension_values?.[0] || '?'}</span>
+                                    <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-[hsl(76,85%,67%)]/50 rounded-full"
+                                        style={{ width: `${pct}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs text-white/40 w-12 text-right">{formatNumber(item.value || 0)}</span>
                                   </div>
-                                  <span className="text-xs text-white/40 w-12 text-right">{formatNumber(item.value || 0)}</span>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -782,6 +891,51 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Loader2 size={24} className="animate-spin text-[hsl(76,85%,67%)]" />
               <p className="text-sm text-white/30 uppercase tracking-widest">Cargando datos de publicidad...</p>
+            </div>
+          ) : adAccountChoices ? (
+            /* Ad Account Selector — must render BEFORE !hasAdsToken so it shows after a multi-account response */
+            <div className="max-w-xl mx-auto py-8 space-y-5">
+              <div className="text-center">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-white/10 flex items-center justify-center mx-auto mb-3">
+                  <Megaphone size={24} className="text-white/40" />
+                </div>
+                <h4 className="text-base font-bold mb-1">Elegí la cuenta publicitaria</h4>
+                <p className="text-xs text-white/40">Tu token tiene acceso a varias. Seleccioná con cuál querés trabajar para este proyecto.</p>
+              </div>
+
+              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                {adAccountChoices.map((acc) => {
+                  const statusLabel = acc.status === 1 ? 'Activa' : acc.status === 2 ? 'Deshabilitada' : acc.status === 3 ? 'Pendiente' : `Estado ${acc.status}`;
+                  const statusColor = acc.status === 1 ? 'text-emerald-400' : 'text-amber-400';
+                  return (
+                    <button
+                      key={acc.id}
+                      type="button"
+                      onClick={() => (pendingAdsToken ? connectAdsToken(acc.id) : switchAdAccount(acc.id))}
+                      disabled={isConnectingAds || isSwitchingAccount}
+                      className="w-full text-left bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/30 rounded-xl p-4 transition-all disabled:opacity-50"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold truncate">{acc.name}</p>
+                          <p className="text-[10px] text-white/40 mt-0.5">
+                            {acc.id} · {acc.currency} · <span className={statusColor}>{statusLabel}</span>
+                          </p>
+                        </div>
+                        <Link2 size={14} className="text-white/30 flex-shrink-0" />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => { setAdAccountChoices(null); setPendingAdsToken(''); }}
+                className="w-full py-2 text-xs text-white/40 hover:text-white/70 uppercase tracking-widest font-bold"
+              >
+                Cancelar
+              </button>
             </div>
           ) : !hasAdsToken ? (
             /* Connect Ads Token Form */
@@ -825,7 +979,7 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
                 )}
 
                 <button
-                  onClick={connectAdsToken}
+                  onClick={() => connectAdsToken()}
                   disabled={!adsTokenInput.trim() || isConnectingAds}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-sm font-bold uppercase tracking-widest disabled:opacity-30 hover:opacity-90 transition-all flex items-center justify-center gap-2"
                 >
@@ -889,12 +1043,31 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
                     </div>
                   </div>
                   <button
+                    onClick={openAccountSwitcher}
+                    disabled={isSwitchingAccount}
+                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/40 hover:text-white/70 transition-all disabled:opacity-50"
+                    title="Cambiar cuenta publicitaria"
+                  >
+                    {isSwitchingAccount ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
+                  </button>
+                  <button
                     onClick={loadAds}
                     className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/40 hover:text-white/70 transition-all"
                     title="Actualizar"
                   >
                     <RefreshCcw size={16} />
                   </button>
+                  {adsData.adAccount.id && (
+                    <a
+                      href={`https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=${adsData.adAccount.id.replace('act_', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-xs text-blue-400 hover:text-blue-300 transition-all font-bold uppercase tracking-widest"
+                      title="Ver campañas en Meta Ads Manager"
+                    >
+                      <ExternalLink size={13} /> Meta Ads
+                    </a>
+                  )}
                   <button
                     onClick={disconnectAdsToken}
                     className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 transition-all"
@@ -1056,40 +1229,44 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
       )}
 
       {/* Media Detail Modal */}
-      {selectedMedia && (
+      {selectedMedia && typeof window !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => { setSelectedMedia(null); setMediaInsights(null); }}>
           <div className="bg-[#0a0a0a] border border-white/10 rounded-[2rem] overflow-hidden max-w-4xl w-full max-h-[90vh] flex flex-col md:flex-row" onClick={(e) => e.stopPropagation()}>
             {/* Image / Carousel */}
-            <div className="md:w-1/2 aspect-square flex-shrink-0 bg-black relative">
+            <div className="md:w-1/2 md:max-h-[90vh] aspect-square flex-shrink-0 bg-black relative overflow-hidden">
               {selectedMedia.media_type === 'CAROUSEL_ALBUM' && carouselChildren.length > 0 ? (
                 <>
-                  {carouselChildren[carouselIndex]?.media_type === 'VIDEO' ? (
-                    <video
-                      key={carouselChildren[carouselIndex].id}
-                      src={carouselChildren[carouselIndex].media_url}
-                      controls
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <img
-                      key={carouselChildren[carouselIndex].id}
-                      src={carouselChildren[carouselIndex].media_url}
-                      alt=""
-                      className="w-full h-full object-contain"
-                    />
-                  )}
+                  {/* Slide wrapper — animates in from left or right based on nav direction */}
+                  <div
+                    key={carouselIndex}
+                    className={`w-full h-full ${carouselDir === 'right' ? 'animate-slide-in-right' : 'animate-slide-in-left'}`}
+                  >
+                    {carouselChildren[carouselIndex]?.media_type === 'VIDEO' ? (
+                      <video
+                        src={carouselChildren[carouselIndex].media_url}
+                        controls
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <img
+                        src={carouselChildren[carouselIndex].media_url}
+                        alt=""
+                        className="w-full h-full object-contain"
+                      />
+                    )}
+                  </div>
                   {/* Carousel Navigation */}
                   {carouselChildren.length > 1 && (
                     <>
                       <button
-                        onClick={() => setCarouselIndex((prev) => (prev - 1 + carouselChildren.length) % carouselChildren.length)}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 border border-white/20 flex items-center justify-center text-white/80 hover:text-white transition-all"
+                        onClick={() => { setCarouselDir('left'); setCarouselIndex((prev) => (prev - 1 + carouselChildren.length) % carouselChildren.length); }}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 border border-white/20 flex items-center justify-center text-white/80 hover:text-white transition-all z-10"
                       >
                         <ChevronLeft size={16} />
                       </button>
                       <button
-                        onClick={() => setCarouselIndex((prev) => (prev + 1) % carouselChildren.length)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 border border-white/20 flex items-center justify-center text-white/80 hover:text-white transition-all"
+                        onClick={() => { setCarouselDir('right'); setCarouselIndex((prev) => (prev + 1) % carouselChildren.length); }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 border border-white/20 flex items-center justify-center text-white/80 hover:text-white transition-all z-10"
                       >
                         <ChevronRight size={16} />
                       </button>
@@ -1133,7 +1310,7 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
             </div>
 
             {/* Info Panel */}
-            <div className="md:w-1/2 flex flex-col overflow-hidden">
+            <div className="md:w-1/2 flex flex-col min-h-0 overflow-hidden">
               {/* Header */}
               <div className="p-5 pb-3 border-b border-white/10">
                 <div className="flex items-center gap-4 mb-2">
@@ -1157,7 +1334,7 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
               </div>
 
               {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[hsl(76,85%,67%)]/40 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[hsl(76,85%,67%)]/70">
                 {/* Post Insights */}
                 {!mediaInsights && !isLoadingMediaInsights && (
                   <button
@@ -1279,7 +1456,8 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
