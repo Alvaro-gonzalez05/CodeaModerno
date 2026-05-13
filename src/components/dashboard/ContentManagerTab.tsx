@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Globe, Link2, Unlink, RefreshCcw, Heart, MessageCircle, Eye, Users, UserPlus, ImageIcon, BarChart3, ExternalLink, AlertTriangle, CheckCircle2, Loader2, ChevronDown, ChevronLeft, ChevronRight, TrendingUp, DollarSign, MousePointerClick, Megaphone, Target, Bookmark, Share2, Reply, UserCheck, LinkIcon } from 'lucide-react';
+import { Globe, Link2, Unlink, RefreshCcw, Heart, MessageCircle, Eye, Users, UserPlus, ImageIcon, BarChart3, ExternalLink, AlertTriangle, CheckCircle2, Loader2, ChevronDown, ChevronLeft, ChevronRight, TrendingUp, DollarSign, MousePointerClick, Megaphone, Target, Bookmark, Share2, Reply, UserCheck, LinkIcon, Brain, Sparkles, Info, AlertCircle } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -79,6 +79,8 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
   const [isLoadingCarousel, setIsLoadingCarousel] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [botInsights, setBotInsights] = useState<any[]>([]);
+  const [isLoadingBotInsights, setIsLoadingBotInsights] = useState(false);
 
   // Check connection on mount
   useEffect(() => {
@@ -217,6 +219,20 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
     setIsLoadingInsights(false);
   };
 
+  const loadBotInsights = async () => {
+    setIsLoadingBotInsights(true);
+    try {
+      const res = await fetch(`/api/instagram?projectId=${projectId}&action=get_bot_insights`);
+      const data = await res.json();
+      if (data.insights && Array.isArray(data.insights)) {
+        setBotInsights(data.insights);
+      }
+    } catch {
+      // silent
+    }
+    setIsLoadingBotInsights(false);
+  };
+
   const loadAds = async () => {
     setIsLoadingAds(true);
     setAdsError('');
@@ -238,6 +254,8 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
       setAdsError('Error al cargar datos de publicidad');
     }
     setIsLoadingAds(false);
+    // Also load bot insights
+    loadBotInsights();
   };
 
   const connectAdsToken = async (selectedAccountId?: string) => {
@@ -1185,6 +1203,17 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {adsData.ads.map((ad: any) => {
                       const ins = ad.insights?.data?.[0];
+                      
+                      let adAiFeedback: any = null;
+                      if (botInsights.length > 0) {
+                        try {
+                          const parsed = JSON.parse(botInsights[0].ai_feedback);
+                          if (parsed.ads && parsed.ads[ad.id]) {
+                            adAiFeedback = parsed.ads[ad.id];
+                          }
+                        } catch {}
+                      }
+
                       return (
                         <div key={ad.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex gap-4">
                           {ad.creative?.thumbnail_url && (
@@ -1205,11 +1234,33 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
                                 <span className="text-[10px] text-white/50">📈 {parseFloat(ins.ctr || 0).toFixed(2)}%</span>
                               </div>
                             )}
+                            
+                            {/* AI Insights for this specific ad */}
+                            {adAiFeedback && (
+                              <div className="mt-3 bg-white/5 rounded-xl p-3 border border-white/5">
+                                <div className="flex items-center gap-1.5 mb-1 text-[10px] font-bold text-[hsl(76,85%,67%)]">
+                                  <Sparkles size={12} /> Análisis de IA
+                                </div>
+                                <p className="text-[11px] text-white/70 font-medium mb-1">{adAiFeedback.short}</p>
+                                <details className="group">
+                                  <summary className="text-[10px] text-white/40 hover:text-white/60 cursor-pointer list-none select-none underline decoration-white/20 underline-offset-2">Ver detalle ampliado</summary>
+                                  <p className="text-[10px] text-white/50 mt-2 leading-relaxed">{adAiFeedback.long}</p>
+                                </details>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+
+              {isLoadingBotInsights && (
+                <div className="flex items-center justify-center gap-2 py-6 text-white/30">
+                  <Loader2 size={14} className="animate-spin" />
+                  <span className="text-xs">Cargando insights de UcoBot...</span>
                 </div>
               )}
 

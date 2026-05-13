@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Key, Link as LinkIcon, Globe, X, UploadCloud, File as FileIcon, FileText, Trash2, Edit3, DollarSign, Unlink, CheckCircle2, Clock, AlertTriangle, ListTodo, Plus, User } from 'lucide-react';
+import { Key, Link as LinkIcon, Globe, X, UploadCloud, File as FileIcon, FileText, Trash2, Edit3, DollarSign, Unlink, CheckCircle2, Clock, AlertTriangle, ListTodo, Plus, User, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import UcoBotTab from './UcoBotTab';
 import ContentManagerTab from './ContentManagerTab';
@@ -61,6 +61,7 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
   const [vaultItems, setVaultItems] = useState<any[]>([]);
   const [selectedVaultItem, setSelectedVaultItem] = useState<any | null>(null);
   const [isViewVaultModalOpen, setIsViewVaultModalOpen] = useState(false);
+  const [isEditingVaultItem, setIsEditingVaultItem] = useState(false);
 
   // Finance State
   const [projectPrice, setProjectPrice] = useState<number>(project?.price || 0);
@@ -449,34 +450,82 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-max gap-4" style={{ gridAutoFlow: 'dense' }}>
               {vaultItems.map((item) => {
                 const design = getVaultIcon(item.item_type);
+                
+                // Parse image if exists
+                const imgMatch = item.content.match(/!\[.*?\]\((data:image\/[^;]+;base64,[^)]+)\)/) || item.content.match(/!\[.*?\]\((https:\/\/[^)]+)\)/);
+                const hasImage = !!imgMatch;
+                const imageUrl = imgMatch ? imgMatch[1] : null;
+                
+                // Detect script or long note
+                const isScript = item.item_type === 'note' && item.content.length > 150;
+                
+                // Dynamic sizing for Bento Grid
+                let spanClasses = 'col-span-1 row-span-1';
+                if (hasImage) {
+                  spanClasses = 'col-span-1 row-span-1 aspect-square';
+                } else if (isScript) {
+                  spanClasses = 'col-span-1 sm:col-span-2 row-span-2 min-h-[200px]';
+                }
+
+                // Dynamic tags based on title/type
+                const tags = [];
+                const lowerTitle = item.title.toLowerCase();
+                if (lowerTitle.includes('carrusel') || lowerTitle.includes('carousel')) tags.push('CARRUSEL');
+                if (lowerTitle.includes('reel') || lowerTitle.includes('video') || lowerTitle.includes('vlog')) tags.push('VIDEO');
+                if (lowerTitle.includes('idea')) tags.push('IDEA');
+                if (tags.length === 0 && item.item_type === 'note') tags.push('NOTA');
+
                 return (
-                  <div key={item.id} className={`vault-item-${item.id} bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-6 group hover:bg-white/10 transition-colors`}>
-                    <div className={`w-10 h-10 rounded-full ${design.bg} ${design.color} flex flex-shrink-0 items-center justify-center mb-4`}>
-                      {design.icon}
-                    </div>
-                    <h4 className="font-medium text-lg mb-2">{item.title}</h4>
-                    <p className="text-white/50 text-sm mb-4 line-clamp-2">
-                      {item.content}
-                    </p>
-                      <button 
-                        onClick={() => {
-                          setSelectedVaultItem(item);
-                          setIsViewVaultModalOpen(true);
-                        }}
-                        className={`text-sm ${design.color} opacity-80 hover:opacity-100 transition-opacity uppercase tracking-widest font-semibold`}
-                      >
-                      Ver Detalles →
-                    </button>
+                  <div 
+                    key={item.id} 
+                    className={`vault-item-${item.id} ${spanClasses} flex flex-col cursor-pointer overflow-hidden group bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md border border-white/10 hover:border-white/20 transition-all rounded-3xl relative`}
+                    onClick={() => { setSelectedVaultItem(item); setIsViewVaultModalOpen(true); }}
+                  >
+                    {hasImage ? (
+                      <div className="relative w-full h-full flex-1">
+                        <img src={imageUrl!} alt={item.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-6">
+                          <h4 className="font-bold text-lg text-white mb-1 drop-shadow-lg">{item.title}</h4>
+                          <p className="text-white/60 text-xs line-clamp-2 drop-shadow-md font-medium">{item.content.replace(/!\[.*?\]\(.*?\)/, '').trim() || 'Ver imagen generada'}</p>
+                        </div>
+                      </div>
+                    ) : isScript ? (
+                      <div className="p-6 flex flex-col h-full relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(76,85%,67%)]/5 to-transparent pointer-events-none" />
+                        <div className="flex flex-wrap gap-2 mb-4 relative z-10">
+                           {tags.map(t => (
+                             <span key={t} className="text-[9px] font-bold uppercase tracking-widest bg-[hsl(76,85%,67%)]/10 text-[hsl(76,85%,67%)] px-2.5 py-1 rounded-full border border-[hsl(76,85%,67%)]/20">{t}</span>
+                           ))}
+                        </div>
+                        <h4 className="font-bold text-lg mb-3 text-white/90 relative z-10">{item.title}</h4>
+                        <div className="text-[11px] text-white/50 line-clamp-[8] leading-relaxed whitespace-pre-wrap flex-1 relative z-10 font-medium">
+                          {item.content}
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#111] to-transparent pointer-events-none" />
+                      </div>
+                    ) : (
+                      <div className="p-6 flex flex-col h-full justify-between">
+                        <div>
+                          <div className={`w-10 h-10 rounded-2xl ${design.bg} ${design.color} flex items-center justify-center mb-4 shadow-lg`}>
+                            {design.icon}
+                          </div>
+                          <h4 className="font-semibold text-sm mb-2">{item.title}</h4>
+                          <p className="text-white/40 text-[11px] line-clamp-3 leading-relaxed font-medium">
+                            {item.content}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
               
               {vaultItems.length === 0 && (
-                <div className="col-span-full py-12 text-center text-white/40 text-sm uppercase tracking-widest">
-                  El Baúl está vacío. Agrega enlaces, credeciales o archivos.
+                <div className="col-span-full py-16 text-center text-white/40 text-sm uppercase tracking-widest">
+                  El Baúl está vacío. Generá contenido con UcoBot o agregá archivos.
                 </div>
               )}
             </div>
@@ -984,68 +1033,186 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
         {/* MODAL VIEW / UPDATE / DELETE VAULT ITEM */}
         {isViewVaultModalOpen && selectedVaultItem && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsViewVaultModalOpen(false)}></div>
-            <div className="relative bg-[#0a0a0a] border border-white/10 rounded-3xl w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 duration-300">
-              <button onClick={() => setIsViewVaultModalOpen(false)} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
-                <X size={20} />
-              </button>
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => { setIsViewVaultModalOpen(false); setIsEditingVaultItem(false); }}></div>
+            <div className="relative bg-[#0a0a0a] border border-white/10 rounded-[2rem] w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-300 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[hsl(76,85%,67%)]/40 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[hsl(76,85%,67%)]/70 flex flex-col">
               
-              <h2 className="text-2xl font-semibold uppercase tracking-tight text-white mb-6">
-                Detalles del Baúl
-              </h2>
-              
-              <form onSubmit={handleUpdateVaultItem} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">TIpo</label>
-                  <select 
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white focus:bg-black/50 appearance-none"
-                    value={selectedVaultItem.item_type}
-                    onChange={(e) => setSelectedVaultItem({ ...selectedVaultItem, item_type: e.target.value })}
-                  >
-                    <option value="link" className="text-black">Enlace Externo</option>
-                    <option value="credencial" className="text-black">Credenciales</option>
-                    <option value="nota" className="text-black">Nota Privada</option>
-                    <option value="archivo" className="text-black">Archivo</option>
-                  </select>
+              <div className="sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-white/5 p-4 md:p-6 flex items-center justify-between z-10">
+                <div className="flex gap-2">
+                  <span className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full ${getVaultIcon(selectedVaultItem.item_type).bg} ${getVaultIcon(selectedVaultItem.item_type).color}`}>
+                    {selectedVaultItem.item_type}
+                  </span>
+                  {selectedVaultItem.item_type === 'nota' && (
+                    <span className="text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full bg-[hsl(76,85%,67%)]/20 text-[hsl(76,85%,67%)]">
+                      IDEA
+                    </span>
+                  )}
                 </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Título Identificador</label>
-                  <input 
-                    required
-                    type="text" 
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white focus:bg-black/50"
-                    value={selectedVaultItem.title}
-                    onChange={(e) => setSelectedVaultItem({ ...selectedVaultItem, title: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Contenido</label>
-                  <textarea 
-                    required
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white h-24 resize-none focus:bg-black/50"
-                    value={selectedVaultItem.content}
-                    onChange={(e) => setSelectedVaultItem({ ...selectedVaultItem, content: e.target.value })}
-                  ></textarea>
-                </div>
-
-                <div className="flex gap-4 pt-4">
-                  <button 
-                    type="button"
-                    onClick={() => handleDeleteVaultItem(selectedVaultItem.id)}
-                    className="flex items-center justify-center gap-2 flex-grow bg-red-500/10 text-red-500 hover:bg-red-500/20 py-4 rounded-xl font-bold uppercase tracking-widest transition-colors text-xs border border-red-500/20"
-                  >
-                    <Trash2 size={16} /> Eliminar
+                
+                <div className="flex items-center gap-2">
+                  {(selectedVaultItem.content?.includes('![') || selectedVaultItem.content?.includes('data:image')) && (
+                    <button 
+                      onClick={() => {
+                        setIsViewVaultModalOpen(false);
+                        window.dispatchEvent(new CustomEvent('ucobot:edit', { detail: { item: selectedVaultItem } }));
+                      }}
+                      className="px-3 py-1.5 md:px-4 md:py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-[hsl(76,85%,67%)]/10 text-[hsl(76,85%,67%)] border border-[hsl(76,85%,67%)]/20 rounded-full hover:bg-[hsl(76,85%,67%)]/20 transition-colors flex items-center gap-2"
+                    >
+                      <Sparkles size={12} className="md:w-3.5 md:h-3.5" />
+                      Editar con IA
+                    </button>
+                  )}
+                  <button onClick={() => setIsEditingVaultItem(!isEditingVaultItem)} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-colors border border-white/10">
+                    <Edit3 size={14} className="md:w-4 md:h-4" />
                   </button>
-                  <button 
-                    type="submit"
-                    className="flex items-center justify-center gap-2 flex-grow bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-neutral-200 transition-colors text-xs"
-                  >
-                    <Edit3 size={16} /> Actualizar
+                  <button onClick={() => handleDeleteVaultItem(selectedVaultItem.id)} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors border border-red-500/20">
+                    <Trash2 size={14} className="md:w-4 md:h-4" />
+                  </button>
+                  <button onClick={() => { setIsViewVaultModalOpen(false); setIsEditingVaultItem(false); }} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-colors border border-white/10 ml-1 md:ml-2">
+                    <X size={14} className="md:w-4 md:h-4" />
                   </button>
                 </div>
-              </form>
+              </div>
+
+              <div className="p-6 md:p-8 flex-grow">
+                {!isEditingVaultItem ? (
+                  <div className="max-w-full mx-auto space-y-6">
+                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white leading-tight">
+                      {selectedVaultItem.title}
+                    </h2>
+                    
+                    <p className="text-xs text-white/40 uppercase tracking-widest flex items-center gap-2">
+                      <Clock size={14} /> 
+                      Creado el {new Date(selectedVaultItem.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    </p>
+
+                    <div className="h-px w-full bg-gradient-to-r from-white/10 via-white/5 to-transparent"></div>
+
+                    <div className="prose prose-invert max-w-none">
+                      {selectedVaultItem.content?.includes('![') || selectedVaultItem.content?.includes('<img') || selectedVaultItem.content?.includes('data:image') ? (
+                        <div className="w-full relative">
+                          {(() => {
+                            const base64Images = Array.from(selectedVaultItem.content.matchAll(/data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+/g)).map(m => m[0]);
+                            
+                            if (base64Images.length > 0) {
+                              return (
+                                <div className="flex overflow-x-auto gap-4 pb-6 snap-x snap-mandatory [&::-webkit-scrollbar]:h-[6px] [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[hsl(76,85%,67%)]/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[hsl(76,85%,67%)]/80">
+                                  {base64Images.map((src, index) => (
+                                    <div key={index} className="relative flex-shrink-0 snap-center w-[85%] md:w-[60%] lg:w-[45%] max-w-[400px] group">
+                                      <img src={src} className="w-full aspect-square object-cover rounded-2xl border border-white/10 shadow-xl" />
+                                      <button 
+                                        onClick={() => {
+                                          setIsViewVaultModalOpen(false);
+                                          window.dispatchEvent(new CustomEvent('ucobot:edit', { detail: { item: selectedVaultItem, index: index + 1 } }));
+                                        }}
+                                        className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-black/60 backdrop-blur-md text-[hsl(76,85%,67%)] border border-[hsl(76,85%,67%)]/30 rounded-full hover:bg-black/80 transition-all flex items-center gap-2"
+                                      >
+                                        <Sparkles size={12} />
+                                        Editar Slide {index + 1}
+                                      </button>
+                                      <div className="absolute bottom-4 left-4 px-2 py-1 bg-black/60 backdrop-blur-md text-white/80 text-[10px] rounded-md font-medium border border-white/10 pointer-events-none">
+                                        Slide {index + 1}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div 
+                                className="flex overflow-x-auto gap-4 pb-6 snap-x snap-mandatory [&::-webkit-scrollbar]:h-[6px] [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[hsl(76,85%,67%)]/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[hsl(76,85%,67%)]/80"
+                                dangerouslySetInnerHTML={{
+                                  __html: selectedVaultItem.content
+                                    .replace(/> \*\*Prompt Original:\*\*.*?\n\n/g, '')
+                                    .replace(/<div class="image-carousel">/g, '')
+                                    .replace(/<\/div>/g, '')
+                                    .replace(/!\[.*?\]\((.*?)\)/g, '<img src="$1" class="w-[85%] md:w-[60%] lg:w-[45%] max-w-[400px] aspect-square object-cover rounded-2xl flex-shrink-0 snap-center border border-white/10 shadow-xl" />')
+                                    .replace(/<img(?!.*class=)(.*?)>/g, '<img class="w-[85%] md:w-[60%] lg:w-[45%] max-w-[400px] aspect-square object-cover rounded-2xl flex-shrink-0 snap-center border border-white/10 shadow-xl" $1>')
+                                }}
+                              />
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <div 
+                          className="text-white/80 text-lg leading-relaxed font-light whitespace-pre-wrap custom-markdown"
+                          dangerouslySetInnerHTML={{ 
+                            __html: selectedVaultItem.content
+                              // Custom Tips
+                              .replace(/^Tip:\s*(.*?)(?:\n|$)/gim, '<div class="bg-[hsl(76,85%,67%)]/10 border-l-4 border-[hsl(76,85%,67%)] p-6 rounded-r-2xl my-6"><p class="text-[hsl(76,85%,67%)] font-semibold text-sm m-0">$1</p></div>')
+                              // Slides / Sections
+                              .replace(/^#### (.*?)$/gim, '<h4 class="text-xl font-bold text-[hsl(76,85%,67%)] mt-8 mb-4 tracking-tight">$1</h4>')
+                              .replace(/^### (.*?)$/gim, '<h3 class="text-2xl font-bold text-white mt-10 mb-6 tracking-tighter">$1</h3>')
+                              .replace(/^## (.*?)$/gim, '<h2 class="text-3xl font-black text-white mt-12 mb-6 tracking-tighter">$1</h2>')
+                              .replace(/^# (.*?)$/gim, '<h1 class="text-4xl font-black text-[hsl(76,85%,67%)] mt-12 mb-8 uppercase tracking-tighter">$1</h1>')
+                              // Bold
+                              .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>')
+                              // Lists
+                              .replace(/^\s*[-*]\s(.*)$/gim, '<li class="ml-6 mb-2 list-disc marker:text-[hsl(76,85%,67%)]">$1</li>')
+                              // Italic (after lists so it doesn't match list bullets)
+                              .replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<em class="italic text-white/80">$1</em>')
+                              // Dividers
+                              .replace(/^---/gim, '<hr class="border-t border-white/10 my-8" />')
+                          }} 
+                        />
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleUpdateVaultItem} className="space-y-6 max-w-3xl mx-auto">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Tipo</label>
+                      <select 
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white focus:bg-black/50 appearance-none"
+                        value={selectedVaultItem.item_type}
+                        onChange={(e) => setSelectedVaultItem({ ...selectedVaultItem, item_type: e.target.value })}
+                      >
+                        <option value="link" className="text-black">Enlace Externo</option>
+                        <option value="credencial" className="text-black">Credenciales</option>
+                        <option value="nota" className="text-black">Nota Privada / Idea</option>
+                        <option value="archivo" className="text-black">Archivo</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Título Identificador</label>
+                      <input 
+                        required
+                        type="text" 
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white focus:bg-black/50"
+                        value={selectedVaultItem.title}
+                        onChange={(e) => setSelectedVaultItem({ ...selectedVaultItem, title: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Contenido</label>
+                      <textarea 
+                        required
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white min-h-[300px] resize-none focus:bg-black/50 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[hsl(76,85%,67%)]/40 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[hsl(76,85%,67%)]/70"
+                        value={selectedVaultItem.content}
+                        onChange={(e) => setSelectedVaultItem({ ...selectedVaultItem, content: e.target.value })}
+                      ></textarea>
+                    </div>
+
+                    <div className="flex gap-4 pt-4">
+                      <button 
+                        type="button"
+                        onClick={() => setIsEditingVaultItem(false)}
+                        className="flex-grow bg-white/5 text-white/50 hover:bg-white/10 py-4 rounded-xl font-bold uppercase tracking-widest transition-colors text-xs border border-white/10"
+                      >
+                        Cancelar
+                      </button>
+                      <button 
+                        type="submit"
+                        className="flex items-center justify-center gap-2 flex-grow bg-[hsl(76,85%,67%)] text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:scale-[1.02] transition-transform text-xs shadow-[0_0_20px_rgba(194,242,84,0.3)]"
+                      >
+                        <Edit3 size={16} /> Guardar Cambios
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
         )}

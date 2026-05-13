@@ -288,7 +288,7 @@ export async function fetchAdsOverview(conn: SocialConnection) {
       `${FB_API}/${actId}/campaigns?fields=id,name,status,objective,start_time,stop_time,daily_budget,lifetime_budget,insights.date_preset(last_90d){impressions,reach,clicks,spend,cpc,cpm,ctr,actions}&limit=50&access_token=${encodeURIComponent(token)}`
     ),
     fetch(
-      `${FB_API}/${actId}/ads?fields=id,name,status,campaign_id,creative{thumbnail_url,title,body},insights.date_preset(last_90d){impressions,reach,clicks,spend,cpc,cpm,ctr,actions}&limit=50&access_token=${encodeURIComponent(token)}`
+      `${FB_API}/${actId}/ads?fields=id,name,status,campaign_id,adset_id,adset{id,name,status},creative{thumbnail_url,title,body},insights.date_preset(last_90d){impressions,reach,clicks,spend,cpc,cpm,ctr,actions}&limit=50&access_token=${encodeURIComponent(token)}`
     ),
     fetch(
       `${FB_API}/${actId}/insights?date_preset=last_90d&fields=impressions,reach,clicks,spend,cpc,cpm,ctr,actions&access_token=${encodeURIComponent(token)}`
@@ -379,7 +379,7 @@ export interface BoostPostOptions {
 }
 
 // Crea Campaign + Ad Set + Ad para promocionar un post existente de IG.
-// Todo se crea en estado PAUSED — el usuario debe activar manualmente desde Meta.
+// Todo se crea en estado PAUSED — el usuario puede activar desde el bot o manualmente.
 export async function boostInstagramPost(
   conn: SocialConnection,
   opts: BoostPostOptions
@@ -403,6 +403,21 @@ export async function boostInstagramPost(
   const objective = opts.linkUrl ? 'OUTCOME_TRAFFIC' : (opts.objective || 'OUTCOME_ENGAGEMENT');
   const countries = opts.countries?.length ? opts.countries : ['AR'];
 
+  // Resolve the IG user ID linked to the Page (more reliable than conn.ig_user_id for ads)
+  let igUserId = conn.ig_user_id!;
+  try {
+    const pageIgRes = await fetch(
+      `${FB_API}/${pageId}?fields=instagram_business_account&access_token=${encodeURIComponent(token)}`
+    );
+    const pageIgData = await pageIgRes.json();
+    console.log('[boostIG] page instagram_business_account:', JSON.stringify(pageIgData, null, 2));
+    if (pageIgData.instagram_business_account?.id) {
+      igUserId = pageIgData.instagram_business_account.id;
+    }
+  } catch (_) { /* fallback to conn.ig_user_id */ }
+
+  console.log('[boostIG] using igUserId:', igUserId, '| pageId:', pageId);
+
   // 1. Campaign
   const campaignRes = await fetch(`${FB_API}/${actId}/campaigns`, {
     method: 'POST',
@@ -421,12 +436,10 @@ export async function boostInstagramPost(
   if (campaign.error) return { error: `Campaign: ${campaign.error.message} (code ${campaign.error.code})` };
 
   // 2. Ad Set
-  const startTime = Math.floor(Date.now() / 1000) + 3600; // empieza en 1h
+  const startTime = Math.floor(Date.now() / 1000) + 600; // empieza en 10 min
   const endTime = startTime + opts.durationDays * 86400;
 
   // Map objective → optimization_goal
-  // NOTE: ENGAGED_USERS is NOT valid for OUTCOME_ENGAGEMENT.
-  // POST_ENGAGEMENT is the correct optimization_goal for boosting IG posts with OUTCOME_ENGAGEMENT.
   const optimizationGoal =
     objective === 'OUTCOME_AWARENESS'
       ? 'REACH'
@@ -434,7 +447,7 @@ export async function boostInstagramPost(
         ? 'LINK_CLICKS'
         : 'POST_ENGAGEMENT'; // OUTCOME_ENGAGEMENT → POST_ENGAGEMENT
 
-  const billingEvent = 'IMPRESSIONS'; // POST_ENGAGEMENT and REACH both use IMPRESSIONS as billing event
+  const billingEvent = 'IMPRESSIONS';
 
   const targeting = {
     geo_locations: { countries },
@@ -468,23 +481,8 @@ export async function boostInstagramPost(
   if (adset.error) return { error: `AdSet: ${adset.error.message} (code ${adset.error.code})`, campaign_id: campaign.id };
 
   // 3. Creative — boostear un post existente de IG.
-  //    El instagram_actor_id debe ser el IG Business Account vinculado a la FB Page.
-  //    Lo obtenemos desde /{pageId}?fields=instagram_business_account (más confiable que
-  //    /{actId}/instagram_accounts que requiere vinculación explícita al ad account).
-  let igActorId = conn.ig_user_id!;
-  try {
-    const pageIgRes = await fetch(
-      `${FB_API}/${pageId}?fields=instagram_business_account&access_token=${encodeURIComponent(token)}`
-    );
-    const pageIgData = await pageIgRes.json();
-    console.log('[boostIG] page instagram_business_account:', JSON.stringify(pageIgData, null, 2));
-    if (pageIgData.instagram_business_account?.id) {
-      igActorId = pageIgData.instagram_business_account.id;
-    }
-  } catch (_) { /* fallback to conn.ig_user_id */ }
-
-  console.log('[boostIG] using igActorId:', igActorId, '| pageId:', pageId);
-
+  //    Meta API v21+ requires object_story_spec with instagram_user_id (not instagram_actor_id
+  //    which is deprecated) and page_id for the creative to be valid.
   if (!opts.linkUrl) {
     return {
       error: 'Falta linkUrl: Meta exige una URL de destino para boosts con OUTCOME_ENGAGEMENT/TRAFFIC. Pedile al usuario la URL antes de ejecutar.',
@@ -499,9 +497,14 @@ export async function boostInstagramPost(
       adset_id: adset.id,
     };
   }
+
+  // source_instagram_media_id + instagram_user_id is the correct approach for
+  // boosting existing IG posts. Do NOT include object_story_spec — it conflicts
+  // with source_instagram_media_id and causes "missing link field" errors.
   const creativeBody: Record<string, string> = {
     name: `[UcoBot] Creative ${opts.mediaId}`,
     source_instagram_media_id: opts.mediaId,
+    instagram_user_id: igUserId,
     call_to_action: JSON.stringify({
       type: opts.callToAction,
       value: { link: opts.linkUrl },
@@ -582,7 +585,7 @@ export async function boostInstagramPost(
   return {
     success: true,
     message:
-      'Campaña creada en estado PAUSADO. Revisala en Meta Ads Manager y activala manualmente.',
+      'Campaña creada en estado PAUSADO. Podés pedirme que la active o revisarla en Meta Ads Manager.',
     campaign_id: campaign.id,
     adset_id: adset.id,
     creative_id: creative.id,
@@ -594,5 +597,49 @@ export async function boostInstagramPost(
       ads_manager_adset: `https://adsmanager.facebook.com/adsmanager/manage/adsets?act=${actIdNum}&selected_adset_ids=${adset.id}`,
       ads_manager_ad: `https://adsmanager.facebook.com/adsmanager/manage/ads?act=${actIdNum}&selected_ad_ids=${ad.id}`,
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Activate a full boost (Campaign + AdSet + Ad) in one call.
+// ---------------------------------------------------------------------------
+
+async function setStatus(token: string, objectId: string, status: 'ACTIVE' | 'PAUSED') {
+  const r = await fetch(`${FB_API}/${objectId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `status=${status}&access_token=${encodeURIComponent(token)}`,
+  });
+  return r.json();
+}
+
+export async function activateBoost(
+  conn: SocialConnection,
+  campaignId: string,
+  adsetId: string,
+  adId: string,
+) {
+  if (!conn.ads_token) return { error: 'no_ads_token' };
+
+  const token = conn.ads_token;
+  const errors: string[] = [];
+
+  // Activate in order: Campaign → AdSet → Ad
+  const campaignResult = await setStatus(token, campaignId, 'ACTIVE');
+  if (campaignResult.error) errors.push(`Campaign: ${campaignResult.error.message}`);
+
+  const adsetResult = await setStatus(token, adsetId, 'ACTIVE');
+  if (adsetResult.error) errors.push(`AdSet: ${adsetResult.error.message}`);
+
+  const adResult = await setStatus(token, adId, 'ACTIVE');
+  if (adResult.error) errors.push(`Ad: ${adResult.error.message}`);
+
+  if (errors.length > 0) {
+    return { error: errors.join(' | '), partial: true };
+  }
+
+  return {
+    success: true,
+    message: `Campaña ${campaignId}, AdSet ${adsetId} y Ad ${adId} activados correctamente. La pauta comenzará según la fecha de inicio configurada.`,
   };
 }

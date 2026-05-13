@@ -850,3 +850,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: err.message || 'Error interno' }, { status: 500 });
   }
 }
+
+export async function GET(request: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const projectId = searchParams.get('projectId');
+  const action = searchParams.get('action');
+
+  if (!projectId) {
+    return NextResponse.json({ error: 'projectId requerido' }, { status: 400 });
+  }
+
+  if (action === 'get_bot_insights') {
+    try {
+      const { data, error } = await supabase
+        .from('campaign_insights')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      return NextResponse.json({ insights: data || [] });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+  }
+
+  return NextResponse.json({ error: 'Acción GET no válida' }, { status: 400 });
+}

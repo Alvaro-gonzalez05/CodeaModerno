@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, X, MessageCircle, Plus, MessagesSquare, Trash2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, X, MessageCircle, Plus, MessagesSquare, Trash2, Paperclip } from 'lucide-react';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  images?: string[];
+  reference?: { id: string; prompt: string };
 }
 
 interface Conversation {
@@ -23,6 +25,11 @@ function formatMarkdown(text: string): string {
     .replace(/`([^`]+)`/g, '<code class="bg-white/10 px-1.5 py-0.5 rounded text-[hsl(76,85%,67%)] text-xs font-mono">$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-white">$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    // Handle base64 images: ![alt](data:mime;base64,DATA)
+    .replace(/!\[([^\]]*)\]\((data:[^)]+)\)/g, '<div class="my-3"><img src="$2" alt="$1" class="rounded-xl max-w-full border border-white/10 shadow-lg" /><p class="text-[9px] text-white/30 mt-1 uppercase tracking-widest">$1</p></div>')
+    // Handle regular images: ![alt](url)
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<div class="my-3"><img src="$2" alt="$1" class="rounded-xl max-w-full border border-white/10" /><p class="text-[9px] text-white/30 mt-1">$1</p></div>')
+    // Regular links
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
     .replace(/^### (.+)$/gm, '<h3 class="text-sm font-bold text-white mt-3 mb-1">$1</h3>')
     .replace(/^## (.+)$/gm, '<h2 class="text-base font-bold text-white mt-3 mb-1">$1</h2>')
@@ -119,17 +126,56 @@ Preguntame lo que necesites sobre este proyecto.`,
   const [activeId, setActiveId] = useState<string>(initial.activeId || initial.convs[0].id);
 
   const [input, setInput] = useState('');
+  const [attachedImages, setAttachedImages] = useState<string[]>([]);
+  const [editingReference, setEditingReference] = useState<{ id: string; prompt: string; index?: number } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result) {
+          setAttachedImages(prev => [...prev, ev.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
 
   const activeConv = conversations.find(c => c.id === activeId) || conversations[0];
   const messages = activeConv?.messages || [];
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(CONVS_KEY, JSON.stringify(conversations));
-  }, [conversations, CONVS_KEY]);
+    
+    // Strip base64 images before saving to avoid QuotaExceededError (5MB limit)
+    const safeConvs = conversations.map(conv => ({
+      ...conv,
+      messages: conv.messages.map(msg => {
+        if (!msg.images) return msg;
+        const { images, ...safeMsg } = msg;
+        return safeMsg;
+      })
+    }));
+
+    try {
+      localStorage.setItem(CONVS_KEY, JSON.stringify(safeConvs));
+    } catch (e) {
+      console.warn('[UcoBot] Could not save chat history to localStorage:', e);
+      // Fallback: Si sigue lleno, guardamos solo la conversación activa truncada
+      try {
+        const minimalConvs = [safeConvs.find(c => c.id === activeId) || safeConvs[0]];
+        localStorage.setItem(CONVS_KEY, JSON.stringify(minimalConvs));
+      } catch (e2) {}
+    }
+  }, [conversations, CONVS_KEY, activeId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -147,6 +193,26 @@ Preguntame lo que necesites sobre este proyecto.`,
     }
   }, [input]);
 
+  useEffect(() => {
+    const handleEdit = (e: any) => {
+      const item = e.detail?.item;
+      if (item) {
+        if (!isOpen) setIsOpen(true);
+        // Intentar extraer el prompt original si se guardó en el texto
+        const originalPromptMatch = item.content.match(/\*\*Prompt Original:\*\*\s*(.+?)(\n|$)/i);
+        const promptRef = originalPromptMatch ? originalPromptMatch[1].trim() : item.title;
+        const index = e.detail?.index;
+        
+        setEditingReference({ id: item.id, prompt: promptRef, index });
+        setInput('');
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
+    };
+    
+    window.addEventListener('ucobot:edit', handleEdit);
+    return () => window.removeEventListener('ucobot:edit', handleEdit);
+  }, [isOpen]);
+
   const updateActiveConv = (updater: (c: Conversation) => Conversation) => {
     setConversations(prev => prev.map(c => (c.id === activeId ? updater(c) : c)));
   };
@@ -160,6 +226,8 @@ Preguntame lo que necesites sobre este proyecto.`,
       role: 'user',
       content: trimmed,
       timestamp: new Date(),
+      reference: editingReference ? { id: editingReference.id, prompt: editingReference.prompt } : undefined,
+      images: attachedImages.length > 0 ? attachedImages : undefined,
     };
 
     const isFirstUserMsg = messages.filter(m => m.role === 'user').length === 0;
@@ -172,13 +240,18 @@ Preguntame lo que necesites sobre este proyecto.`,
       updatedAt: new Date(),
     }));
     setInput('');
+    setAttachedImages([]);
+    setEditingReference(null);
     setIsLoading(true);
 
     try {
-      const apiMessages = [...messages.filter(m => m.id !== 'welcome'), userMessage].map(m => ({
-        role: m.role,
-        content: m.content,
-      }));
+      const apiMessages = [...messages.filter(m => m.id !== 'welcome'), userMessage].map(m => {
+        let content = m.content;
+        if (m.reference) {
+          content = `[@imagen_${m.reference.id}]\nQuiero editar esta imagen. El prompt original era:\n"${m.reference.prompt}"\n\nMis cambios son: ${content}`;
+        }
+        return { role: m.role, content, images: m.images };
+      });
 
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -194,6 +267,7 @@ Preguntame lo que necesites sobre este proyecto.`,
         role: 'assistant',
         content: data.message,
         timestamp: new Date(),
+        images: data.generatedImages?.length > 0 ? data.generatedImages : undefined,
       };
 
       updateActiveConv(c => ({ ...c, messages: [...c.messages, botMessage], updatedAt: new Date() }));
@@ -374,11 +448,29 @@ Preguntame lo que necesites sobre este proyecto.`,
                       ? 'bg-white/[0.03] border border-white/10 rounded-tl-md'
                       : 'bg-[hsl(76,85%,67%)]/10 border border-[hsl(76,85%,67%)]/20 rounded-tr-md'
                   }`}>
+                    {msg.reference && (
+                      <div className="mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[hsl(76,85%,67%)]/20 text-[hsl(76,85%,67%)] border border-[hsl(76,85%,67%)]/30 rounded-lg text-[10px] font-bold uppercase tracking-widest">
+                        <Sparkles size={12} /> Editando @imagen_{msg.reference.id.substring(0, 6)}
+                      </div>
+                    )}
                     {msg.role === 'assistant' ? (
-                      <div
-                        className="text-[13px] text-white/70 leading-relaxed [&_strong]:text-white [&_a]:text-[hsl(76,85%,67%)] [&_a]:underline"
-                        dangerouslySetInnerHTML={{ __html: formatMarkdown(msg.content) }}
-                      />
+                      <>
+                        <div
+                          className="text-[13px] text-white/70 leading-relaxed [&_strong]:text-white [&_a]:text-[hsl(76,85%,67%)] [&_a]:underline"
+                          dangerouslySetInnerHTML={{ __html: formatMarkdown(msg.content) }}
+                        />
+                        {msg.images && msg.images.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {msg.images.map((imgSrc, idx) => (
+                              <div key={idx} className="flex justify-center">
+                                <div className="rounded-xl overflow-hidden border border-white/10 max-w-[280px] w-full aspect-square bg-black shadow-lg">
+                                  <img src={imgSrc} alt="Imagen generada" className="w-full h-full object-cover" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <p className="text-[13px] text-white/90 leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
                     )}
@@ -422,32 +514,68 @@ Preguntame lo que necesites sobre este proyecto.`,
           )}
 
           <div className="px-4 pb-4 pt-2 flex-shrink-0 border-t border-white/5">
-            <div className="flex items-end gap-2 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 focus-within:border-[hsl(76,85%,67%)]/30 transition-colors">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
-                placeholder="Escribí tu mensaje..."
-                rows={1}
-                className="flex-1 bg-transparent text-[13px] text-white placeholder-white/20 resize-none outline-none max-h-[100px] py-1.5 px-2"
-              />
+            <div className="flex flex-col gap-1 p-2 rounded-2xl bg-white/[0.03] border border-white/10 focus-within:border-[hsl(76,85%,67%)]/30 transition-colors">
+              {editingReference && (
+                <div className="flex items-center gap-1.5 bg-[hsl(76,85%,67%)]/10 border border-[hsl(76,85%,67%)]/30 text-[hsl(76,85%,67%)] px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-widest w-max ml-2 mt-1">
+                  @imagen_{editingReference.id.substring(0, 6)}{editingReference.index ? `_slide_${editingReference.index}` : ''}
+                  <button onClick={() => setEditingReference(null)} className="hover:text-white transition-colors ml-1">
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
+              {attachedImages.length > 0 && (
+                <div className="flex items-center gap-2 mb-2 p-2 w-full overflow-x-auto">
+                  {attachedImages.map((src, i) => (
+                    <div key={i} className="relative w-12 h-12 flex-shrink-0">
+                      <img src={src} className="w-full h-full object-cover rounded-md border border-white/10" />
+                      <button onClick={() => setAttachedImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors">
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-end gap-2 w-full">
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-colors mb-1"
+                >
+                  <Paperclip size={14} />
+                </button>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  multiple 
+                  className="hidden" 
+                  ref={fileInputRef} 
+                  onChange={handleImageUpload} 
+                />
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  placeholder="Escribí tu mensaje..."
+                  rows={1}
+                  className="flex-1 bg-transparent text-[13px] text-white placeholder-white/20 resize-none outline-none max-h-[100px] py-2 px-2"
+                />
               <button
                 onClick={sendMessage}
-                disabled={!input.trim() || isLoading}
-                className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-                  input.trim() && !isLoading
+                disabled={(!input.trim() && attachedImages.length === 0) || isLoading}
+                className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all mb-1 ${
+                  (input.trim() || attachedImages.length > 0) && !isLoading
                     ? 'bg-[hsl(76,85%,67%)] text-black hover:scale-105 shadow-lg shadow-[hsl(76,85%,67%)]/20'
                     : 'bg-white/5 text-white/20 cursor-not-allowed'
                 }`}
               >
                 <Send size={14} />
               </button>
+              </div>
             </div>
           </div>
         </div>

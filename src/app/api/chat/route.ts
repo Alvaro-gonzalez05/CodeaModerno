@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@/lib/supabase/server';
 import {
   getConnection,
@@ -11,6 +12,7 @@ import {
   resumeCampaign,
   updateCampaignBudget,
   boostInstagramPost,
+  activateBoost,
 } from '@/lib/instagram/helpers';
 
 // --- Gemini Tool Declarations ---
@@ -235,7 +237,7 @@ const tools = [
       {
         name: 'ig_boost_post',
         description:
-          'Crear una campaña de Meta Ads para promocionar un post existente de Instagram. Crea Campaign + AdSet + Ad en estado PAUSADO (el usuario debe activar manualmente en Meta para seguridad). SIEMPRE pedí confirmación al usuario, mostrando media_id, presupuesto diario, días, países y objetivo antes de ejecutar.',
+          'Crear una campaña de Meta Ads para promocionar un post existente de Instagram. Crea Campaign + AdSet + Ad en estado PAUSADO. SIEMPRE pedí confirmación al usuario, mostrando media_id, presupuesto diario, días, países y objetivo antes de ejecutar. Una vez creada, ofrecele al usuario activarla directamente con ig_activate_boost o revisarla en el Ads Manager.',
         parameters: {
           type: SchemaType.OBJECT,
           properties: {
@@ -251,6 +253,60 @@ const tools = [
             call_to_action: { type: SchemaType.STRING, description: 'Tipo de CTA: LEARN_MORE, SHOP_NOW, SIGN_UP, CONTACT_US, BOOK_TRAVEL, DOWNLOAD, MESSAGE_PAGE. REQUERIDO. Preguntále al usuario cuál usar.' },
           },
           required: ['project_id', 'media_id', 'daily_budget', 'days', 'link_url', 'call_to_action'],
+        },
+      },
+      {
+        name: 'ig_activate_boost',
+        description:
+          'Activar una campaña de Meta Ads previamente creada con ig_boost_post. Activa los 3 niveles (Campaign + AdSet + Ad) de una sola vez para que la pauta comience a correr. SIEMPRE pedí confirmación al usuario antes de activar, mostrando campaign_id y el detalle de la campaña.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            project_id: { type: SchemaType.STRING, description: 'UUID del proyecto' },
+            campaign_id: { type: SchemaType.STRING, description: 'ID de la campaña a activar' },
+            adset_id: { type: SchemaType.STRING, description: 'ID del AdSet a activar' },
+            ad_id: { type: SchemaType.STRING, description: 'ID del Ad a activar' },
+          },
+          required: ['project_id', 'campaign_id', 'adset_id', 'ad_id'],
+        },
+      },
+
+      // ====== IMAGE GENERATION ======
+      {
+        name: 'generate_image',
+        description:
+          'Generar una imagen usando IA (Gemini) a partir de un prompt descriptivo. La imagen se guarda AUTOMÁTICAMENTE en el baúl del proyecto y se te devolverá un mensaje de éxito. NUNCA intentes imprimir la imagen en el chat. Simplemente decile al usuario "¡Listo! Ya generé la imagen y te la dejé guardada en el Baúl".',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            prompt: {
+              type: SchemaType.STRING,
+              description: 'Prompt descriptivo para generar una sola imagen. Usá esto o "prompts", no ambos.',
+            },
+            prompts: {
+              type: SchemaType.ARRAY,
+              items: { type: SchemaType.STRING },
+              description: 'Lista de prompts descriptivos para generar múltiples imágenes a la vez (ej. slides de un carrusel). Cada string es una imagen distinta.',
+            },
+            reference_image_id: {
+              type: SchemaType.STRING,
+              description: 'Si el usuario pide editar o modificar una imagen existente, pasá aquí el ID del vault de esa imagen (suele extraerse del tag @imagen_UUID).',
+            },
+            reference_intent: {
+              type: SchemaType.STRING,
+              enum: ['edit', 'style_base'],
+              description: "Obligatorio si usas reference_image_id. Usá 'edit' si el usuario quiere corregir un texto o detalle de LA MISMA imagen. Usá 'style_base' si el usuario quiere generar NUEVAS imágenes (ej. resto de un carrusel) basándose en el estilo visual de la imagen de referencia.",
+            },
+            reference_image_index: {
+              type: SchemaType.INTEGER,
+              description: 'Opcional. Si el reference_image_id apunta a un carrusel con múltiples imágenes, indicá aquí el índice (empezando desde 1) del slide específico que el usuario quiere usar o editar.',
+            },
+            project_id: {
+              type: SchemaType.STRING,
+              description: 'UUID del proyecto (opcional, para contexto)',
+            },
+          },
+          required: ['prompt'],
         },
       },
     ],
@@ -339,6 +395,16 @@ async function executeFunction(name: string, args: any, userId: string) {
         .select('*')
         .eq('project_id', args.project_id)
         .order('created_at', { ascending: false });
+        
+      if (data) {
+        // Remover código base64 gigantesco para no reventar el límite de tokens de Gemini (Error 429)
+        const safeData = data.map(item => ({
+          ...item,
+          content: item.content ? item.content.replace(/data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+/g, '[IMAGEN BASE64 OCULTA PARA AHORRAR MEMORIA]') : item.content
+        }));
+        return { vault_items: safeData };
+      }
+      
       return error ? { error: error.message } : { vault_items: data };
     }
 
@@ -349,8 +415,7 @@ async function executeFunction(name: string, args: any, userId: string) {
           project_id: args.project_id,
           title: args.title,
           content: args.content,
-          type: args.type || 'note',
-          created_by: userId,
+          item_type: args.type === 'note' ? 'nota' : (args.type || 'nota'),
         })
         .select()
         .single();
@@ -415,13 +480,40 @@ async function executeFunction(name: string, args: any, userId: string) {
       if (!conn) return { error: 'No hay conexión de Instagram en este proyecto.' };
       const limit = Math.min(args.limit || 12, 25);
       const result = await analyzePosts(conn, limit);
-      // Recortar caption a 200 chars para no inflar el contexto
-      const trim = (p: any) => ({ ...p, caption: p.caption ? p.caption.slice(0, 200) : null });
+      // best/worst get richer detail for analysis (300 char captions)
+      const trimFull = (p: any) => ({
+        id: p.id,
+        caption: p.caption ? p.caption.slice(0, 300) : null,
+        media_type: p.media_type,
+        permalink: p.permalink,
+        timestamp: p.timestamp,
+        likes: p.likes,
+        comments: p.comments,
+        shares: p.shares,
+        saves: p.saves,
+        reach: p.reach,
+        engagement_rate: p.engagement_rate,
+      });
+      // all_posts is a compact summary — no URLs, short captions (100 chars)
+      // This keeps the payload small enough for Gemini to process (~10KB vs 36KB)
+      const trimCompact = (p: any) => ({
+        id: p.id,
+        caption: p.caption ? p.caption.slice(0, 100) : null,
+        media_type: p.media_type,
+        timestamp: p.timestamp,
+        likes: p.likes,
+        comments: p.comments,
+        shares: p.shares,
+        saves: p.saves,
+        reach: p.reach,
+        engagement_rate: p.engagement_rate,
+      });
       return {
         analyzed: result.posts.length,
         averages: result.averages,
-        best: result.best.map(trim),
-        worst: result.worst.map(trim),
+        best: result.best.map(trimFull),
+        worst: result.worst.map(trimFull),
+        all_posts: result.posts.map(trimCompact),
       };
     }
 
@@ -466,6 +558,204 @@ async function executeFunction(name: string, args: any, userId: string) {
       return { success: true, message: `Presupuesto diario actualizado a ${args.daily_budget}.` };
     }
 
+    case 'generate_image': {
+      try {
+        const imgApiKey = process.env.GEMINI_API_KEY;
+        if (!imgApiKey) return { error: 'API key no configurada para generación de imágenes.' };
+        const genAI = new GoogleGenAI({ apiKey: imgApiKey });
+        
+        const promptsToGenerate: string[] = args.prompts && args.prompts.length > 0 
+          ? args.prompts 
+          : (args.prompt ? [args.prompt] : []);
+
+        if (promptsToGenerate.length === 0) {
+          return { error: 'No se proveyó ningún prompt para generar.' };
+        }
+
+        console.log(`\n[UcoBot] Generando ${promptsToGenerate.length} imagen/es vía Nano Banana Pro...`);
+
+        // --- PASO 1: Detectar estilo visual + nombre de marca del feed de Instagram ---
+        let brandStyleContext = '';
+        let brandName = '';
+        if (args.project_id) {
+          try {
+            const conn = await getConnection(supabase, args.project_id);
+            if (conn) {
+              brandName = conn.ig_username || '';
+              console.log('[UcoBot] Marca detectada:', brandName);
+              const postsResult = await analyzePosts(conn, 25);
+              
+              const imageUrls: string[] = [];
+              for (const post of postsResult.posts) {
+                const url = post.media_type === 'VIDEO' ? post.thumbnail_url : post.media_url;
+                if (url) imageUrls.push(url);
+              }
+
+              if (imageUrls.length > 0) {
+                const imageParts: Array<{ inlineData: { data: string; mimeType: string } }> = [];
+                for (const url of imageUrls.slice(0, 10)) {
+                  try {
+                    const imgRes = await fetch(url);
+                    if (imgRes.ok) {
+                      const buffer = await imgRes.arrayBuffer();
+                      const base64 = Buffer.from(buffer).toString('base64');
+                      const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+                      imageParts.push({ inlineData: { data: base64, mimeType: contentType } });
+                    }
+                  } catch (fetchErr) {}
+                }
+
+                if (imageParts.length > 0) {
+                  const styleAnalysis = await genAI.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: [{
+                      role: 'user',
+                      parts: [
+                        ...imageParts,
+                        { text: 'You are a senior graphic designer specializing in social media branding. Analyze ALL these Instagram posts from a brand. Describe their visual identity in a SINGLE paragraph (max 120 words) focusing ONLY on: 1) Dominant color palette (specific hex colors if possible), 2) Typography style (weight, size, font family), 3) Background treatment (dark, light, gradient, textures), 4) Decorative elements used (abstract 3D shapes, geometric patterns, glassmorphism cards, neon glows, chrome/metallic objects, line art, overlapping layers, etc), 5) Overall aesthetic vibe (minimalist, maximalist, futuristic, corporate, editorial, etc), 6) Variety of design approaches used across different posts. Be extremely specific and technical. Write in English. Do NOT describe content topics, ONLY visual design language.' }
+                      ]
+                    }],
+                  });
+                  brandStyleContext = styleAnalysis.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                  console.log('[UcoBot] Estilo visual detectado:', brandStyleContext);
+                }
+              }
+            }
+          } catch (styleErr) {
+            console.warn('[UcoBot] No pude analizar el estilo del feed:', styleErr);
+          }
+        }
+
+        const graphicBoost = 'Design this as a premium Instagram carousel slide by a top-tier creative agency. Add subtle decorative graphic elements, visual depth, and layered compositions to avoid a flat or basic look. Match the exact typography style, fonts, and visual language from the brand reference. CRITICAL: ALL visible text in the image MUST be written in SPANISH (Latin American). ABSOLUTELY NO EMOJIS in the image. Square 1:1 aspect ratio for Instagram.';
+        const brandNameInstruction = brandName ? ` The brand name is "${brandName}". If a brand name or watermark is needed, use ONLY this exact name.` : '';
+        
+        // Cargar imagen de referencia
+        let referenceImagePart: { inlineData: { mimeType: string, data: string } } | null = null;
+        if (args.reference_image_id && args.project_id) {
+           try {
+             // Fetch from project_vault
+             const { data: vaultItem } = await supabase.from('project_vault').select('content').eq('id', args.reference_image_id).single();
+             if (vaultItem && vaultItem.content) {
+                // Find all base64 images globally
+                const imgMatches = [...vaultItem.content.matchAll(/data:(image\/[^;]+);base64,([a-zA-Z0-9+/=]+)/g)];
+                if (imgMatches.length > 0) {
+                  let targetIndex = 0;
+                  if (args.reference_image_index && args.reference_image_index > 0 && args.reference_image_index <= imgMatches.length) {
+                    targetIndex = args.reference_image_index - 1;
+                  }
+                  referenceImagePart = { inlineData: { mimeType: imgMatches[targetIndex][1], data: imgMatches[targetIndex][2] } };
+                  console.log(`[UcoBot] Imagen de referencia (${args.reference_image_id}, slide ${targetIndex + 1}) cargada exitosamente.`);
+                }
+             }
+           } catch(e) {
+              console.warn('[UcoBot] No se pudo cargar imagen de referencia:', e);
+           }
+        }
+
+        const generatedImageUrls: string[] = [];
+
+        // Loop over prompts to generate them sequentially
+        for (let i = 0; i < promptsToGenerate.length; i++) {
+          const currentPrompt = promptsToGenerate[i];
+          console.log(`[UcoBot] Generando imagen ${i + 1}/${promptsToGenerate.length}:`, currentPrompt);
+
+          let enhancedPrompt = currentPrompt;
+          if (brandStyleContext) {
+            enhancedPrompt = `${currentPrompt}. STYLE: ${brandStyleContext}. DESIGN RULES: ${graphicBoost}${brandNameInstruction} High quality, 4k resolution.`;
+          } else {
+            enhancedPrompt = `${currentPrompt}. DESIGN RULES: ${graphicBoost}${brandNameInstruction} High quality, 4k resolution.`;
+          }
+
+          if (referenceImagePart) {
+            if (args.reference_intent === 'edit') {
+              enhancedPrompt += " MODIFY THE PROVIDED REFERENCE IMAGE ACCORDING TO THESE INSTRUCTIONS. DO NOT DEVIATE FROM THE ORIGINAL STRUCTURE MORE THAN NECESSARY. Keep the exact same layout and background, only change what is requested.";
+            } else {
+              const layouts = ["Focus on the center", "Split screen horizontally", "Align graphic elements to the left, text to the right", "Align graphic elements to the right, text to the left", "Bottom heavy layout", "Top heavy layout", "Diagonal composition"];
+              const dynamicLayout = promptsToGenerate.length > 1 ? `CRITICAL LAYOUT INSTRUCTION for this specific slide: ${layouts[i % layouts.length]}. You MUST change the spatial arrangement of the background shapes/elements so it looks like a DIFFERENT slide.` : "ADJUST the layout dynamically.";
+              
+              enhancedPrompt += ` USE THE PROVIDED REFERENCE IMAGE AS A STRICT STYLE AND BRANDING GUIDE ONLY. Create a NEW composition that belongs to the same visual family (same colors, textures, aesthetic rules), but you MUST change the background shapes and layout to fit the new content. ${dynamicLayout} It MUST NOT be an identical copy of the reference image. CRITICAL TYPOGRAPHY RULE: You MUST keep the EXACT SAME font family, font weight, and typography style for the text as seen in the reference image. Do NOT change the font style under any circumstances.`;
+            }
+          }
+
+          const parts: any[] = [{ text: enhancedPrompt }];
+          if (referenceImagePart) {
+             parts.unshift(referenceImagePart); // La imagen va antes del texto en Gemini
+          }
+
+          const imgResponse = await genAI.models.generateContent({
+            model: 'nano-banana-pro-preview',
+            contents: [{
+              role: 'user',
+              parts: parts
+            }],
+            config: {
+              responseModalities: ['IMAGE'],
+            },
+          });
+
+          let imageBase64: string | null = null;
+          let imageMimeType: string = 'image/jpeg';
+
+          if (imgResponse.candidates?.[0]?.content?.parts) {
+            for (const part of imgResponse.candidates[0].content.parts) {
+              if (part.inlineData) {
+                imageBase64 = part.inlineData.data;
+                imageMimeType = part.inlineData.mimeType || 'image/jpeg';
+              }
+            }
+          }
+
+          if (imageBase64) {
+            const imageDataUrl = `data:${imageMimeType};base64,${imageBase64}`;
+            generatedImageUrls.push(imageDataUrl);
+          }
+        }
+        
+        // Auto-guardar en el baúl una sola vez para todo el set
+        if (generatedImageUrls.length > 0 && args.project_id) {
+          let title = promptsToGenerate.length > 1 
+            ? `Carrusel generado (${generatedImageUrls.length} slides)` 
+            : `Imagen: ${promptsToGenerate[0].slice(0, 30)}...`;
+            
+          let content = '';
+          if (promptsToGenerate.length > 1) {
+            content += `> **Prompt Original:** ${JSON.stringify(promptsToGenerate)}\n\n`;
+            content += `<div class="image-carousel">\n`;
+            generatedImageUrls.forEach((url, idx) => {
+              content += `![Slide ${idx+1}](${url})\n`;
+            });
+            content += `</div>`;
+          } else {
+            content = `> **Prompt Original:** ${promptsToGenerate[0]}\n\n![Imagen Generada](${generatedImageUrls[0]})`;
+          }
+
+          const { data: insertedData } = await supabase.from('project_vault').insert({
+            project_id: args.project_id,
+            title,
+            content,
+            item_type: 'nota'
+          }).select('id');
+          if (insertedData && insertedData.length > 0) {
+            savedVaultItemId = insertedData[0].id;
+          }
+        }
+
+        if (generatedImageUrls.length === 0) {
+           return { error: 'No se pudo generar ninguna imagen. Los prompts pudieron haber sido filtrados por seguridad.' };
+        }
+
+        return {
+          success: true,
+          message: `¡Se generaron ${generatedImageUrls.length} imagen/es con éxito! Fueron guardadas en el Baúl.`,
+          vault_item_id: savedVaultItemId,
+          image_previews: generatedImageUrls, // Note: returning an array now
+        };
+      } catch (e: any) {
+        console.error('[UcoBot] Error CRÍTICO al generar imagen:', e);
+        return { error: `Error al generar imagen: ${e.message}` };
+      }
+    }
+
     case 'ig_boost_post': {
       const conn = await getConnection(supabase, args.project_id);
       if (!conn) return { error: 'No hay conexión de Instagram en este proyecto.' };
@@ -484,6 +774,15 @@ async function executeFunction(name: string, args: any, userId: string) {
         callToAction: args.call_to_action,
       });
       console.log('[ig_boost_post] result:', JSON.stringify(r, null, 2));
+      return r;
+    }
+
+    case 'ig_activate_boost': {
+      const conn = await getConnection(supabase, args.project_id);
+      if (!conn) return { error: 'No hay conexión de Instagram en este proyecto.' };
+      console.log('[ig_activate_boost] Activating campaign:', args.campaign_id, 'adset:', args.adset_id, 'ad:', args.ad_id);
+      const r = await activateBoost(conn, args.campaign_id, args.adset_id, args.ad_id);
+      console.log('[ig_activate_boost] result:', JSON.stringify(r, null, 2));
       return r;
     }
 
@@ -513,7 +812,7 @@ export async function POST(request: NextRequest) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
-      systemInstruction: `Sos UcoBot, el asistente IA interno del sistema de gestión de Codea Desarrollos. 
+      systemInstruction: `Sos UcoBot, el asistente IA interno del sistema de gestión de Codea Desarrollos.
 Tu nombre viene de "Uco", el valle en Mendoza, Argentina, donde nació la empresa.
 
 Tu personalidad:
@@ -533,12 +832,37 @@ Tu rol:
 
 Gestión de Redes (Instagram + Meta Ads):
 - Si el proyecto tiene servicio de gestión de redes, tenés tools "ig_*" para leer perfil, métricas, posts y campañas.
-- Cuando te pidan diagnosticar performance: usá ig_analyze_posts y ig_get_account_insights, después explicá con datos concretos qué funciona y qué no (engagement rate, alcance, top posts, peores posts).
-- Cuando te pidan un "plan de pauta": combiná ig_analyze_posts (para detectar el mejor post a promocionar) + ig_get_account_insights (para entender la audiencia y demografía) + ig_get_ads_overview (para ver histórico de spend y CPC). Devolvé una recomendación estructurada con: 1) qué post promocionar y por qué, 2) presupuesto diario sugerido en ARS, 3) duración, 4) objetivo (engagement / awareness / traffic), 5) audiencia (países, edades), 6) métricas KPI a vigilar.
+- Cuando te pidan diagnosticar performance: usá ig_analyze_posts (con limit alto, ej 25) y ig_get_account_insights, después explicá con datos concretos qué funciona y qué no. La respuesta de ig_analyze_posts incluye "all_posts" con TODOS los posts analizados — usá este campo para tener contexto completo de TODO el contenido, no solo los top/worst 3.
+- Cuando te pidan un "plan de pauta": combiná ig_analyze_posts (para detectar el mejor post a promocionar mirando TODOS los posts en "all_posts") + ig_get_account_insights (para entender la audiencia y demografía) + ig_get_ads_overview (para ver histórico de spend y CPC). Devolvé una recomendación estructurada con: 1) qué post promocionar y por qué (basándote en engagement_rate, reach, shares de cada post), 2) presupuesto diario sugerido en ARS, 3) duración, 4) objetivo (engagement / awareness / traffic), 5) audiencia (países, edades), 6) métricas KPI a vigilar.
 - Cuando te pidan diagnosticar campañas: usá ig_get_ads_overview y mará banderas: CTR < 1% (creatividad débil), CPC alto vs benchmark del rubro, frecuencia >3 (saturación), spend sin conversiones.
-- ACCIONES DE ESCRITURA EN META ADS (ig_pause_campaign, ig_resume_campaign, ig_update_campaign_budget, ig_boost_post): SIEMPRE pedí confirmación al usuario antes de ejecutar, mostrándole exactamente qué va a pasar (nombre de campaña, monto, etc.). NUNCA ejecutés ig_boost_post sin que el usuario confirme explícitamente media_id, presupuesto, días, link_url y call_to_action. Para ig_boost_post DEBÉS preguntarle al usuario qué URL de destino quiere y qué llamada a la acción (LEARN_MORE/SHOP_NOW/SIGN_UP/CONTACT_US/BOOK_TRAVEL/DOWNLOAD/MESSAGE_PAGE) — NUNCA asumas valores por defecto, cada cliente tiene su propio sitio. ig_boost_post crea todo en estado PAUSADO por seguridad — avisá esto al usuario.
-- DESPUÉS DE ig_boost_post EXITOSO: el resultado incluye "post" (con caption, media_type, permalink, thumbnail) y "links" (instagram_post, ads_manager_campaign, ads_manager_adset, ads_manager_ad). SIEMPRE mostrale al usuario un resumen visual con: 1) qué post se promocionó (caption corto + tipo de media + link al post de IG como [Ver post en Instagram](permalink)), 2) link al Ads Manager de la campaña como [Abrir en Meta Ads Manager](ads_manager_campaign), 3) IDs por si los necesita. Usá markdown con links clickeables.
+- ACCIONES DE ESCRITURA EN META ADS (ig_pause_campaign, ig_resume_campaign, ig_update_campaign_budget, ig_boost_post, ig_activate_boost): SIEMPRE pedí confirmación al usuario antes de ejecutar, mostrándole exactamente qué va a pasar (nombre de campaña, monto, etc.). NUNCA ejecutés ig_boost_post sin que el usuario confirme explícitamente media_id, presupuesto, días, link_url y call_to_action. Para ig_boost_post DEBÉS preguntarle al usuario qué URL de destino quiere y qué llamada a la acción (LEARN_MORE/SHOP_NOW/SIGN_UP/CONTACT_US/BOOK_TRAVEL/DOWNLOAD/MESSAGE_PAGE) — NUNCA asumas valores por defecto, cada cliente tiene su propio sitio.
+- FLUJO DE BOOST: 1) ig_boost_post crea todo en estado PAUSADO → 2) Mostrale al usuario el resumen con campaign_id, adset_id y ad_id → 3) Preguntale "¿Querés que la active ahora?" → 4) Si confirma, usá ig_activate_boost con campaign_id, adset_id y ad_id que devolvió ig_boost_post → 5) Confirmá la activación.
+- DESPUÉS DE ig_boost_post EXITOSO: el resultado incluye campaign_id, adset_id, ad_id, "post" (con caption, media_type, permalink, thumbnail) y "links" (instagram_post, ads_manager_campaign, ads_manager_adset, ads_manager_ad). SIEMPRE mostrale al usuario un resumen visual con: 1) qué post se promocionó (caption corto + tipo de media + link al post de IG como [Ver post en Instagram](permalink)), 2) link al Ads Manager de la campaña como [Abrir en Meta Ads Manager](ads_manager_campaign), 3) Preguntale: "¿Querés que la active ahora o preferís revisarla primero en el Ads Manager?"
+- RESULTADOS DE CAMPAÑAS: Cuando te pidan ver resultados o performance de campañas activas, usá ig_get_ads_overview que trae métricas de los últimos 90 días: impressions, reach, clicks, spend, CPC, CPM, CTR, y acciones. Explicá los resultados de forma clara y accionable.
+- IDS REALES vs HISTORIAL: NUNCA confíes en IDs de campañas mencionados en mensajes anteriores del historial. El usuario puede haber borrado o modificado campañas directamente en Meta Ads Manager. Cuando te pidan activar, pausar o ver campañas, SIEMPRE llamá ig_get_ads_overview primero para obtener los IDs REALES y actuales de las campañas que existen. Usá esos IDs frescos, NO los del historial de chat.
+- Cuando el usuario diga "mirá mis campañas", "fijate las publicidades", "qué campañas tengo", o similar → SIEMPRE llamá ig_get_ads_overview para traer la data real de Meta. La respuesta incluye campaigns con id, name, status (PAUSED/ACTIVE), y ads con campaign_id, adset_id y ad_id. Usá esos datos para responder.
 - MUY IMPORTANTE: NUNCA asumas que una función va a fallar basándote en intentos anteriores del historial. Si el usuario te pide ejecutar una acción, SIEMPRE llamá la función real sin importar si falló antes. Solo reportá errores reales que vengan de la respuesta de la función, nunca inventes ni predijas errores.
+
+Generación de Contenido e Ideas (Copywriting & Estrategia):
+- Cuando el usuario te pida "ideas de contenido", "armame un carrusel", "guiones para reels" o "posts para Instagram", actuá como un Copywriter y Estratega de Contenido experto.
+- PRIMER PASO SIEMPRE: Llamá a ig_analyze_posts (para ver de qué trata la cuenta, qué tono usan en sus captions y qué tipo de formato tuvo más engagement) y get_vault (para leer el tono de marca si está definido).
+- Si te piden un CARRUSEL: Estructurá tu respuesta en diapositivas (Slide 1: Gancho, Slide 2-4: Desarrollo de valor, Slide 5: Call to Action). Sugerí texto para la imagen y el caption del post. REGLA CRÍTICA DE COPY PARA IMÁGENES: Para el texto que va DENTRO de la imagen, podés sugerir un Título Principal y OBLIGATORIAMENTE un Párrafo Corto/Subtítulo (de 2 a 3 líneas) que desarrolle la idea. Es importante que la imagen tenga sustento de contenido y no quede vacía, pero sin llegar a ser un muro de texto interminable.
+- Si te piden un REEL o VIDEO: Armá un guion estructurado en 3 partes: Gancho (primeros 3 segundos), Desarrollo (cuerpo del video), y CTA. Incluí sugerencias visuales o de audio en tendencia.
+- Adaptá tu tono y vocabulario para que suene idéntico a las publicaciones más exitosas que encontraste en ig_analyze_posts.
+- VARIEDAD Y RECICLAJE DE CONTENIDO: Para no aburrir a la audiencia, tus nuevas propuestas no deben ser repetitivas en sus temas. SIN EMBARGO, está perfecto y es muy recomendable que recicles una misma "Idea Core" en distintos formatos (ej. si una idea gustó como carrusel, podés adaptarla y plasmar esa misma idea en un formato de Video/Reel).
+- REGLA CRÍTICA DE CONFIRMACIÓN: Cuando planifiques un carrusel, guion o idea de contenido, PRIMERO proponé el texto/guion en el chat y PREGUNTALE al usuario si le gusta o quiere cambiar algo. NUNCA uses la tool 'add_to_vault' ni 'generate_image' por tu cuenta sin que el usuario te haya dado el OK explícito primero. Una vez que el usuario apruebe la idea, ESTÁS OBLIGADO a usar la tool 'add_to_vault' para guardar la idea como nota, y si te lo pide, generar las imágenes.
+
+Generación de Imágenes:
+- Tenés la tool "generate_image" que genera imágenes con IA de forma automática usando el motor visual de Nano Banana (Gemini 3).
+- REGLA CRÍTICA DE FIDELIDAD DE TEXTO: Cuando generes imágenes para un carrusel o post que ya planificaste previamente, ESTÁS OBLIGADO a mandar EXACTAMENTE los títulos y subtítulos/textos que escribiste en tu idea original al motor de imágenes. NO resumas ni omitas el texto descriptivo, el usuario quiere ver exactamente tu propuesta plasmada en la gráfica.
+- REGLA CRÍTICA PARA CARRUSELES: Si el usuario te pide generar un carrusel nuevo o varias imágenes a la vez, DEBES usar el parámetro 'prompts' (un array de strings) en UNA ÚNICA llamada a la tool "generate_image". NUNCA llames a la tool varias veces por separado en este caso.
+- EXCEPCIÓN AL CARRUSEL: Si el usuario te pide EDITAR (reference_intent: 'edit') varios slides específicos de un carrusel ya existente, SÍ PODÉS y DEBÉS llamar a la tool varias veces (una llamada independiente por cada slide a editar). Esto es porque necesitás pasar un 'reference_image_index' distinto para cada imagen.
+- REGLA DE EDICIÓN CONTEXTUAL: Si el usuario te pide editar la última imagen/carrusel que generaste o de la que vienen hablando (ej. 'cambiale el fondo al slide 2' o 'agregale X a esa imagen'), NO le pidas que te la etiquete manualmente. Simplemente recordá el `vault_item_id` que te devolvió la última llamada a `generate_image` (o buscalo en el historial de llamadas) y pasalo como `reference_image_id`.
+- IMPORTANTE: El sistema detecta AUTOMÁTICAMENTE el estilo visual del feed de Instagram del proyecto. Descarga TODAS las publicaciones, las analiza visualmente con IA, y usa esa información para que la imagen generada respete la paleta de colores, tipografía y estética de la marca. También obtiene el nombre real de la cuenta de Instagram para usarlo como marca de agua si hace falta.
+- Vos solo tenés que pasarle un prompt descriptivo EN INGLÉS con lo que querés que aparezca en la imagen. El sistema se encarga solo del estilo.
+- REGLA SOBRE EMOJIS: NUNCA incluyas emojis en el prompt visual a menos que el usuario lo pida explícitamente. Si el usuario te pidió que NO haya emojis, incluí "NO EMOJIS, ABSOLUTELY NO EMOJIS" de forma explícita al final de cada prompt en inglés.
+- La imagen se guarda AUTOMÁTICAMENTE en el Baúl (Vault) del proyecto.
+- ADEMÁS, la respuesta de la tool incluye un campo "image_previews" con las URLs de las imágenes generadas. SIEMPRE que la tool devuelva este campo, no intentes imprimirlas en el chat. Simplemente decile al usuario "¡Listo! Ya generé las imágenes y te las dejé guardadas en el Baúl como un carrusel."
 
 Formato de respuestas:
 - Usá markdown para formatear (negritas, listas, etc).
@@ -551,33 +875,83 @@ El usuario autenticado actualmente tiene ID: ${user.id}`,
     });
 
     // Build conversation history
-    const history = messages.slice(0, -1).map((msg: any) => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }],
-    }));
+    const history = messages.slice(0, -1).map((msg: any) => {
+      const parts: any[] = [{ text: msg.content }];
+      if (msg.images && msg.images.length > 0) {
+        msg.images.forEach((imgUrl: string) => {
+          const match = imgUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+          if (match) {
+            parts.push({
+              inlineData: {
+                mimeType: match[1],
+                data: match[2]
+              }
+            });
+          }
+        });
+      }
+      return {
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts,
+      };
+    });
 
     const chat = model.startChat({ history });
-    const lastMessage = messages[messages.length - 1].content;
+    const lastMsg = messages[messages.length - 1];
+    const lastMessageParts: any[] = [{ text: lastMsg.content }];
+    
+    if (lastMsg.images && lastMsg.images.length > 0) {
+      lastMsg.images.forEach((imgUrl: string) => {
+        const match = imgUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+        if (match) {
+          lastMessageParts.push({
+            inlineData: {
+              mimeType: match[1],
+              data: match[2]
+            }
+          });
+        }
+      });
+    }
 
-    let response = await chat.sendMessage(lastMessage);
+    let response = await chat.sendMessage(lastMessageParts);
     let result = response.response;
 
     // Handle function calls in a loop (Gemini may chain multiple)
-    const MAX_ITERATIONS = 8;
+    const MAX_ITERATIONS = 12;
     let iterations = 0;
+    const generatedImages: string[] = []; // Collect generated images separately
 
     while (result.candidates?.[0]?.content?.parts?.some((p: any) => p.functionCall) && iterations < MAX_ITERATIONS) {
       iterations++;
       const functionCalls = result.candidates[0].content.parts.filter((p: any) => p.functionCall);
 
+      console.log(`[UcoBot] Iteration ${iterations} — ${functionCalls.length} function call(s):`, functionCalls.map((p: any) => p.functionCall?.name).join(', '));
+
       const functionResponses = [];
       for (const part of functionCalls) {
         const { name, args } = part.functionCall!;
+        console.log(`[UcoBot] Executing: ${name}`);
         const fnResult = await executeFunction(name, args, user.id);
+        
+        // If generate_image returned images, extract them BEFORE sending to Gemini
+        // to avoid bloating Gemini's context with massive base64 data
+        let resultForGemini = fnResult;
+        if (name === 'generate_image' && fnResult.image_previews) {
+          generatedImages.push(...fnResult.image_previews);
+          // Send a lightweight result to Gemini
+          resultForGemini = {
+            success: fnResult.success,
+            message: fnResult.message + ' Las imágenes ya se muestran al usuario en el chat automáticamente.',
+          };
+        }
+        
+        const resultStr = JSON.stringify(resultForGemini);
+        console.log(`[UcoBot] ${name} result size: ${resultStr.length} chars`);
         functionResponses.push({
           functionResponse: {
             name,
-            response: fnResult,
+            response: resultForGemini,
           },
         });
       }
@@ -586,8 +960,40 @@ El usuario autenticado actualmente tiene ID: ${user.id}`,
       result = response.response;
     }
 
-    const text = result.text();
-    return NextResponse.json({ message: text });
+    if (iterations >= MAX_ITERATIONS) {
+      console.warn(`[UcoBot] Hit MAX_ITERATIONS (${MAX_ITERATIONS})`);
+    }
+
+    // Safely extract text from response
+    let text = '';
+    try {
+      text = result.text();
+    } catch (textErr: any) {
+      console.warn('[UcoBot] result.text() failed:', textErr.message);
+      // Try to extract text parts manually
+      const parts = result.candidates?.[0]?.content?.parts;
+      if (parts) {
+        text = parts
+          .filter((p: any) => p.text)
+          .map((p: any) => p.text)
+          .join('\n');
+      }
+    }
+
+    if (!text || text.trim().length === 0) {
+      // Log detailed diagnostics for empty responses
+      console.warn('[UcoBot] Empty response after', iterations, 'iterations.');
+      console.warn('[UcoBot] promptFeedback:', JSON.stringify((result as any).promptFeedback, null, 2));
+      console.warn('[UcoBot] candidates count:', result.candidates?.length ?? 'undefined');
+      if (result.candidates?.[0]) {
+        console.warn('[UcoBot] finishReason:', (result.candidates[0] as any).finishReason);
+        console.warn('[UcoBot] safetyRatings:', JSON.stringify((result.candidates[0] as any).safetyRatings, null, 2));
+        console.warn('[UcoBot] parts:', JSON.stringify(result.candidates[0].content?.parts?.map((p: any) => ({ hasText: !!p.text, hasFnCall: !!p.functionCall })), null, 2));
+      }
+      text = '⚠️ No pude generar una respuesta completa. Probá de nuevo o con una consulta más corta.';
+    }
+
+    return NextResponse.json({ message: text, generatedImages });
   } catch (error: any) {
     console.error('UcoBot error:', error);
     return NextResponse.json(
