@@ -1,5 +1,5 @@
 const { GoogleGenAI } = require('@google/genai');
-const apiKey = "AIzaSyDN9VJspay54TmUom02QRque9vaQI2J_W0";
+const apiKey = process.env.GEMINI_API_KEY;
 async function run() {
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.list();
