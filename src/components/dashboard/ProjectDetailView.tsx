@@ -1091,7 +1091,7 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
                       {selectedVaultItem.content?.includes('![') || selectedVaultItem.content?.includes('<img') || selectedVaultItem.content?.includes('data:image') ? (
                         <div className="w-full relative">
                           {(() => {
-                            const base64Images = Array.from(selectedVaultItem.content.matchAll(/data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+/g)).map(m => m[0]);
+                            const base64Images = Array.from(selectedVaultItem.content.matchAll(/data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+/g)).map((m: any) => m[0]);
                             
                             if (base64Images.length > 0) {
                               return (

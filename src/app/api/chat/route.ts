@@ -653,6 +653,7 @@ async function executeFunction(name: string, args: any, userId: string) {
         }
 
         const generatedImageUrls: string[] = [];
+        let savedVaultItemId: string | null = null;
 
         // Loop over prompts to generate them sequentially
         for (let i = 0; i < promptsToGenerate.length; i++) {
@@ -693,7 +694,7 @@ async function executeFunction(name: string, args: any, userId: string) {
             },
           });
 
-          let imageBase64: string | null = null;
+          let imageBase64: string | null | undefined = null;
           let imageMimeType: string = 'image/jpeg';
 
           if (imgResponse.candidates?.[0]?.content?.parts) {
@@ -937,12 +938,12 @@ El usuario autenticado actualmente tiene ID: ${user.id}`,
         // If generate_image returned images, extract them BEFORE sending to Gemini
         // to avoid bloating Gemini's context with massive base64 data
         let resultForGemini = fnResult;
-        if (name === 'generate_image' && fnResult.image_previews) {
-          generatedImages.push(...fnResult.image_previews);
+        if (name === 'generate_image' && (fnResult as any).image_previews) {
+          generatedImages.push(...(fnResult as any).image_previews);
           // Send a lightweight result to Gemini
           resultForGemini = {
-            success: fnResult.success,
-            message: fnResult.message + ' Las imágenes ya se muestran al usuario en el chat automáticamente.',
+            success: (fnResult as any).success,
+            message: (fnResult as any).message + ' Las imágenes ya se muestran al usuario en el chat automáticamente.',
           };
         }
         
