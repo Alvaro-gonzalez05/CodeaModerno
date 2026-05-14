@@ -878,7 +878,7 @@ El usuario autenticado actualmente tiene ID: ${user.id}`,
     // Build conversation history
     const history = messages.slice(0, -1).map((msg: any) => {
       const parts: any[] = [{ text: msg.content }];
-      if (msg.images && msg.images.length > 0) {
+      if (msg.role === 'user' && msg.images && msg.images.length > 0) {
         msg.images.forEach((imgUrl: string) => {
           const match = imgUrl.match(/^data:(image\/\w+);base64,(.+)$/);
           if (match) {
