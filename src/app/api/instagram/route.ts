@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { action, projectId, accessToken, cursor } = body;
+  const { action, projectId, accessToken, cursor, igAccountId: chosenIgAccountId } = body;
 
   if (!projectId) {
     return NextResponse.json({ error: 'projectId requerido' }, { status: 400 });
@@ -58,166 +58,147 @@ export async function POST(request: NextRequest) {
           igAccountId = profileData.user_id || profileData.id;
         } else {
           // --- Facebook token (EAA...) ---
-          const debugLog: Record<string, any> = {};
-
-          // Strategy 0: Check if the token is directly a Page Access Token
-          const pageSelfRes = await fetch(
-            `${FB_API}/me?fields=id,name,instagram_business_account&access_token=${encodeURIComponent(accessToken)}`
-          );
-          const pageSelfData = await pageSelfRes.json();
-          debugLog.page_self_error = pageSelfData.error?.message || null;
-          debugLog.page_self_has_ig = !!pageSelfData.instagram_business_account;
-
-          if (pageSelfData.instagram_business_account) {
-            igAccountId = pageSelfData.instagram_business_account.id;
+          if (chosenIgAccountId) {
+            igAccountId = chosenIgAccountId;
             const profileRes = await fetch(
               `${FB_API}/${igAccountId}?fields=${PROFILE_FIELDS}&access_token=${encodeURIComponent(accessToken)}`
             );
             profileData = await profileRes.json();
             if (profileData.error) {
-              return NextResponse.json({ error: profileData.error.message }, { status: 400 });
+              profileData = {
+                id: igAccountId,
+                username: 'instagram_' + igAccountId,
+                name: 'Instagram Account',
+              };
             }
-          }
+          } else {
+            // Discover all possible IG accounts accessible by this token
+            const collectedAccounts: any[] = [];
+            const seenIds = new Set<string>();
 
-          // Strategy 1: Go through Facebook Pages to find Instagram Business Account
-          if (!igAccountId) {
+            const addAccount = (acc: any) => {
+              if (acc && acc.id && !seenIds.has(acc.id)) {
+                seenIds.add(acc.id);
+                collectedAccounts.push(acc);
+              }
+            };
+
+            // Strategy 0: Direct page check
+            const pageSelfRes = await fetch(
+              `${FB_API}/me?fields=id,name,instagram_business_account{id,username,name,profile_picture_url}&access_token=${encodeURIComponent(accessToken)}`
+            );
+            const pageSelfData = await pageSelfRes.json();
+            if (pageSelfData.instagram_business_account) {
+              addAccount({
+                id: pageSelfData.instagram_business_account.id,
+                username: pageSelfData.instagram_business_account.username,
+                name: pageSelfData.instagram_business_account.name || pageSelfData.instagram_business_account.username,
+                profile_picture_url: pageSelfData.instagram_business_account.profile_picture_url,
+                pageName: pageSelfData.name,
+              });
+            }
+
+            // Strategy 1: Pages accounts
             const pagesRes = await fetch(
-              `${FB_API}/me/accounts?fields=id,name,instagram_business_account&access_token=${encodeURIComponent(accessToken)}`
+              `${FB_API}/me/accounts?fields=id,name,instagram_business_account{id,username,name,profile_picture_url}&access_token=${encodeURIComponent(accessToken)}`
             );
             const pagesData = await pagesRes.json();
-            debugLog.pages_found = pagesData.data?.length || 0;
-            debugLog.pages_names = pagesData.data?.map((p: any) => p.name) || [];
-            debugLog.pages_error = pagesData.error?.message || null;
+            if (pagesData.data?.length) {
+              for (const p of pagesData.data) {
+                if (p.instagram_business_account) {
+                  addAccount({
+                    id: p.instagram_business_account.id,
+                    username: p.instagram_business_account.username,
+                    name: p.instagram_business_account.name || p.instagram_business_account.username,
+                    profile_picture_url: p.instagram_business_account.profile_picture_url,
+                    pageName: p.name,
+                  });
+                }
+              }
+            }
 
-            const pageWithIG = pagesData.data?.find((p: any) => p.instagram_business_account);
-            
-            if (pageWithIG) {
-              igAccountId = pageWithIG.instagram_business_account.id;
+            // Strategy 2: Businesses
+            const bizRes = await fetch(
+              `${FB_API}/me/businesses?fields=id,name&access_token=${encodeURIComponent(accessToken)}`
+            );
+            const bizData = await bizRes.json();
+            if (bizData.data?.length) {
+              for (const biz of bizData.data) {
+                // Try instagram_accounts
+                const bizIgRes = await fetch(
+                  `${FB_API}/${biz.id}/instagram_accounts?fields=id,username,profile_pic&access_token=${encodeURIComponent(accessToken)}`
+                );
+                const bizIgData = await bizIgRes.json();
+                if (bizIgData.data?.length) {
+                  for (const acc of bizIgData.data) {
+                    addAccount({
+                      id: acc.id,
+                      username: acc.username,
+                      name: acc.username,
+                      profile_picture_url: acc.profile_pic,
+                      pageName: `Business: ${biz.name}`,
+                    });
+                  }
+                }
+
+                // Try owned_instagram_accounts
+                const bizOwnedIgRes = await fetch(
+                  `${FB_API}/${biz.id}/owned_instagram_accounts?fields=id,username,profile_pic&access_token=${encodeURIComponent(accessToken)}`
+                );
+                const bizOwnedIgData = await bizOwnedIgRes.json();
+                if (bizOwnedIgData.data?.length) {
+                  for (const acc of bizOwnedIgData.data) {
+                    addAccount({
+                      id: acc.id,
+                      username: acc.username,
+                      name: acc.username,
+                      profile_picture_url: acc.profile_pic,
+                      pageName: `Business: ${biz.name}`,
+                    });
+                  }
+                }
+              }
+            }
+
+            // Strategy 3: me/instagram_accounts
+            const igAccountsRes = await fetch(
+              `${FB_API}/me/instagram_accounts?fields=id,username,profile_pic&access_token=${encodeURIComponent(accessToken)}`
+            );
+            const igAccountsData = await igAccountsRes.json();
+            if (igAccountsData.data?.length) {
+              for (const acc of igAccountsData.data) {
+                addAccount({
+                  id: acc.id,
+                  username: acc.username,
+                  name: acc.username,
+                  profile_picture_url: acc.profile_pic,
+                  pageName: 'Cuenta Directa',
+                });
+              }
+            }
+
+            // Now evaluate collectedAccounts
+            if (collectedAccounts.length > 1) {
+              return NextResponse.json({
+                multiple_ig_accounts: true,
+                accounts: collectedAccounts,
+                token_saved: true,
+              });
+            } else if (collectedAccounts.length === 1) {
+              const chosen = collectedAccounts[0];
+              igAccountId = chosen.id;
               const profileRes = await fetch(
                 `${FB_API}/${igAccountId}?fields=${PROFILE_FIELDS}&access_token=${encodeURIComponent(accessToken)}`
               );
               profileData = await profileRes.json();
               if (profileData.error) {
-                return NextResponse.json({ error: profileData.error.message }, { status: 400 });
+                profileData = {
+                  id: chosen.id,
+                  username: chosen.username,
+                  name: chosen.name,
+                  profile_picture_url: chosen.profile_picture_url,
+                };
               }
-            }
-          }
-
-          // Strategy 2: Go through Business Manager → owned pages → IG account
-          if (!igAccountId) {
-            const bizRes = await fetch(
-              `${FB_API}/me/businesses?fields=id,name&access_token=${encodeURIComponent(accessToken)}`
-            );
-            const bizData = await bizRes.json();
-            debugLog.businesses_found = bizData.data?.length || 0;
-            debugLog.businesses_names = bizData.data?.map((b: any) => b.name) || [];
-            debugLog.businesses_error = bizData.error?.message || null;
-
-            if (bizData.data?.length) {
-              for (const biz of bizData.data) {
-                // Try instagram_accounts (connected via pages)
-                const bizIgRes = await fetch(
-                  `${FB_API}/${biz.id}/instagram_accounts?fields=id,username,profile_pic&access_token=${encodeURIComponent(accessToken)}`
-                );
-                const bizIgData = await bizIgRes.json();
-                debugLog[`biz_${biz.name}_ig_accounts`] = bizIgData.data?.length || 0;
-                debugLog[`biz_${biz.name}_ig_error`] = bizIgData.error?.message || null;
-
-                if (bizIgData.data?.length) {
-                  const igAcc = bizIgData.data[0];
-                  igAccountId = igAcc.id;
-                  
-                  const profileRes = await fetch(
-                    `${FB_API}/${igAccountId}?fields=${PROFILE_FIELDS}&access_token=${encodeURIComponent(accessToken)}`
-                  );
-                  profileData = await profileRes.json();
-                  if (profileData.error) {
-                    profileData = {
-                      id: igAcc.id,
-                      username: igAcc.username,
-                      name: igAcc.username,
-                      profile_picture_url: igAcc.profile_pic,
-                    };
-                  }
-                  break;
-                }
-
-                // Try owned_instagram_accounts (directly owned by business)
-                const bizOwnedIgRes = await fetch(
-                  `${FB_API}/${biz.id}/owned_instagram_accounts?fields=id,username,profile_pic,followers_count,follows_count,media_count&access_token=${encodeURIComponent(accessToken)}`
-                );
-                const bizOwnedIgData = await bizOwnedIgRes.json();
-                debugLog[`biz_${biz.name}_owned_ig`] = bizOwnedIgData.data?.length || 0;
-                debugLog[`biz_${biz.name}_owned_ig_error`] = bizOwnedIgData.error?.message || null;
-                debugLog[`biz_${biz.name}_owned_ig_names`] = bizOwnedIgData.data?.map((a: any) => a.username) || [];
-
-                if (bizOwnedIgData.data?.length) {
-                  const igAcc = bizOwnedIgData.data[0];
-                  igAccountId = igAcc.id;
-
-                  const profileRes = await fetch(
-                    `${FB_API}/${igAccountId}?fields=${PROFILE_FIELDS}&access_token=${encodeURIComponent(accessToken)}`
-                  );
-                  profileData = await profileRes.json();
-                  if (profileData.error) {
-                    profileData = {
-                      id: igAcc.id,
-                      username: igAcc.username,
-                      name: igAcc.username,
-                      profile_picture_url: igAcc.profile_pic,
-                      followers_count: igAcc.followers_count,
-                      follows_count: igAcc.follows_count,
-                      media_count: igAcc.media_count,
-                    };
-                  }
-                  break;
-                }
-
-                // Try owned pages → IG account
-                const bizPagesRes = await fetch(
-                  `${FB_API}/${biz.id}/owned_pages?fields=id,name,instagram_business_account&access_token=${encodeURIComponent(accessToken)}`
-                );
-                const bizPagesData = await bizPagesRes.json();
-                debugLog[`biz_${biz.name}_pages`] = bizPagesData.data?.map((p: any) => p.name) || [];
-                debugLog[`biz_${biz.name}_pages_error`] = bizPagesData.error?.message || null;
-
-                const bizPageWithIG = bizPagesData.data?.find((p: any) => p.instagram_business_account);
-                if (bizPageWithIG) {
-                  igAccountId = bizPageWithIG.instagram_business_account.id;
-                  const profileRes = await fetch(
-                    `${FB_API}/${igAccountId}?fields=${PROFILE_FIELDS}&access_token=${encodeURIComponent(accessToken)}`
-                  );
-                  profileData = await profileRes.json();
-                  if (profileData.error) {
-                    return NextResponse.json({ error: profileData.error.message }, { status: 400 });
-                  }
-                  break;
-                }
-              }
-            }
-          }
-
-          // Strategy 3: Try /me/instagram_accounts directly
-          if (!igAccountId) {
-            const igAccountsRes = await fetch(
-              `${FB_API}/me/instagram_accounts?fields=id,username,profile_pic,followers_count,follows_count,media_count&access_token=${encodeURIComponent(accessToken)}`
-            );
-            const igAccountsData = await igAccountsRes.json();
-            debugLog.me_ig_accounts = igAccountsData.data?.length || 0;
-            debugLog.me_ig_error = igAccountsData.error?.message || null;
-
-            if (igAccountsData.data?.length) {
-              const igAcc = igAccountsData.data[0];
-              igAccountId = igAcc.id;
-              profileData = {
-                id: igAcc.id,
-                username: igAcc.username,
-                name: igAcc.username,
-                profile_picture_url: igAcc.profile_pic,
-                followers_count: igAcc.followers_count,
-                follows_count: igAcc.follows_count,
-                media_count: igAcc.media_count,
-              };
             }
           }
 
@@ -586,9 +567,12 @@ export async function POST(request: NextRequest) {
         const verifyData = await verifyRes.json();
 
         if (verifyData.error) {
+          const isPageToken = verifyData.error.message?.includes('Page');
           return NextResponse.json({ 
             error: verifyData.error.message,
-            hint: 'El token no tiene acceso a cuentas publicitarias. Asegurate de que tenga el permiso ads_read.'
+            hint: isPageToken 
+              ? '⚠️ Estás usando un Token de Página (Page Token). Para gestionar publicidad y ver métricas de Meta Ads, la API de Facebook exige usar un Token de Usuario (User Token). Volvé al Graph API Explorer, en el desplegable "User or Page" elegí "User Token", marcale el permiso ads_read y generá uno nuevo.'
+              : 'El token no tiene acceso a cuentas publicitarias. Asegurate de que tenga el permiso ads_read y sea un User Token.'
           }, { status: 400 });
         }
 

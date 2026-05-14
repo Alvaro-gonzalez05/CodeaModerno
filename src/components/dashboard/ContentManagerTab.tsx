@@ -64,6 +64,8 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
   // When the EAA token returns multiple ad accounts, let the user pick one
   const [adAccountChoices, setAdAccountChoices] = useState<any[] | null>(null);
   const [pendingAdsToken, setPendingAdsToken] = useState('');
+  const [igAccountChoices, setIgAccountChoices] = useState<any[] | null>(null);
+  const [pendingIgToken, setPendingIgToken] = useState('');
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
   const [insightsApiErrors, setInsightsApiErrors] = useState<string[]>([]);
   const [mediaInsights, setMediaInsights] = useState<any>(null);
@@ -132,30 +134,35 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
     setIsLoading(false);
   };
 
-  const handleConnect = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!accessToken.trim()) return;
+  const handleConnect = async (e?: React.FormEvent, selectedIgId?: string) => {
+    if (e) e.preventDefault();
+    const tokenToUse = selectedIgId ? pendingIgToken : accessToken.trim();
+    if (!tokenToUse) return;
     setIsConnecting(true);
     setError('');
     setNeedsIgaaToken(false);
     try {
-      const data = await apiCall('connect', { accessToken: accessToken.trim() });
+      const payload: Record<string, any> = { accessToken: tokenToUse };
+      if (selectedIgId) payload.igAccountId = selectedIgId;
+      const data = await apiCall('connect', payload);
       
-      if (data.eaa_saved_as_ads) {
+      if (data.multiple_ig_accounts) {
+        setIgAccountChoices(data.accounts);
+        setPendingIgToken(tokenToUse);
+        setError('');
+      } else if (data.eaa_saved_as_ads) {
         // EAA token was saved as ads_token on existing IGAA connection
         setHasAdsToken(true);
-        setAccessToken('');
+        if (!selectedIgId) setAccessToken('');
         setError('');
         // Refresh the connection to show profile
         await checkConnection();
         return;
-      }
-
-      if (data.error === 'eaa_needs_igaa') {
+      } else if (data.error === 'eaa_needs_igaa') {
         // EAA was saved for ads, but need IGAA for Instagram
         setNeedsIgaaToken(true);
         setHasAdsToken(true);
-        setAccessToken('');
+        if (!selectedIgId) setAccessToken('');
         setError('');
       } else if (data.error) {
         let errorMsg = data.error;
@@ -167,7 +174,9 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
       } else {
         setIsConnected(true);
         setProfile(data.profile);
-        setAccessToken('');
+        if (!selectedIgId) setAccessToken('');
+        setPendingIgToken('');
+        setIgAccountChoices(null);
         setTokenExpired(false);
         setNeedsIgaaToken(false);
         loadMedia();
@@ -433,8 +442,62 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
     );
   }
 
-  // Not Connected - Show Token Form
+  // Not Connected - Show Token Form or Selector
   if (!isConnected) {
+    if (igAccountChoices) {
+      return (
+        <div className="max-w-xl mx-auto py-10 space-y-6">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-pink-500/20">
+              <Globe size={32} className="text-white" />
+            </div>
+            <h3 className="text-2xl font-black tracking-tighter uppercase">Elegí la cuenta de Instagram</h3>
+            <p className="text-sm text-white/40 mt-2 max-w-md mx-auto">
+              Tu token de Meta tiene acceso a varias cuentas de Instagram. Seleccioná cuál querés vincular a este proyecto.
+            </p>
+          </div>
+
+          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+            {igAccountChoices.map((acc) => (
+              <button
+                key={acc.id}
+                type="button"
+                onClick={() => handleConnect(undefined, acc.id)}
+                disabled={isConnecting}
+                className="w-full text-left bg-white/5 hover:bg-white/10 border border-white/10 hover:border-pink-500/30 rounded-2xl p-4 transition-all disabled:opacity-50 flex items-center gap-4"
+              >
+                {acc.profile_picture_url ? (
+                  <img src={acc.profile_picture_url} alt={acc.name} className="w-12 h-12 rounded-full object-cover border border-white/10 flex-shrink-0" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-white/10 border border-white/10 flex items-center justify-center flex-shrink-0">
+                    <Globe size={20} className="text-white/40" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold truncate">{acc.name}</p>
+                  <p className="text-xs text-white/60 truncate">@{acc.username}</p>
+                  {acc.pageName && (
+                    <p className="text-[10px] text-white/40 mt-0.5 truncate">
+                      Vía: {acc.pageName}
+                    </p>
+                  )}
+                </div>
+                <Link2 size={16} className="text-white/30 flex-shrink-0" />
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => { setIgAccountChoices(null); setPendingIgToken(''); }}
+            className="w-full py-2 text-xs text-white/40 hover:text-white/70 uppercase tracking-widest font-bold text-center block"
+          >
+            Cancelar
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="max-w-xl mx-auto py-10">
         <div className="text-center mb-8">
