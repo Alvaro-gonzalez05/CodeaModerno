@@ -60,25 +60,46 @@ export async function POST(request: NextRequest) {
           // --- Facebook token (EAA...) ---
           const debugLog: Record<string, any> = {};
 
-          // Strategy 1: Go through Facebook Pages to find Instagram Business Account
-          const pagesRes = await fetch(
-            `${FB_API}/me/accounts?fields=id,name,instagram_business_account&access_token=${encodeURIComponent(accessToken)}`
+          // Strategy 0: Check if the token is directly a Page Access Token
+          const pageSelfRes = await fetch(
+            `${FB_API}/me?fields=id,name,instagram_business_account&access_token=${encodeURIComponent(accessToken)}`
           );
-          const pagesData = await pagesRes.json();
-          debugLog.pages_found = pagesData.data?.length || 0;
-          debugLog.pages_names = pagesData.data?.map((p: any) => p.name) || [];
-          debugLog.pages_error = pagesData.error?.message || null;
+          const pageSelfData = await pageSelfRes.json();
+          debugLog.page_self_error = pageSelfData.error?.message || null;
+          debugLog.page_self_has_ig = !!pageSelfData.instagram_business_account;
 
-          const pageWithIG = pagesData.data?.find((p: any) => p.instagram_business_account);
-          
-          if (pageWithIG) {
-            igAccountId = pageWithIG.instagram_business_account.id;
+          if (pageSelfData.instagram_business_account) {
+            igAccountId = pageSelfData.instagram_business_account.id;
             const profileRes = await fetch(
               `${FB_API}/${igAccountId}?fields=${PROFILE_FIELDS}&access_token=${encodeURIComponent(accessToken)}`
             );
             profileData = await profileRes.json();
             if (profileData.error) {
               return NextResponse.json({ error: profileData.error.message }, { status: 400 });
+            }
+          }
+
+          // Strategy 1: Go through Facebook Pages to find Instagram Business Account
+          if (!igAccountId) {
+            const pagesRes = await fetch(
+              `${FB_API}/me/accounts?fields=id,name,instagram_business_account&access_token=${encodeURIComponent(accessToken)}`
+            );
+            const pagesData = await pagesRes.json();
+            debugLog.pages_found = pagesData.data?.length || 0;
+            debugLog.pages_names = pagesData.data?.map((p: any) => p.name) || [];
+            debugLog.pages_error = pagesData.error?.message || null;
+
+            const pageWithIG = pagesData.data?.find((p: any) => p.instagram_business_account);
+            
+            if (pageWithIG) {
+              igAccountId = pageWithIG.instagram_business_account.id;
+              const profileRes = await fetch(
+                `${FB_API}/${igAccountId}?fields=${PROFILE_FIELDS}&access_token=${encodeURIComponent(accessToken)}`
+              );
+              profileData = await profileRes.json();
+              if (profileData.error) {
+                return NextResponse.json({ error: profileData.error.message }, { status: 400 });
+              }
             }
           }
 
