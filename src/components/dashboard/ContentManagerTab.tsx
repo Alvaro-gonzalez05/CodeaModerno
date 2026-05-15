@@ -689,28 +689,30 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
       )}
 
       {/* Section Toggle */}
-      <div className="flex gap-2 p-1.5 bg-white/5 border border-white/10 rounded-full w-fit">
-        {([
-          { id: 'posts', label: 'Publicaciones' },
-          { id: 'insights', label: 'Estadísticas' },
-          { id: 'ads', label: 'Publicidad' },
-        ] as const).map((sec) => (
-          <button
-            key={sec.id}
-            onClick={() => {
-              setActiveSection(sec.id);
-              if (sec.id === 'insights' && insights.length === 0) loadInsights();
-              if (sec.id === 'ads' && !adsData) loadAds();
-            }}
-            className={`px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
-              activeSection === sec.id
-                ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.2)]'
-                : 'text-white/50 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {sec.label}
-          </button>
-        ))}
+      <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex gap-2 p-1.5 bg-white/5 border border-white/10 rounded-full w-max">
+          {([
+            { id: 'posts', label: 'Publicaciones' },
+            { id: 'insights', label: 'Estadísticas' },
+            { id: 'ads', label: 'Publicidad' },
+          ] as const).map((sec) => (
+            <button
+              key={sec.id}
+              onClick={() => {
+                setActiveSection(sec.id);
+                if (sec.id === 'insights' && insights.length === 0) loadInsights();
+                if (sec.id === 'ads' && !adsData) loadAds();
+              }}
+              className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
+                activeSection === sec.id
+                  ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.2)]'
+                  : 'text-white/50 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {sec.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && (

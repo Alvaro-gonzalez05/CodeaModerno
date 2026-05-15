@@ -310,66 +310,59 @@ export default function ProjectsTab({ projects }: { projects: any[] }) {
           {projects.map((project, idx) => (
             <div
               key={idx}
-              className="project-row grid grid-cols-1 md:grid-cols-12 gap-4 items-center p-4 md:p-6 rounded-2xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5 group relative overflow-hidden"
+              className="project-row relative p-4 md:p-6 rounded-2xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5 group overflow-hidden"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-[hsl(76,85%,67%)]/0 to-[hsl(76,85%,67%)]/5 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500 ease-out z-0"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-[hsl(76,85%,67%)]/0 to-[hsl(76,85%,67%)]/5 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500 ease-out z-0 pointer-events-none" />
 
-              <div className="col-span-1 md:col-span-4 relative z-10 flex flex-col">
-                <span className="md:hidden text-[10px] font-bold text-gray-500 uppercase mb-1">Proyecto</span>
-                <p className="text-sm font-bold tracking-widest uppercase">{project.name}</p>
-                <p className="text-xs text-gray-500 font-medium mt-1">ID: {project.id.split('-')[0]}</p>
+              {/* ── MOBILE LAYOUT ── */}
+              <div className="relative z-10 md:hidden flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold tracking-widest uppercase leading-tight truncate">{project.name}</p>
+                    <p className="text-[11px] text-gray-500 font-medium mt-0.5 truncate">{project.clients?.name || project.client_name}</p>
+                  </div>
+                  <div className="flex items-center gap-0 flex-shrink-0">
+                    <button onClick={(e) => handleEditClick(e, project)} className="text-gray-500 hover:text-[hsl(76,85%,67%)] transition-colors px-2 py-1.5">
+                      <span className="text-[10px] font-bold tracking-widest uppercase">EDITAR</span>
+                    </button>
+                    <button onClick={() => handleSelectProject(project)} className="text-gray-500 hover:text-blue-400 transition-colors px-2 py-1.5">
+                      <span className="text-[10px] font-bold tracking-widest uppercase">VER</span>
+                    </button>
+                    <button onClick={(e) => handleDeleteProject(e, project)} className="text-gray-500 hover:text-red-500 transition-colors px-2 py-1.5">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <p className="text-sm font-black text-[#c2f254]">{project.price ? `$${Number(project.price).toLocaleString()}` : '—'}</p>
+                  {project.payment_type && <p className="text-[9px] font-bold tracking-widest uppercase text-gray-600">{project.payment_type.toUpperCase()}</p>}
+                  <span className={`text-[10px] font-black tracking-widest uppercase px-2.5 py-1 rounded-full bg-white/5 ${project.status_color || 'text-white'}`}>{project.status}</span>
+                </div>
               </div>
 
-              <div className="col-span-1 md:col-span-3 relative z-10 flex flex-col">
-                <span className="md:hidden text-[10px] font-bold text-gray-500 uppercase mb-1">Cliente</span>
-                <p className="text-xs font-bold tracking-wider uppercase text-gray-300">
-                  {project.clients?.name || project.client_name}
-                </p>
-              </div>
-
-              <div className="col-span-1 md:col-span-2 relative z-10 flex flex-col">
-                <span className="md:hidden text-[10px] font-bold text-gray-500 uppercase mb-1">Precio</span>
-                <p className="text-sm font-black text-[#c2f254]">
-                  {project.price ? `$${Number(project.price).toLocaleString()}` : '—'}
-                </p>
-                {project.payment_type && (
-                  <p className="text-[9px] font-bold tracking-widest uppercase text-gray-500 mt-0.5">
-                    {project.payment_type === 'mensual' ? 'MENSUAL' : 'ÚNICO'}
-                  </p>
-                )}
-              </div>
-
-              <div className="col-span-1 md:col-span-1 relative z-10 flex flex-col items-start">
-                <span className="md:hidden text-[10px] font-bold text-gray-500 uppercase mb-1">Estado</span>
-                <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1.5 rounded-full bg-white/5 ${project.status_color || 'text-white'}`}>
-                  {project.status}
-                </span>
-              </div>
-
-              <div className="col-span-1 md:col-span-2 relative z-10 flex justify-end gap-1">
-                <button
-                  onClick={(e) => handleEditClick(e, project)}
-                  className="text-gray-500 hover:text-[hsl(76,85%,67%)] transition-colors px-2 py-2"
-                  title="Editar proyecto"
-                >
-                  <span className="text-[10px] font-bold tracking-widest uppercase">EDITAR</span>
-                </button>
-                <button
-                  onClick={() => handleSelectProject(project)}
-                  className="text-gray-500 hover:text-blue-400 transition-colors px-2 py-2"
-                  title="Ver detalle"
-                >
-                  <span className="text-[10px] font-bold tracking-widest uppercase">VER</span>
-                </button>
-                <button
-                  onClick={(e) => handleDeleteProject(e, project)}
-                  className="text-gray-500 hover:text-red-500 transition-colors px-2 py-2"
-                  title="Eliminar proyecto"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+              {/* ── DESKTOP LAYOUT ── */}
+              <div className="hidden md:grid md:grid-cols-12 gap-4 items-center relative z-10">
+                <div className="col-span-4 flex flex-col">
+                  <p className="text-sm font-bold tracking-widest uppercase">{project.name}</p>
+                  <p className="text-xs text-gray-500 font-medium mt-1">ID: {project.id.split('-')[0]}</p>
+                </div>
+                <div className="col-span-3">
+                  <p className="text-xs font-bold tracking-wider uppercase text-gray-300">{project.clients?.name || project.client_name}</p>
+                </div>
+                <div className="col-span-2 flex flex-col">
+                  <p className="text-sm font-black text-[#c2f254]">{project.price ? `$${Number(project.price).toLocaleString()}` : '—'}</p>
+                  {project.payment_type && <p className="text-[9px] font-bold tracking-widest uppercase text-gray-500 mt-0.5">{project.payment_type.toUpperCase()}</p>}
+                </div>
+                <div className="col-span-1">
+                  <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1.5 rounded-full bg-white/5 ${project.status_color || 'text-white'}`}>{project.status}</span>
+                </div>
+                <div className="col-span-2 flex justify-end gap-1">
+                  <button onClick={(e) => handleEditClick(e, project)} className="text-gray-500 hover:text-[hsl(76,85%,67%)] transition-colors px-2 py-2" title="Editar"><span className="text-[10px] font-bold tracking-widest uppercase">EDITAR</span></button>
+                  <button onClick={() => handleSelectProject(project)} className="text-gray-500 hover:text-blue-400 transition-colors px-2 py-2" title="Ver"><span className="text-[10px] font-bold tracking-widest uppercase">VER</span></button>
+                  <button onClick={(e) => handleDeleteProject(e, project)} className="text-gray-500 hover:text-red-500 transition-colors px-2 py-2" title="Eliminar">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
               </div>
             </div>
           ))}

@@ -495,8 +495,8 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
       </div>
 
       {/* NAVEGACIÓN INTERNA DEL PROYECTO */}
-      <div className="w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        <div className="flex gap-1.5 p-1.5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full w-max min-w-full sm:min-w-0 sm:w-fit">
+      <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex gap-1.5 p-1.5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full w-max">
           {[
             { id: 'vault', label: 'El Baúl' },
             { id: 'tasks', label: 'Tareas' },
@@ -1380,8 +1380,8 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
 
         {/* MODAL CREAR TAREA */}
         {isAddTaskModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-[#0a0a0a] border border-white/10 rounded-[2rem] p-6 lg:p-10 w-full max-w-xl shadow-2xl relative">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-[#0a0a0a] border border-white/10 rounded-t-[2rem] sm:rounded-[2rem] p-6 lg:p-10 w-full max-w-xl shadow-2xl relative max-h-[90vh] overflow-y-auto">
               <button 
                 onClick={() => setIsAddTaskModalOpen(false)}
                 className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors"
@@ -1415,10 +1415,10 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Asignar a</label>
-                    <select 
+                    <select
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white focus:bg-black/50 appearance-none"
                       value={taskForm.assigned_to}
                       onChange={(e) => setTaskForm({ ...taskForm, assigned_to: e.target.value })}
@@ -1432,7 +1432,7 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Prioridad</label>
-                    <select 
+                    <select
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white focus:bg-black/50 appearance-none"
                       value={taskForm.priority}
                       onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
@@ -1445,10 +1445,10 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Fecha de inicio</label>
-                    <input 
+                    <input
                       type="datetime-local"
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white focus:bg-black/50"
                       value={taskForm.start_date}
@@ -1457,7 +1457,7 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Fecha fin (Opcional)</label>
-                    <input 
+                    <input
                       type="datetime-local"
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white focus:bg-black/50"
                       value={taskForm.end_date}
