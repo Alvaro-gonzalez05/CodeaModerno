@@ -313,6 +313,32 @@ const tools = [
   },
 ];
 
+// --- Storage upload helper ---
+async function uploadImageToStorage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projectId: string,
+  imageBase64: string,
+  mimeType: string
+): Promise<string | null> {
+  try {
+    const ext = mimeType.split('/')[1]?.split('+')[0] || 'png';
+    const bytes = Buffer.from(imageBase64, 'base64');
+    const path = `${projectId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage
+      .from('ucobot-images')
+      .upload(path, bytes, { contentType: mimeType, upsert: false });
+    if (error) {
+      console.warn('[UcoBot] Storage upload error:', error.message);
+      return null;
+    }
+    const { data: { publicUrl } } = supabase.storage.from('ucobot-images').getPublicUrl(path);
+    return publicUrl;
+  } catch (e) {
+    console.warn('[UcoBot] Storage upload exception:', e);
+    return null;
+  }
+}
+
 // --- Execute Supabase Function ---
 async function executeFunction(name: string, args: any, userId: string) {
   const supabase = await createClient();
@@ -632,24 +658,37 @@ async function executeFunction(name: string, args: any, userId: string) {
         // Cargar imagen de referencia
         let referenceImagePart: { inlineData: { mimeType: string, data: string } } | null = null;
         if (args.reference_image_id && args.project_id) {
-           try {
-             // Fetch from project_vault
-             const { data: vaultItem } = await supabase.from('project_vault').select('content').eq('id', args.reference_image_id).single();
-             if (vaultItem && vaultItem.content) {
-                // Find all base64 images globally
-                const imgMatches = [...vaultItem.content.matchAll(/data:(image\/[^;]+);base64,([a-zA-Z0-9+/=]+)/g)];
-                if (imgMatches.length > 0) {
-                  let targetIndex = 0;
-                  if (args.reference_image_index && args.reference_image_index > 0 && args.reference_image_index <= imgMatches.length) {
-                    targetIndex = args.reference_image_index - 1;
+          try {
+            const { data: vaultItem } = await supabase.from('project_vault').select('content').eq('id', args.reference_image_id).single();
+            if (vaultItem && vaultItem.content) {
+              // Legacy: base64 inline
+              const base64Matches = [...vaultItem.content.matchAll(/data:(image\/[^;]+);base64,([a-zA-Z0-9+/=]+)/g)];
+              if (base64Matches.length > 0) {
+                const targetIndex = Math.max(0, (args.reference_image_index || 1) - 1);
+                const idx = Math.min(targetIndex, base64Matches.length - 1);
+                referenceImagePart = { inlineData: { mimeType: base64Matches[idx][1], data: base64Matches[idx][2] } };
+                console.log(`[UcoBot] Ref imagen (base64 legacy), slide ${idx + 1}`);
+              } else {
+                // New: Storage URLs in markdown
+                const urlMatches = [...vaultItem.content.matchAll(/!\[[^\]]*\]\((https?:\/\/[^)]+)\)/g)];
+                if (urlMatches.length > 0) {
+                  const targetIndex = Math.max(0, (args.reference_image_index || 1) - 1);
+                  const idx = Math.min(targetIndex, urlMatches.length - 1);
+                  const imageUrl = urlMatches[idx][1];
+                  const imgRes = await fetch(imageUrl);
+                  if (imgRes.ok) {
+                    const buffer = await imgRes.arrayBuffer();
+                    const base64 = Buffer.from(buffer).toString('base64');
+                    const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+                    referenceImagePart = { inlineData: { mimeType: contentType, data: base64 } };
+                    console.log(`[UcoBot] Ref imagen (Storage URL), slide ${idx + 1}`);
                   }
-                  referenceImagePart = { inlineData: { mimeType: imgMatches[targetIndex][1], data: imgMatches[targetIndex][2] } };
-                  console.log(`[UcoBot] Imagen de referencia (${args.reference_image_id}, slide ${targetIndex + 1}) cargada exitosamente.`);
                 }
-             }
-           } catch(e) {
-              console.warn('[UcoBot] No se pudo cargar imagen de referencia:', e);
-           }
+              }
+            }
+          } catch (e) {
+            console.warn('[UcoBot] No se pudo cargar imagen de referencia:', e);
+          }
         }
 
         const generatedImageUrls: string[] = [];
@@ -707,8 +746,16 @@ async function executeFunction(name: string, args: any, userId: string) {
           }
 
           if (imageBase64) {
-            const imageDataUrl = `data:${imageMimeType};base64,${imageBase64}`;
-            generatedImageUrls.push(imageDataUrl);
+            // Upload to Storage — vault stays lean (URLs, not base64)
+            const storageUrl = args.project_id
+              ? await uploadImageToStorage(supabase, args.project_id, imageBase64, imageMimeType)
+              : null;
+            if (storageUrl) {
+              generatedImageUrls.push(storageUrl);
+            } else {
+              // Fallback a base64 si Storage falla (bucket no existe aún, etc.)
+              generatedImageUrls.push(`data:${imageMimeType};base64,${imageBase64}`);
+            }
           }
         }
         
@@ -857,6 +904,7 @@ Generación de Imágenes:
 - Tenés la tool "generate_image" que genera imágenes con IA de forma automática usando el motor visual de Nano Banana (Gemini 3).
 - REGLA CRÍTICA DE FIDELIDAD DE TEXTO: Cuando generes imágenes para un carrusel o post que ya planificaste previamente, ESTÁS OBLIGADO a mandar EXACTAMENTE los títulos y subtítulos/textos que escribiste en tu idea original al motor de imágenes. NO resumas ni omitas el texto descriptivo, el usuario quiere ver exactamente tu propuesta plasmada en la gráfica.
 - REGLA CRÍTICA PARA CARRUSELES: Si el usuario te pide generar un carrusel nuevo o varias imágenes a la vez, DEBES usar el parámetro 'prompts' (un array de strings) en UNA ÚNICA llamada a la tool "generate_image". NUNCA llames a la tool varias veces por separado en este caso.
+- EDICIÓN DE SLIDE ÚNICO: Cuando el mensaje del usuario incluye un tag del tipo [@imagen_<id> (slide N)], eso significa que quiere editar ÚNICAMENTE ese slide. En ese caso: usá reference_intent: 'edit', reference_image_index: N, y generá EXACTAMENTE UNA imagen con el parámetro 'prompt' (no uses 'prompts'). NUNCA generes un carrusel completo cuando te piden editar un slide específico.
 - EXCEPCIÓN AL CARRUSEL: Si el usuario te pide EDITAR (reference_intent: 'edit') varios slides específicos de un carrusel ya existente, SÍ PODÉS y DEBÉS llamar a la tool varias veces (una llamada independiente por cada slide a editar). Esto es porque necesitás pasar un 'reference_image_index' distinto para cada imagen.
 - REGLA DE EDICIÓN CONTEXTUAL: Si el usuario te pide editar la última imagen/carrusel que generaste o de la que vienen hablando (ej. 'cambiale el fondo al slide 2' o 'agregale X a esa imagen'), NO le pidas que te la etiquete manualmente. Simplemente recordá el 'vault_item_id' que te devolvió la última llamada a 'generate_image' (o buscalo en el historial de llamadas) y pasalo como 'reference_image_id'.
 - IMPORTANTE: El sistema detecta AUTOMÁTICAMENTE el estilo visual del feed de Instagram del proyecto. Descarga TODAS las publicaciones, las analiza visualmente con IA, y usa esa información para que la imagen generada respete la paleta de colores, tipografía y estética de la marca. También obtiene el nombre real de la cuenta de Instagram para usarlo como marca de agua si hace falta.

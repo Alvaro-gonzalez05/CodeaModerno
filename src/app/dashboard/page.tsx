@@ -29,14 +29,76 @@ export default async function DashboardPage() {
   const { count: activeProjectsCount } = await supabase
     .from('projects')
     .select('*', { count: 'exact', head: true })
-    .neq('status', 'Completado');
+    .neq('status', 'OK');
 
-  // Obtener Proyectos
+  // Obtener total de clientes
+  const { count: totalClientsCount } = await supabase
+    .from('clients')
+    .select('*', { count: 'exact', head: true });
+
+  // Obtener tareas pendientes
+  const { count: pendingTasksCount } = await supabase
+    .from('tasks')
+    .select('*', { count: 'exact', head: true })
+    .neq('status', 'completada');
+
+  // Calcular ingresos mensuales reales
+  const currentMonth = new Date().getMonth() + 1;
+  const currentYear = new Date().getFullYear();
+
+  const { data: monthlyPayments } = await supabase
+    .from('payments')
+    .select('amount')
+    .eq('status', 'recibido')
+    .gte('payment_date', `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`)
+    .lt('payment_date', `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-01`);
+
+  const monthlyIncome = monthlyPayments?.reduce((total, payment) => total + Number(payment.amount), 0) || 0;
+
+  // Obtener Proyectos con información de clientes (para overview)
   const { data: projects } = await supabase
     .from('projects')
-    .select('*')
+    .select(`
+      *,
+      clients:client_id (
+        name,
+        email
+      )
+    `)
     .order('created_at', { ascending: false })
     .limit(5);
+
+  // Obtener TODOS los proyectos para la tab de proyectos
+  const { data: allProjects } = await supabase
+    .from('projects')
+    .select(`
+      *,
+      clients:client_id (
+        name,
+        email,
+        tier
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  // Obtener todos los clientes con sus proyectos (precio acumulado)
+  const { data: clients } = await supabase
+    .from('clients')
+    .select(`
+      *,
+      projects:projects!client_id(id, price)
+    `)
+    .order('created_at', { ascending: false });
+
+  const clientsWithSpent = (clients || []).map((client) => {
+    const projectList = client.projects || [];
+    const totalBilled = projectList.reduce((sum: number, p: any) => sum + Number(p.price || 0), 0);
+    return {
+      ...client,
+      totalSpent: `$${totalBilled.toLocaleString()}`,
+      projects: projectList.length
+    };
+  });
 
   // Obtener Actividad
   const { data: activities } = await supabase
@@ -45,17 +107,50 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: false })
     .limit(5);
 
-  const stats = {
-    activeProjects: activeProjectsCount || 0,
-    totalClients: 124, // Dato estático demostrativo
-    pendingTasks: 42, // Dato estático demostrativo
-    monthlyIncome: '$12.4K' // Dato estático demostrativo
+  // Obtener datos financieros para FinanceTab
+  const { data: allPayments } = await supabase
+    .from('payments')
+    .select(`
+      *,
+      project:projects(name)
+    `)
+    .eq('status', 'recibido')
+    .order('payment_date', { ascending: false });
+
+  const { data: allExpenses } = await supabase
+    .from('expenses')
+    .select('*')
+    .order('expense_date', { ascending: false });
+
+  // Calcular estadísticas financieras mensuales
+  const totalIncome = allPayments?.reduce((sum, payment) => sum + Number(payment.amount), 0) || 0;
+  const totalExpenses = allExpenses?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
+  const netBalance = totalIncome - totalExpenses;
+  const marginPercentage = totalIncome > 0 ? (netBalance / totalIncome) * 100 : 0;
+
+  const monthlyFinanceStats = {
+    totalIncome,
+    totalExpenses,
+    netBalance,
+    marginPercentage
   };
 
-  return <DashboardClient 
-    userProfile={profile} 
-    projects={projects || []} 
-    activities={activities || []} 
-    stats={stats} 
+  const stats = {
+    activeProjects: activeProjectsCount || 0,
+    totalClients: totalClientsCount || 0,
+    pendingTasks: pendingTasksCount || 0,
+    monthlyIncome: `$${(monthlyIncome / 1000).toFixed(1)}K`
+  };
+
+  return <DashboardClient
+    userProfile={profile}
+    projects={projects || []}
+    allProjects={allProjects || []}
+    clients={clientsWithSpent || []}
+    activities={activities || []}
+    stats={stats}
+    payments={allPayments || []}
+    expenses={allExpenses || []}
+    monthlyFinanceStats={monthlyFinanceStats}
   />;
 }

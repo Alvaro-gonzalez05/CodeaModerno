@@ -50,7 +50,8 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
   const [financeForm, setFinanceForm] = useState({
     type: 'abono',
     amount: '',
-    description: ''
+    description: '',
+    payment_method: 'transferencia'
   });
 
   const [serviceForm, setServiceForm] = useState({
@@ -59,6 +60,7 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
 
   const supabase = createClient();
   const [vaultItems, setVaultItems] = useState<any[]>([]);
+  const [newVaultItemIds, setNewVaultItemIds] = useState<Set<string>>(new Set());
   const [selectedVaultItem, setSelectedVaultItem] = useState<any | null>(null);
   const [isViewVaultModalOpen, setIsViewVaultModalOpen] = useState(false);
   const [isEditingVaultItem, setIsEditingVaultItem] = useState(false);
@@ -125,6 +127,20 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
       setProjectPrice(project.price || 0);
       setProjectPaymentType(project.payment_type || 'unico');
 
+      // Fetch payment history
+      const { data: payments } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('project_id', project.id)
+        .order('payment_date', { ascending: false });
+      if (payments) {
+        setFinanceHistory(payments);
+        const paid = payments
+          .filter(p => p.status === 'recibido')
+          .reduce((sum, p) => sum + Number(p.amount), 0);
+        setTotalPaid(paid);
+      }
+
       // Fetch tasks for this project
       const { data: taskData } = await supabase
         .from('project_tasks')
@@ -143,6 +159,46 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
 
     fetchAll();
   }, [project]);
+
+  // Realtime: escuchar nuevos items en el vault (desde UcoBot u otra fuente)
+  useEffect(() => {
+    if (!project?.id) return;
+
+    const channel = supabase
+      .channel(`vault-realtime-${project.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'project_vault', filter: `project_id=eq.${project.id}` },
+        (payload) => {
+          const newItem = payload.new as any;
+          setVaultItems(prev => {
+            if (prev.some(item => item.id === newItem.id)) return prev;
+            return [newItem, ...prev];
+          });
+          // Marcar como nuevo para la animación
+          setNewVaultItemIds(prev => new Set([...prev, newItem.id]));
+          // Animar con GSAP después de que React renderice
+          setTimeout(() => {
+            gsap.fromTo(
+              `.vault-item-${newItem.id}`,
+              { opacity: 0, x: -60, scale: 0.92 },
+              { opacity: 1, x: 0, scale: 1, duration: 0.55, ease: 'back.out(1.4)', clearProps: 'all' }
+            );
+            // Limpiar el estado de "nuevo" después de la animación
+            setTimeout(() => {
+              setNewVaultItemIds(prev => {
+                const next = new Set(prev);
+                next.delete(newItem.id);
+                return next;
+              });
+            }, 800);
+          }, 30);
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [project?.id]);
 
   // Dynamic Icon Helper
   const getVaultIcon = (type: string) => {
@@ -226,21 +282,47 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
     const amount = parseFloat(financeForm.amount);
     if (isNaN(amount) || amount <= 0) return;
 
+    const { data: { user } } = await supabase.auth.getUser();
+
     if (financeForm.type === 'modificar_total') {
-      // Update project price directly
       const { error } = await supabase
         .from('projects')
         .update({ price: amount })
         .eq('id', project.id);
-      if (!error) {
-        setProjectPrice(amount);
+      if (!error) setProjectPrice(amount);
+    } else {
+      const paymentData = {
+        project_id: project.id,
+        amount,
+        currency: 'USD',
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_method: financeForm.payment_method,
+        status: 'recibido',
+        notes: financeForm.description || '',
+        created_by: user?.id
+      };
+
+      const { data: newPayment, error } = await supabase
+        .from('payments')
+        .insert([paymentData])
+        .select()
+        .single();
+
+      if (newPayment && !error) {
+        setFinanceHistory([newPayment, ...financeHistory]);
+        setTotalPaid(totalPaid + amount);
+
+        await supabase.rpc('create_activity', {
+          p_title: 'Pago Registrado',
+          p_subtitle: `${project.name} - $${amount}`,
+          p_activity_type: 'payment_received',
+          p_related_id: project.id
+        });
       }
     }
-    // For abono / cargo we just update the price field as a simplified model
-    // In a real app you'd have a transactions table
 
     setIsUpdateFinanceModalOpen(false);
-    setFinanceForm({ type: 'abono', amount: '', description: '' });
+    setFinanceForm({ type: 'abono', amount: '', description: '', payment_method: 'transferencia' });
   };
 
   const handleUpdatePaymentType = async (newType: string) => {
@@ -389,50 +471,52 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
     <>
     <div ref={containerRef} className="space-y-8">
       {/* HEADER DEL PROYECTO */}
-      <div className="flex items-center justify-between bg-white/5 backdrop-blur-sm border border-white/10 rounded-[2rem] p-6 lg:p-8">
-        <div>
-          <button 
+      <div className="flex items-center justify-between bg-white/5 backdrop-blur-sm border border-white/10 rounded-[2rem] p-4 lg:p-8">
+        <div className="w-full">
+          <button
             onClick={onBack}
-            className="text-white/50 hover:text-white text-sm mb-2 transition-colors flex items-center gap-2 uppercase tracking-widest"
+            className="text-white/50 hover:text-white text-xs mb-2 transition-colors flex items-center gap-2 uppercase tracking-widest"
           >
             ← Volver a Proyectos
           </button>
-          <h2 className="text-3xl lg:text-5xl font-bold uppercase tracking-tighter">
+          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-bold uppercase tracking-tighter leading-tight">
             {project.name}
           </h2>
-          <div className="flex items-center gap-4 mt-4">
+          <div className="flex flex-wrap items-center gap-2 mt-3">
             <span className="px-3 py-1 bg-white/10 text-white rounded-full text-xs font-medium uppercase tracking-wider backdrop-blur-md">
               {project.status || 'En Desarrollo'}
             </span>
-            <span className="text-white/50 text-sm flex items-center gap-2">
+            <span className="text-white/50 text-xs flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              Cliente: {project.client_name || 'Sin Asignar'}
+              {project.client_name || 'Sin Asignar'}
             </span>
           </div>
         </div>
       </div>
 
       {/* NAVEGACIÓN INTERNA DEL PROYECTO */}
-      <div className="flex flex-wrap gap-2 lg:gap-4 p-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full w-fit">
-        {[
-          { id: 'vault', label: 'El Baúl' },
-          { id: 'tasks', label: 'Tareas' },
-          { id: 'finances', label: 'Finanzas & Pagos' },
-          { id: 'services', label: 'Servicios Asignados' },
-          ...(hasSocialService ? [{ id: 'content', label: '📱 Gestor de Contenido' }] : [])
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`px-6 py-3 rounded-full text-sm font-medium transition-all uppercase tracking-widest outline-none ${
-              activeTab === tab.id
-                ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]'
-                : 'text-white/60 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex gap-1.5 p-1.5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full w-max min-w-full sm:min-w-0 sm:w-fit">
+          {[
+            { id: 'vault', label: 'El Baúl' },
+            { id: 'tasks', label: 'Tareas' },
+            { id: 'finances', label: 'Finanzas' },
+            { id: 'services', label: 'Servicios' },
+            ...(hasSocialService ? [{ id: 'content', label: 'Contenido' }] : [])
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all uppercase tracking-widest outline-none whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]'
+                  : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* CONTENIDO DE LAS PESTAÑAS */}
@@ -440,13 +524,13 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
         {/* EL BAÚL */}
         {activeTab === 'vault' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-semibold uppercase tracking-tight text-white/90">Archivos y Accesos</h3>
-              <button 
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-xl sm:text-2xl font-semibold uppercase tracking-tight text-white/90">Archivos y Accesos</h3>
+              <button
                 onClick={() => setIsAddVaultModalOpen(true)}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-full text-sm uppercase tracking-wider transition-colors border border-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-full text-xs sm:text-sm uppercase tracking-wider transition-colors border border-white/10"
               >
-                + Agregar al Baúl
+                + Agregar
               </button>
             </div>
             
@@ -480,8 +564,12 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
 
                 return (
                   <div 
-                    key={item.id} 
-                    className={`vault-item-${item.id} ${spanClasses} flex flex-col cursor-pointer overflow-hidden group bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md border border-white/10 hover:border-white/20 transition-all rounded-3xl relative`}
+                    key={item.id}
+                    className={`vault-item-${item.id} ${spanClasses} flex flex-col cursor-pointer overflow-hidden group bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md border transition-all rounded-3xl relative ${
+                      newVaultItemIds.has(item.id)
+                        ? 'border-[hsl(76,85%,67%)]/50 shadow-[0_0_20px_rgba(194,242,84,0.15)]'
+                        : 'border-white/10 hover:border-white/20'
+                    }`}
                     onClick={() => { setSelectedVaultItem(item); setIsViewVaultModalOpen(true); }}
                   >
                     {hasImage ? (
@@ -535,18 +623,18 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
         {/* TAREAS */}
         {activeTab === 'tasks' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-semibold uppercase tracking-tight text-white/90">Tareas del Proyecto</h3>
-              <button 
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-xl sm:text-2xl font-semibold uppercase tracking-tight text-white/90">Tareas del Proyecto</h3>
+              <button
                 onClick={() => setIsAddTaskModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[hsl(76,85%,67%)] text-black rounded-full text-sm uppercase tracking-wider font-bold hover:scale-[1.03] transition-transform shadow-[0_0_20px_rgba(194,242,84,0.2)]"
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-[hsl(76,85%,67%)] text-black rounded-full text-xs sm:text-sm uppercase tracking-wider font-bold hover:scale-[1.03] transition-transform shadow-[0_0_20px_rgba(194,242,84,0.2)]"
               >
-                <Plus size={16} /> Nueva Tarea
+                <Plus size={14} /> <span className="hidden sm:inline">Nueva</span> Tarea
               </button>
             </div>
 
             {/* Kanban Board */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 min-h-[400px]">
+            <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto pb-2 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {([
                 { id: 'pendiente', label: 'Pendiente', icon: <ListTodo size={16} className="text-white/40" />, accent: 'border-white/20', headerBg: 'bg-white/5', countBg: 'bg-white/10 text-white/50' },
                 { id: 'en_progreso', label: 'En Progreso', icon: <Clock size={16} className="text-yellow-400" />, accent: 'border-yellow-500/30', headerBg: 'bg-yellow-500/5', countBg: 'bg-yellow-500/20 text-yellow-400' },
@@ -568,7 +656,7 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
                         setDraggedTaskId(null);
                       }
                     }}
-                    className={`flex flex-col rounded-2xl border transition-all duration-200 ${
+                    className={`flex flex-col rounded-2xl border transition-all duration-200 min-w-[280px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink ${
                       isOver
                         ? `${column.accent} bg-white/[0.03] shadow-[0_0_30px_rgba(255,255,255,0.05)] scale-[1.01]`
                         : 'border-white/10 bg-white/[0.02]'
@@ -698,55 +786,99 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
                 <div className="absolute inset-0 bg-gradient-to-br from-[hsl(76,85%,67%)]/5 to-transparent z-0 pointer-events-none"></div>
                 <div className="relative z-10 w-full">
                   <h3 className="text-white/50 text-sm uppercase tracking-widest mb-2">Modelo de Pago</h3>
-                  <div className="flex items-center gap-3 mb-8">
-                    <button 
-                      onClick={() => handleUpdatePaymentType('unico')}
-                      className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all border ${projectPaymentType === 'unico' ? 'bg-white text-black border-white' : 'bg-white/5 text-white/50 border-white/10 hover:border-white/30'}`}
-                    >
-                      Pago Único
-                    </button>
-                    <button 
-                      onClick={() => handleUpdatePaymentType('mensual')}
-                      className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all border ${projectPaymentType === 'mensual' ? 'bg-white text-black border-white' : 'bg-white/5 text-white/50 border-white/10 hover:border-white/30'}`}
-                    >
-                      Mensual
-                    </button>
+                  <div className="flex flex-wrap items-center gap-2 mb-8">
+                    {[
+                      { value: 'unico', label: 'Pago Único' },
+                      { value: 'mensual', label: 'Mensual' },
+                      { value: 'quincenal', label: 'Quincenal' },
+                      { value: 'trimestral', label: 'Trimestral' },
+                    ].map(({ value, label }) => (
+                      <button
+                        key={value}
+                        onClick={() => handleUpdatePaymentType(value)}
+                        className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all border ${projectPaymentType === value ? 'bg-white text-black border-white' : 'bg-white/5 text-white/50 border-white/10 hover:border-white/30'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
 
-                  <h3 className="text-white/50 text-sm uppercase tracking-widest mb-2">Monto Total</h3>
-                  <div className="text-5xl font-light mb-8">{formatARS(projectPrice)} <span className="text-2xl text-white/30">ARS</span></div>
+                  <h3 className="text-white/50 text-sm uppercase tracking-widest mb-2">Precio del Proyecto</h3>
+                  <div className="text-4xl font-light mb-2">${projectPrice.toLocaleString()} <span className="text-xl text-white/30">USD</span></div>
 
-                  <button 
-                    onClick={() => setIsUpdateFinanceModalOpen(true)}
-                    className="w-full py-4 bg-white text-black font-semibold rounded-full uppercase tracking-widest hover:bg-neutral-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]"
-                  >
-                    Modificar Precio
-                  </button>
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="text-sm text-white/70">
+                      Pagado: <span className="text-[hsl(76,85%,67%)] font-bold">${totalPaid.toLocaleString()}</span>
+                    </div>
+                    <div className="text-sm text-white/70">
+                      Pendiente: <span className="text-orange-400 font-bold">${(projectPrice - totalPaid).toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full bg-white/10 rounded-full h-2 mb-6">
+                    <div
+                      className="bg-[hsl(76,85%,67%)] h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min((totalPaid / projectPrice) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => {
+                        setFinanceForm({ ...financeForm, type: 'abono' });
+                        setIsUpdateFinanceModalOpen(true);
+                      }}
+                      className="py-3 bg-[hsl(76,85%,67%)] text-black font-bold rounded-xl uppercase tracking-widest hover:scale-[1.02] transition-transform text-xs"
+                    >
+                      + Registrar Pago
+                    </button>
+                    <button
+                      onClick={() => {
+                        setFinanceForm({ ...financeForm, type: 'modificar_total' });
+                        setIsUpdateFinanceModalOpen(true);
+                      }}
+                      className="py-3 bg-white/10 text-white font-bold rounded-xl uppercase tracking-widest hover:bg-white/20 transition-colors text-xs border border-white/20"
+                    >
+                      Editar Precio
+                    </button>
+                  </div>
                 </div>
               </div>
-              
+
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-8">
                 <h3 className="text-lg font-semibold uppercase tracking-tight text-white mb-6 flex justify-between items-center">
-                  Resumen Financiero
-                  <span className="text-xs bg-[hsl(76,85%,67%)]/10 text-[hsl(76,85%,67%)] px-3 py-1 rounded-full font-bold">{projectPaymentType === 'mensual' ? 'Recurrente' : 'Único'}</span>
+                  Historial de Pagos
+                  <span className="text-xs bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full font-bold">{financeHistory.length} movimientos</span>
                 </h3>
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between py-4 border-b border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                        <DollarSign size={18} className="text-emerald-400" />
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {financeHistory.map((payment, idx) => (
+                    <div key={payment.id || idx} className="flex items-center justify-between py-3 px-4 bg-white/5 rounded-xl border border-white/5">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${payment.amount > 0 ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}>
+                          <DollarSign size={14} className={payment.amount > 0 ? 'text-emerald-400' : 'text-red-400'} />
+                        </div>
+                        <div>
+                          <div className={`font-medium text-sm ${payment.amount > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {payment.amount > 0 ? '+' : ''}${Math.abs(payment.amount).toLocaleString()}
+                          </div>
+                          <div className="text-xs text-white/50">
+                            {payment.payment_method} · {new Date(payment.payment_date).toLocaleDateString('es-AR')}
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium text-white">Precio Acordado</div>
-                        <div className="text-xs text-white/50 mt-1">{projectPaymentType === 'mensual' ? 'Cobro mensual recurrente' : 'Pago total del proyecto'}</div>
-                      </div>
+                      <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase ${
+                        payment.status === 'recibido' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'
+                      }`}>
+                        {payment.status}
+                      </span>
                     </div>
-                    <div className="text-emerald-400 font-bold text-lg">{formatARS(projectPrice)}</div>
-                  </div>
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
-                    <p className="text-white/40 text-xs uppercase tracking-widest mb-2">Moneda</p>
-                    <p className="text-2xl font-bold text-white">Pesos Argentinos (ARS)</p>
-                  </div>
+                  ))}
+                  {financeHistory.length === 0 && (
+                    <div className="text-center py-8 text-white/40 text-sm">
+                      No hay pagos registrados todavía.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -756,13 +888,13 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
         {/* SERVICIOS */}
         {activeTab === 'services' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-semibold uppercase tracking-tight text-white/90">Servicios Designados</h3>
-              <button 
+             <div className="flex items-center justify-between gap-3">
+              <h3 className="text-xl sm:text-2xl font-semibold uppercase tracking-tight text-white/90">Servicios</h3>
+              <button
                 onClick={() => setIsLinkServiceModalOpen(true)}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-full text-sm uppercase tracking-wider transition-colors border border-white/10"
+                className="flex-shrink-0 px-3 sm:px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-full text-xs sm:text-sm uppercase tracking-wider transition-colors border border-white/10"
               >
-                + Vincular Nuevo Servicio
+                + Vincular
               </button>
             </div>
             
@@ -925,43 +1057,72 @@ export default function ProjectDetailView({ project, onBack }: { project: any, o
               <form onSubmit={handleFinanceSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Acción</label>
-                  <select 
+                  <select
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white focus:bg-black/50 appearance-none"
                     value={financeForm.type}
                     onChange={(e) => setFinanceForm({ ...financeForm, type: e.target.value })}
                   >
-                    <option value="modificar_total" className="text-black">Modificar Monto Total</option>
+                    <option value="abono" className="text-black">Registrar Pago Recibido</option>
+                    <option value="modificar_total" className="text-black">Modificar Precio Total del Proyecto</option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Monto (ARS $)</label>
-                  <input 
+                  <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">
+                    {financeForm.type === 'modificar_total' ? 'Nuevo Precio Total (USD)' : 'Monto (USD)'}
+                  </label>
+                  <input
                     required
-                    type="number" 
-                    step="1"
+                    type="number"
+                    step="0.01"
+                    min="0"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white focus:bg-black/50"
-                    placeholder="Ej: 250000"
+                    placeholder={financeForm.type === 'modificar_total' ? '5000' : '2500'}
                     value={financeForm.amount}
                     onChange={(e) => setFinanceForm({ ...financeForm, amount: e.target.value })}
                   />
                 </div>
 
+                {financeForm.type !== 'modificar_total' && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Método de Pago</label>
+                    <select
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white focus:bg-black/50 appearance-none"
+                      value={financeForm.payment_method}
+                      onChange={(e) => setFinanceForm({ ...financeForm, payment_method: e.target.value })}
+                    >
+                      <option value="transferencia" className="text-black">Transferencia Bancaria</option>
+                      <option value="efectivo" className="text-black">Efectivo</option>
+                      <option value="tarjeta" className="text-black">Tarjeta de Crédito</option>
+                      <option value="crypto" className="text-black">Criptomonedas</option>
+                      <option value="otro" className="text-black">Otro</option>
+                    </select>
+                  </div>
+                )}
+
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Descripción (Opcional)</label>
-                  <textarea 
+                  <label className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">
+                    {financeForm.type === 'modificar_total' ? 'Motivo del cambio' : 'Descripción'} (Opcional)
+                  </label>
+                  <textarea
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[hsl(76,85%,67%)] transition-all text-sm text-white focus:bg-black/50 min-h-[80px] resize-none"
-                    placeholder="Ej: Reajuste por cambio de requerimientos"
+                    placeholder={
+                      financeForm.type === 'modificar_total'
+                        ? 'Ej: Reajuste por cambio de requerimientos'
+                        : financeForm.type === 'abono'
+                        ? 'Ej: Pago del 50% inicial según contrato'
+                        : 'Ej: Gastos de dominio y hosting'
+                    }
                     value={financeForm.description}
                     onChange={(e) => setFinanceForm({ ...financeForm, description: e.target.value })}
                   />
                 </div>
 
-                <button 
+                <button
                   type="submit"
                   className="w-full bg-[hsl(76,85%,67%)] text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:scale-[1.02] transition-transform mt-4 text-xs shadow-[0_0_20px_rgba(194,242,84,0.3)]"
                 >
-                  Guardar Cambios
+                  {financeForm.type === 'modificar_total' ? 'Actualizar Precio' : 'Registrar Pago'}
                 </button>
               </form>
             </div>

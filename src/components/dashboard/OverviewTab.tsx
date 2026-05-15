@@ -59,7 +59,7 @@ export default function OverviewTab({ stats, projects, activities }: { stats: an
                 <div className="absolute inset-0 bg-gradient-to-r from-[hsl(76,85%,67%)]/0 to-[hsl(76,85%,67%)]/5 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500 ease-out z-0"></div>
                 <div className="flex-1 relative z-10">
                   <p className="text-sm md:text-base font-bold tracking-widest uppercase">{project.name}</p>
-                  <p className="text-xs text-gray-500 font-medium mt-1">{project.client_name}</p>
+                  <p className="text-xs text-gray-500 font-medium mt-1">{project.clients?.name || project.client_name}</p>
                 </div>
                 <div className="flex items-center gap-4 sm:gap-8 justify-between sm:justify-end w-full sm:w-auto relative z-10">
                   <span className={`text-[10px] md:text-xs font-black tracking-widest uppercase px-3 py-1.5 rounded-full bg-white/5 ${project.status_color || 'text-white'}`}>
