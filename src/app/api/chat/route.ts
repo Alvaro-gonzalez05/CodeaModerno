@@ -301,6 +301,14 @@ const tools = [
               type: SchemaType.INTEGER,
               description: 'Opcional. Si el reference_image_id apunta a un carrusel con múltiples imágenes, indicá aquí el índice (empezando desde 1) del slide específico que el usuario quiere usar o editar.',
             },
+            reference_image_url: {
+              type: SchemaType.STRING,
+              description: 'URL pública de una imagen a usar como referencia visual (ej. media_url de un post de Instagram obtenida con ig_analyze_posts, o cualquier URL de imagen). Usalo cuando la referencia venga de una URL externa en lugar del vault.',
+            },
+            use_uploaded_image: {
+              type: SchemaType.BOOLEAN,
+              description: 'Ponelo en true cuando el usuario haya adjuntado una imagen en el chat (con el botón de clip) y quiera que se use como referencia para generar o adaptar. El sistema la inyectará automáticamente.',
+            },
             project_id: {
               type: SchemaType.STRING,
               description: 'UUID del proyecto (opcional, para contexto)',
@@ -340,7 +348,7 @@ async function uploadImageToStorage(
 }
 
 // --- Execute Supabase Function ---
-async function executeFunction(name: string, args: any, userId: string) {
+async function executeFunction(name: string, args: any, userId: string, uploadedImages?: Array<{mimeType: string, data: string}>) {
   const supabase = await createClient();
 
   switch (name) {
@@ -691,6 +699,28 @@ async function executeFunction(name: string, args: any, userId: string) {
           }
         }
 
+        // Referencia desde URL externa (ej. media_url de un post de Instagram)
+        if (!referenceImagePart && args.reference_image_url) {
+          try {
+            const imgRes = await fetch(args.reference_image_url);
+            if (imgRes.ok) {
+              const buffer = await imgRes.arrayBuffer();
+              const base64 = Buffer.from(buffer).toString('base64');
+              const mimeType = imgRes.headers.get('content-type') || 'image/jpeg';
+              referenceImagePart = { inlineData: { mimeType, data: base64 } };
+              console.log('[UcoBot] Ref imagen cargada desde URL externa');
+            }
+          } catch (e) {
+            console.warn('[UcoBot] No se pudo cargar imagen desde URL:', e);
+          }
+        }
+
+        // Imagen adjunta por el usuario en el chat (paperclip)
+        if (!referenceImagePart && (args.use_uploaded_image || args.reference_intent) && uploadedImages && uploadedImages.length > 0) {
+          referenceImagePart = { inlineData: uploadedImages[0] };
+          console.log('[UcoBot] Usando imagen adjunta del usuario como referencia');
+        }
+
         const generatedImageUrls: string[] = [];
         let savedVaultItemId: string | null = null;
 
@@ -857,6 +887,17 @@ export async function POST(request: NextRequest) {
   try {
     const { messages, projectId } = await request.json();
 
+    // Recopilar imágenes adjuntas del usuario en toda la conversación
+    const userUploadedImages: Array<{mimeType: string, data: string}> = [];
+    messages.forEach((msg: any) => {
+      if (msg.role === 'user' && msg.images?.length > 0) {
+        msg.images.forEach((imgUrl: string) => {
+          const match = imgUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+          if (match) userUploadedImages.push({ mimeType: match[1], data: match[2] });
+        });
+      }
+    });
+
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
@@ -907,6 +948,8 @@ Generación de Imágenes:
 - EDICIÓN DE SLIDE ÚNICO: Cuando el mensaje del usuario incluye un tag del tipo [@imagen_<id> (slide N)], eso significa que quiere editar ÚNICAMENTE ese slide. En ese caso: usá reference_intent: 'edit', reference_image_index: N, y generá EXACTAMENTE UNA imagen con el parámetro 'prompt' (no uses 'prompts'). NUNCA generes un carrusel completo cuando te piden editar un slide específico.
 - EXCEPCIÓN AL CARRUSEL: Si el usuario te pide EDITAR (reference_intent: 'edit') varios slides específicos de un carrusel ya existente, SÍ PODÉS y DEBÉS llamar a la tool varias veces (una llamada independiente por cada slide a editar). Esto es porque necesitás pasar un 'reference_image_index' distinto para cada imagen.
 - REGLA DE EDICIÓN CONTEXTUAL: Si el usuario te pide editar la última imagen/carrusel que generaste o de la que vienen hablando (ej. 'cambiale el fondo al slide 2' o 'agregale X a esa imagen'), NO le pidas que te la etiquete manualmente. Simplemente recordá el 'vault_item_id' que te devolvió la última llamada a 'generate_image' (o buscalo en el historial de llamadas) y pasalo como 'reference_image_id'.
+- IMÁGENES ADJUNTAS DEL USUARIO: Si el usuario adjuntó una imagen en el chat usando el botón de clip (paperclip), podés verla en el contexto de la conversación. Cuando te pida "usá esta imagen", "adaptá esto a mi negocio", "tomá de referencia este diseño", "haceme una portada con esta imagen" o algo similar, llamá a generate_image con use_uploaded_image=true y reference_intent='style_base' (si quiere nueva imagen con ese estilo) o reference_intent='edit' (si quiere modificar esa imagen exacta). El sistema inyectará automáticamente la imagen adjunta como referencia. Si el usuario pide generar algo usando su imagen pero quiere resultados distintos/múltiples, usá use_uploaded_image=true con el array 'prompts'.
+- POSTS DE INSTAGRAM COMO REFERENCIA: Si el usuario pega una URL de Instagram (https://www.instagram.com/p/...) o dice "usá el post de X fecha / el post con más likes / ese reel", llamá primero a ig_analyze_posts para obtener los datos de todos los posts, buscá el post cuyo permalink coincida o el que el usuario describe, y pasá su 'media_url' (o 'thumbnail_url' para videos) como reference_image_url en generate_image con reference_intent='style_base'.
 - IMPORTANTE: El sistema detecta AUTOMÁTICAMENTE el estilo visual del feed de Instagram del proyecto. Descarga TODAS las publicaciones, las analiza visualmente con IA, y usa esa información para que la imagen generada respete la paleta de colores, tipografía y estética de la marca. También obtiene el nombre real de la cuenta de Instagram para usarlo como marca de agua si hace falta.
 - Vos solo tenés que pasarle un prompt descriptivo EN INGLÉS con lo que querés que aparezca en la imagen. El sistema se encarga solo del estilo.
 - REGLA SOBRE EMOJIS: NUNCA incluyas emojis en el prompt visual a menos que el usuario lo pida explícitamente. Si el usuario te pidió que NO haya emojis, incluí "NO EMOJIS, ABSOLUTELY NO EMOJIS" de forma explícita al final de cada prompt en inglés.
@@ -981,7 +1024,7 @@ El usuario autenticado actualmente tiene ID: ${user.id}`,
       for (const part of functionCalls) {
         const { name, args } = part.functionCall!;
         console.log(`[UcoBot] Executing: ${name}`);
-        const fnResult = await executeFunction(name, args, user.id);
+        const fnResult = await executeFunction(name, args, user.id, userUploadedImages);
         
         // If generate_image returned images, extract them BEFORE sending to Gemini
         // to avoid bloating Gemini's context with massive base64 data

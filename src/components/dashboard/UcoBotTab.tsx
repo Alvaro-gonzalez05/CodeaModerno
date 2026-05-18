@@ -799,24 +799,30 @@ Preguntame lo que necesites sobre este proyecto.`,
                   </div>
                 )}
                 {attachedImages.length > 0 && (
-                  <div className="flex items-center gap-2 px-1 overflow-x-auto">
-                    {attachedImages.map((src, i) => (
-                      <div key={i} className="relative w-14 h-14 flex-shrink-0">
-                        <img src={src} className="w-full h-full object-cover rounded-lg border border-white/10" />
-                        <button
-                          onClick={() => setAttachedImages(prev => prev.filter((_, idx) => idx !== i))}
-                          className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
-                        >
-                          <X size={9} />
-                        </button>
-                      </div>
-                    ))}
+                  <div className="flex flex-col gap-1.5 px-1">
+                    <span className="text-[9px] text-[hsl(76,85%,67%)]/60 uppercase tracking-widest font-bold">
+                      Imagen/es de referencia — el bot las usará al generar
+                    </span>
+                    <div className="flex items-center gap-2 overflow-x-auto">
+                      {attachedImages.map((src, i) => (
+                        <div key={i} className="relative w-14 h-14 flex-shrink-0">
+                          <img src={src} className="w-full h-full object-cover rounded-lg border border-[hsl(76,85%,67%)]/30" />
+                          <button
+                            onClick={() => setAttachedImages(prev => prev.filter((_, idx) => idx !== i))}
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
+                          >
+                            <X size={9} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
                 <div className="flex items-end gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-colors mb-0.5"
+                    title="Adjuntar imagen de referencia — el bot la usará para generar o adaptar diseños"
+                    className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 text-white/40 hover:text-[hsl(76,85%,67%)] hover:bg-[hsl(76,85%,67%)]/10 transition-colors mb-0.5"
                   >
                     <Paperclip size={16} />
                   </button>

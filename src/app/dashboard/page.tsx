@@ -55,31 +55,23 @@ export default async function DashboardPage() {
 
   const monthlyIncome = monthlyPayments?.reduce((total, payment) => total + Number(payment.amount), 0) || 0;
 
-  // Obtener Proyectos con información de clientes (para overview)
+  // Obtener Proyectos para overview (sin join a clients para evitar inner-join implícito de PostgREST)
   const { data: projects } = await supabase
     .from('projects')
-    .select(`
-      *,
-      clients:client_id (
-        name,
-        email
-      )
-    `)
+    .select('*')
     .order('created_at', { ascending: false })
     .limit(5);
 
   // Obtener TODOS los proyectos para la tab de proyectos
-  const { data: allProjects } = await supabase
+  // No hacemos join a clients para evitar el inner-join implícito de PostgREST
+  // cuando RLS restringe qué clientes ve el usuario autenticado.
+  // client_name está almacenado directamente en la fila del proyecto.
+  const { data: allProjects, error: allProjectsError } = await supabase
     .from('projects')
-    .select(`
-      *,
-      clients:client_id (
-        name,
-        email,
-        tier
-      )
-    `)
+    .select('*')
     .order('created_at', { ascending: false });
+
+  if (allProjectsError) console.error('[dashboard] allProjects error:', allProjectsError);
 
   // Obtener todos los clientes con sus proyectos (precio acumulado)
   const { data: clients } = await supabase

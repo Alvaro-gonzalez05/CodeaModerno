@@ -615,74 +615,75 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
     <div className="space-y-6">
       {/* Profile Header */}
       {profile && (
-        <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 lg:p-8">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-5">
+        <div className="bg-white/5 border border-white/10 rounded-[2rem] p-4 sm:p-6 lg:p-8">
+          {/* Top row: avatar + info + buttons */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 sm:gap-5 min-w-0">
               {profile.profile_picture_url ? (
                 <img
                   src={profile.profile_picture_url}
                   alt={profile.username}
-                  className="w-16 h-16 rounded-2xl object-cover border-2 border-white/10"
+                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl object-cover border-2 border-white/10 flex-shrink-0"
                 />
               ) : (
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center">
-                  <Globe size={28} className="text-white" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center flex-shrink-0">
+                  <Globe size={24} className="text-white" />
                 </div>
               )}
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-black tracking-tighter">@{profile.username}</h3>
-                  <CheckCircle2 size={16} className="text-[hsl(76,85%,67%)]" />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="text-base sm:text-xl font-black tracking-tighter truncate">@{profile.username}</h3>
+                  <CheckCircle2 size={14} className="text-[hsl(76,85%,67%)] flex-shrink-0" />
                 </div>
                 {profile.name && (
-                  <p className="text-sm text-white/50">{profile.name}</p>
+                  <p className="text-xs sm:text-sm text-white/50 truncate">{profile.name}</p>
                 )}
                 {profile.biography && (
-                  <p className="text-xs text-white/30 mt-1 max-w-md truncate">{profile.biography}</p>
+                  <p className="text-[10px] sm:text-xs text-white/30 mt-1 line-clamp-2 sm:max-w-md sm:truncate sm:line-clamp-none">{profile.biography}</p>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               <button
                 onClick={refreshAll}
-                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/40 hover:text-white/70 transition-all"
+                className="p-2 sm:p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/40 hover:text-white/70 transition-all"
                 title="Actualizar"
               >
-                <RefreshCcw size={16} />
+                <RefreshCcw size={15} />
               </button>
               <a
                 href={`https://instagram.com/${profile.username}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/40 hover:text-white/70 transition-all"
+                className="p-2 sm:p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/40 hover:text-white/70 transition-all"
                 title="Ver en Instagram"
               >
-                <ExternalLink size={16} />
+                <ExternalLink size={15} />
               </a>
               <button
                 onClick={handleDisconnect}
-                className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 transition-all"
+                className="p-2 sm:p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 transition-all"
                 title="Desconectar"
               >
-                <Unlink size={16} />
+                <Unlink size={15} />
               </button>
             </div>
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-black tracking-tighter">{formatNumber(profile.followers_count)}</p>
-              <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mt-1">Seguidores</p>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-4 sm:mt-6">
+            <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-3 sm:p-4 text-center">
+              <p className="text-lg sm:text-2xl font-black tracking-tighter">{formatNumber(profile.followers_count)}</p>
+              <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-white/40 font-bold mt-1">Seguidores</p>
             </div>
-            <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-black tracking-tighter">{formatNumber(profile.follows_count)}</p>
-              <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mt-1">Siguiendo</p>
+            <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-3 sm:p-4 text-center">
+              <p className="text-lg sm:text-2xl font-black tracking-tighter">{formatNumber(profile.follows_count)}</p>
+              <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-white/40 font-bold mt-1">Siguiendo</p>
             </div>
-            <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-black tracking-tighter">{formatNumber(profile.media_count)}</p>
-              <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mt-1">Publicaciones</p>
+            <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-3 sm:p-4 text-center">
+              <p className="text-lg sm:text-2xl font-black tracking-tighter">{formatNumber(profile.media_count)}</p>
+              <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-white/40 font-bold mt-1">Posts</p>
             </div>
           </div>
         </div>

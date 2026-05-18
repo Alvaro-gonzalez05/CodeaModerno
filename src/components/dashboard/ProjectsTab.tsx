@@ -281,7 +281,7 @@ export default function ProjectsTab({ projects }: { projects: any[] }) {
         </div>
       )}
 
-      <div className="bg-white/5 border border-white/10 rounded-[2rem] backdrop-blur-sm p-6 lg:p-10 stat-card overflow-hidden">
+      <div className="bg-white/5 border border-white/10 rounded-[2rem] backdrop-blur-sm p-6 lg:p-10 stat-card">
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <input
