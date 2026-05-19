@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, X, MessageCircle, Plus, MessagesSquare, Trash2, Paperclip, Minimize2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, X, MessageCircle, Plus, MessagesSquare, Trash2, Paperclip, Minimize2, CornerUpLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface Message {
@@ -11,6 +11,9 @@ interface Message {
   timestamp: Date;
   images?: string[];  // base64 — solo en memoria, se guarda en IndexedDB
   reference?: { id: string; prompt: string; index?: number };
+  mentionedPost?: { id: string; media_url: string; thumbnail_url?: string; permalink: string; caption?: string };
+  vaultItemId?: string;  // ID del vault cuando el mensaje tiene imágenes generadas
+  replyTo?: { id: string; role: 'user' | 'assistant'; contentPreview: string; hasImage: boolean };
 }
 
 interface Conversation {
@@ -123,6 +126,9 @@ Preguntame lo que necesites sobre este proyecto.`,
   const [input, setInput] = useState('');
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const [editingReference, setEditingReference] = useState<{ id: string; prompt: string; index?: number } | null>(null);
+  const [mentionedPost, setMentionedPost] = useState<{ id: string; media_url: string; thumbnail_url?: string; permalink: string; caption?: string } | null>(null);
+  const [persistentRefImage, setPersistentRefImage] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [idbImages, setIdbImages] = useState<Record<string, string[]>>({});
   const [thinkingSteps, setThinkingSteps] = useState<string[]>([]);
@@ -243,6 +249,19 @@ Preguntame lo que necesites sobre este proyecto.`,
   }, [isOpen]);
 
   useEffect(() => {
+    const handleMentionPost = (e: any) => {
+      const post = e.detail?.post;
+      if (post) {
+        if (!isOpen) setIsOpen(true);
+        setMentionedPost({ id: post.id, media_url: post.media_url, thumbnail_url: post.thumbnail_url, permalink: post.permalink, caption: post.caption });
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
+    };
+    window.addEventListener('ucobot:mention-post', handleMentionPost);
+    return () => window.removeEventListener('ucobot:mention-post', handleMentionPost);
+  }, [isOpen]);
+
+  useEffect(() => {
     if (isOpen) setTimeout(() => inputRef.current?.focus(), 350);
   }, [isOpen]);
 
@@ -332,13 +351,28 @@ Preguntame lo que necesites sobre este proyecto.`,
     const trimmed = input.trim();
     if (!trimmed || isLoading) return;
 
+    let messageContent = trimmed;
+    if (mentionedPost) {
+      messageContent = `[Post de Instagram mencionado: ${mentionedPost.permalink}]\nCaption: ${mentionedPost.caption || '(sin caption)'}\nURL imagen: ${mentionedPost.media_url}\n\n${trimmed}`;
+    }
+    // Reply a un mensaje con vault_item_id → usar mismo formato que editingReference
+    let effectiveReference = editingReference;
+    if (replyingTo && replyingTo.vaultItemId && !editingReference) {
+      effectiveReference = { id: replyingTo.vaultItemId, prompt: replyingTo.content.replace(/<[^>]+>/g, '').slice(0, 80) };
+    } else if (replyingTo && !replyingTo.vaultItemId) {
+      const preview = replyingTo.content.slice(0, 80);
+      messageContent = `[Respondiendo al mensaje: "${preview}${replyingTo.content.length > 80 ? '...' : ''}"]\n${messageContent}`;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: trimmed,
+      content: messageContent,
       timestamp: new Date(),
-      reference: editingReference ? { id: editingReference.id, prompt: editingReference.prompt, index: editingReference.index } : undefined,
+      reference: effectiveReference ? { id: effectiveReference.id, prompt: effectiveReference.prompt, index: effectiveReference.index } : undefined,
       images: attachedImages.length > 0 ? attachedImages : undefined,
+      mentionedPost: mentionedPost || undefined,
+      replyTo: replyingTo ? { id: replyingTo.id, role: replyingTo.role, contentPreview: replyingTo.content.replace(/<[^>]+>/g, '').slice(0, 60), hasImage: !!(replyingTo.images?.length || idbImages[replyingTo.id]?.length) } : undefined,
     };
 
     const isFirstUserMsg = messages.filter(m => m.role === 'user').length === 0;
@@ -350,10 +384,15 @@ Preguntame lo que necesites sobre este proyecto.`,
       messages: [...c.messages, userMessage],
       updatedAt: new Date(),
     }));
+    if (attachedImages.length > 0) {
+      setPersistentRefImage(attachedImages[0]);
+    }
     setInput('');
     setAttachedImages([]);
     setEditingReference(null);
-    const steps = (editingReference || isImageRequest(trimmed))
+    setMentionedPost(null);
+    setReplyingTo(null);
+    const steps = (effectiveReference || isImageRequest(trimmed))
       ? ['Interpretando la solicitud...', 'Diseñando composición visual...', 'Generando imagen con IA...', 'Aplicando detalles y estilos...', 'NANO_BANANA']
       : getThinkingSteps(trimmed);
     setThinkingSteps(steps);
@@ -370,6 +409,7 @@ Preguntame lo que necesites sobre este proyecto.`,
         return { role: m.role, content, images: m.images };
       });
 
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -385,6 +425,7 @@ Preguntame lo que necesites sobre este proyecto.`,
         content: data.message,
         timestamp: new Date(),
         images: data.generatedImages?.length > 0 ? data.generatedImages : undefined,
+        vaultItemId: data.vaultItemId || undefined,
       };
 
       if (data.generatedImages?.length > 0) {
@@ -412,6 +453,8 @@ Preguntame lo que necesites sobre este proyecto.`,
     setActiveId(c.id);
     setShowHistory(false);
     setInput('');
+    setPersistentRefImage(null);
+    setReplyingTo(null);
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
@@ -431,6 +474,8 @@ Preguntame lo que necesites sobre este proyecto.`,
   const switchConversation = (id: string) => {
     setActiveId(id);
     setShowHistory(false);
+    setPersistentRefImage(null);
+    setReplyingTo(null);
   };
 
   const hour = new Date().getHours();
@@ -636,7 +681,7 @@ Preguntame lo que necesites sobre este proyecto.`,
                 {messages.filter(m => m.id !== 'welcome').map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+                    className={`group/msg flex gap-3 items-end ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
                   >
                     <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border ${
                       msg.role === 'assistant'
@@ -649,12 +694,38 @@ Preguntame lo que necesites sobre este proyecto.`,
                       }
                     </div>
 
-                    <div className={`max-w-[85%] sm:max-w-[75%] ${msg.role === 'user' ? 'ml-auto' : ''}`}>
+                    {/* Reply button — visible on hover */}
+                    <button
+                      onClick={() => { setReplyingTo(msg); setTimeout(() => inputRef.current?.focus(), 50); }}
+                      className={`flex-shrink-0 mb-1 w-7 h-7 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white/30 hover:text-white/70 hover:bg-white/10 transition-all opacity-0 group-hover/msg:opacity-100 ${msg.role === 'user' ? 'order-last mr-1' : 'ml-1'}`}
+                      title="Responder este mensaje"
+                    >
+                      <CornerUpLeft size={12} />
+                    </button>
+
+                    <div className={`max-w-[80%] sm:max-w-[72%] ${msg.role === 'user' ? 'ml-auto' : ''}`}>
                       <div className={`px-5 py-4 rounded-2xl ${
                         msg.role === 'assistant'
                           ? 'bg-white/[0.04] border border-white/10 rounded-tl-md'
                           : 'bg-[hsl(76,85%,67%)]/10 border border-[hsl(76,85%,67%)]/20 rounded-tr-md'
                       }`}>
+                        {msg.replyTo && (
+                          <div className={`mb-2 flex items-center gap-2 px-3 py-2 rounded-lg border-l-2 ${
+                            msg.role === 'user'
+                              ? 'border-[hsl(76,85%,67%)]/50 bg-black/20'
+                              : 'border-white/20 bg-white/5'
+                          }`}>
+                            {msg.replyTo.hasImage && <div className="w-1.5 h-1.5 rounded-full bg-[hsl(76,85%,67%)] flex-shrink-0" />}
+                            <div className="min-w-0">
+                              <span className="text-[9px] font-bold uppercase tracking-widest text-white/30 block">
+                                {msg.replyTo.role === 'assistant' ? 'UcoBot' : 'Tú'}
+                              </span>
+                              <span className="text-[10px] text-white/30 truncate block">
+                                {msg.replyTo.hasImage ? '🖼 Imagen generada' : msg.replyTo.contentPreview}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                         {msg.reference && (
                           <div className="mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[hsl(76,85%,67%)]/20 text-[hsl(76,85%,67%)] border border-[hsl(76,85%,67%)]/30 rounded-lg text-[10px] font-bold uppercase tracking-widest">
                             <Sparkles size={12} /> Editando @imagen_{msg.reference.id.substring(0, 6)}
@@ -670,8 +741,8 @@ Preguntame lo que necesites sobre este proyecto.`,
                               <div className="mt-3 space-y-2">
                                 {(msg.images || idbImages[msg.id])!.map((imgSrc, idx) => (
                                   <div key={idx} className="flex justify-center">
-                                    <div className="rounded-xl overflow-hidden border border-white/10 max-w-sm w-full aspect-square bg-black shadow-lg">
-                                      <img src={imgSrc} alt="Imagen generada" className="w-full h-full object-cover" />
+                                    <div className="rounded-xl overflow-hidden border border-white/10 max-w-xs w-full bg-black shadow-lg">
+                                      <img src={imgSrc} alt="Imagen generada" className="w-full h-auto block" />
                                     </div>
                                   </div>
                                 ))}
@@ -679,7 +750,31 @@ Preguntame lo que necesites sobre este proyecto.`,
                             )}
                           </>
                         ) : (
-                          <p className="text-sm text-white/90 leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                          <>
+                            {msg.images && msg.images.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mb-2">
+                                {msg.images.map((imgSrc, idx) => (
+                                  <div key={idx} className="w-16 h-16 rounded-lg overflow-hidden border border-white/20 flex-shrink-0">
+                                    <img src={imgSrc} alt="Imagen adjunta" className="w-full h-full object-cover" />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {msg.mentionedPost && (
+                              <div className="flex items-center gap-2 mb-2 p-1.5 rounded-lg bg-white/5 border border-white/10 w-max max-w-full">
+                                <img
+                                  src={msg.mentionedPost.thumbnail_url || msg.mentionedPost.media_url}
+                                  className="w-8 h-8 object-cover rounded-md flex-shrink-0"
+                                  alt="Post"
+                                />
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-[8px] text-[hsl(76,85%,67%)] font-bold uppercase tracking-widest">Post de Instagram</span>
+                                  <span className="text-[9px] text-white/40 truncate max-w-[140px]">{msg.mentionedPost.caption?.slice(0, 40) || 'Ver post'}</span>
+                                </div>
+                              </div>
+                            )}
+                            <p className="text-sm text-white/90 leading-relaxed whitespace-pre-wrap break-words">{msg.content.replace(/^\[Post de Instagram mencionado:[^\]]+\]\nCaption:[^\n]*\nURL imagen:[^\n]*\n\n/, '')}</p>
+                          </>
                         )}
                       </div>
                       <p className={`text-[9px] text-white/20 mt-1.5 uppercase tracking-widest ${msg.role === 'user' ? 'text-right' : ''}`}>
@@ -790,10 +885,69 @@ Preguntame lo que necesites sobre este proyecto.`,
           <div className="flex-shrink-0 px-2 sm:px-4 pb-4 sm:pb-6 pt-2 border-t border-white/5">
             <div className="max-w-3xl mx-auto">
               <div className="flex flex-col gap-2 p-3 rounded-2xl bg-white/[0.04] border border-white/10 focus-within:border-[hsl(76,85%,67%)]/30 transition-colors">
+                {replyingTo && (
+                  <div className="flex items-center gap-2 border-l-2 border-[hsl(76,85%,67%)]/60 pl-2.5 pr-2 py-1.5 bg-white/[0.03] rounded-r-lg mx-0.5">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[9px] text-[hsl(76,85%,67%)] font-bold uppercase tracking-widest block">
+                        Respondiendo a {replyingTo.role === 'assistant' ? 'UcoBot' : 'tu mensaje'}
+                      </span>
+                      <span className="text-[10px] text-white/35 truncate block">
+                        {(replyingTo.images?.length || idbImages[replyingTo.id]?.length) ? '🖼 Imagen generada' : replyingTo.content.replace(/^\[Respondiendo[^\]]+\]\n/, '').slice(0, 60)}
+                      </span>
+                    </div>
+                    {(replyingTo.images?.[0] || idbImages[replyingTo.id]?.[0]) && (
+                      <img
+                        src={replyingTo.images?.[0] || idbImages[replyingTo.id]?.[0]}
+                        className="w-10 h-10 rounded-md object-cover flex-shrink-0 border border-white/10"
+                        alt="preview"
+                      />
+                    )}
+                    <button onClick={() => setReplyingTo(null)} className="text-white/20 hover:text-white/60 transition-colors flex-shrink-0 ml-1">
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
                 {editingReference && (
                   <div className="flex items-center gap-1.5 bg-[hsl(76,85%,67%)]/10 border border-[hsl(76,85%,67%)]/30 text-[hsl(76,85%,67%)] px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-widest w-max ml-1">
                     @imagen_{editingReference.id.substring(0, 6)}{editingReference.index ? `_slide_${editingReference.index}` : ''}
                     <button onClick={() => setEditingReference(null)} className="hover:text-white transition-colors ml-1">
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+                {mentionedPost && (
+                  <div className="flex items-center gap-2 bg-white/5 border border-white/20 px-2 py-1.5 rounded-md w-max ml-1 max-w-xs">
+                    <img
+                      src={mentionedPost.thumbnail_url || mentionedPost.media_url}
+                      className="w-8 h-8 object-cover rounded-md flex-shrink-0"
+                      alt="Post"
+                    />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[9px] text-[hsl(76,85%,67%)] font-bold uppercase tracking-widest">Post de Instagram</span>
+                      <span className="text-[9px] text-white/40 truncate">{mentionedPost.caption?.slice(0, 45) || mentionedPost.permalink}</span>
+                    </div>
+                    <button onClick={() => setMentionedPost(null)} className="hover:text-white text-white/30 transition-colors ml-1 flex-shrink-0">
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+                {persistentRefImage && attachedImages.length === 0 && (
+                  <div className="flex items-center gap-2 px-1 py-1">
+                    <div className="relative w-10 h-10 flex-shrink-0">
+                      <img src={persistentRefImage} className="w-full h-full object-cover rounded-md border border-[hsl(76,85%,67%)]/40" />
+                      <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[hsl(76,85%,67%)] flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[9px] text-[hsl(76,85%,67%)] font-bold uppercase tracking-widest block">Referencia activa</span>
+                      <span className="text-[8px] text-white/30">El bot recuerda esta imagen — seguí dándole instrucciones</span>
+                    </div>
+                    <button
+                      onClick={() => setPersistentRefImage(null)}
+                      className="text-white/20 hover:text-white/60 transition-colors flex-shrink-0"
+                      title="Olvidar referencia"
+                    >
                       <X size={12} />
                     </button>
                   </div>

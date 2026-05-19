@@ -309,6 +309,11 @@ const tools = [
               type: SchemaType.BOOLEAN,
               description: 'Ponelo en true cuando el usuario haya adjuntado una imagen en el chat (con el botón de clip) y quiera que se use como referencia para generar o adaptar. El sistema la inyectará automáticamente.',
             },
+            aspect_ratio: {
+              type: SchemaType.STRING,
+              enum: ['1:1', '9:16', '4:5', '16:9'],
+              description: "Relación de aspecto de la imagen. '1:1' cuadrado para posts del feed (default). '9:16' vertical para Historias y Reels. '4:5' vertical para posts del feed portrait. '16:9' horizontal landscape. Si el usuario dice 'historia', 'story', 'reel vertical' usá '9:16'. Si dice 'post', 'publicación', 'feed' usá '1:1' o '4:5'.",
+            },
             project_id: {
               type: SchemaType.STRING,
               description: 'UUID del proyecto (opcional, para contexto)',
@@ -660,7 +665,15 @@ async function executeFunction(name: string, args: any, userId: string, uploaded
           }
         }
 
-        const graphicBoost = 'Design this as a premium Instagram carousel slide by a top-tier creative agency. Add subtle decorative graphic elements, visual depth, and layered compositions to avoid a flat or basic look. Match the exact typography style, fonts, and visual language from the brand reference. CRITICAL: ALL visible text in the image MUST be written in SPANISH (Latin American). ABSOLUTELY NO EMOJIS in the image. Square 1:1 aspect ratio for Instagram.';
+        const aspectRatio = (args.aspect_ratio as string) || '1:1';
+        const aspectRatioLabels: Record<string, string> = {
+          '1:1':  'Square 1:1 aspect ratio (Instagram feed post).',
+          '9:16': 'Vertical 9:16 aspect ratio (Instagram Stories / Reels). TALL portrait format — the canvas is taller than wide. Distribute content vertically, use the full height.',
+          '4:5':  'Vertical 4:5 aspect ratio (Instagram portrait feed post). Taller than wide.',
+          '16:9': 'Horizontal landscape 16:9 aspect ratio (YouTube thumbnail / widescreen).',
+        };
+        const aspectRatioInstruction = aspectRatioLabels[aspectRatio] || aspectRatioLabels['1:1'];
+        const graphicBoost = `Design this as a premium Instagram visual by a top-tier creative agency. Add subtle decorative graphic elements, visual depth, and layered compositions to avoid a flat or basic look. Match the exact typography style, fonts, and visual language from the brand reference. CRITICAL: ALL visible text in the image MUST be written in SPANISH (Latin American). ABSOLUTELY NO EMOJIS in the image. ${aspectRatioInstruction}`;
         const brandNameInstruction = brandName ? ` The brand name is "${brandName}". If a brand name or watermark is needed, use ONLY this exact name.` : '';
         
         // Cargar imagen de referencia
@@ -730,21 +743,22 @@ async function executeFunction(name: string, args: any, userId: string, uploaded
           console.log(`[UcoBot] Generando imagen ${i + 1}/${promptsToGenerate.length}:`, currentPrompt);
 
           let enhancedPrompt = currentPrompt;
-          if (brandStyleContext) {
+
+          if (referenceImagePart && args.reference_intent === 'edit') {
+            // MODO RÉPLICA: La referencia manda — NO inyectar brandStyleContext para no pisarla
+            // Solo cambiar texto y ajuste mínimo de colores. La composición debe ser idéntica.
+            const brandWatermark = brandName ? ` Brand name/watermark (if needed): "${brandName}".` : '';
+            enhancedPrompt = `TASK: Recreate this reference image as closely as possible. You MUST preserve EXACTLY: the background color and texture, the font family and typography style (weight, size, hierarchy), the overall layout and composition, the placement and style of decorative objects and graphic elements, the color palette. You MUST ONLY change: the text content as instructed ("${currentPrompt}"), and optionally adapt minor color accents to match the brand if explicitly requested.${brandWatermark} THIS IS A CLOSE REPLICA — do NOT invent new colors, do NOT change the background treatment, do NOT switch to a dark background if the reference is light or vice versa, do NOT add elements that are not in the reference. ${aspectRatioInstruction} High quality. ALL text in SPANISH.`;
+          } else if (brandStyleContext) {
             enhancedPrompt = `${currentPrompt}. STYLE: ${brandStyleContext}. DESIGN RULES: ${graphicBoost}${brandNameInstruction} High quality, 4k resolution.`;
           } else {
             enhancedPrompt = `${currentPrompt}. DESIGN RULES: ${graphicBoost}${brandNameInstruction} High quality, 4k resolution.`;
           }
 
-          if (referenceImagePart) {
-            if (args.reference_intent === 'edit') {
-              enhancedPrompt += " MODIFY THE PROVIDED REFERENCE IMAGE ACCORDING TO THESE INSTRUCTIONS. DO NOT DEVIATE FROM THE ORIGINAL STRUCTURE MORE THAN NECESSARY. Keep the exact same layout and background, only change what is requested.";
-            } else {
-              const layouts = ["Focus on the center", "Split screen horizontally", "Align graphic elements to the left, text to the right", "Align graphic elements to the right, text to the left", "Bottom heavy layout", "Top heavy layout", "Diagonal composition"];
-              const dynamicLayout = promptsToGenerate.length > 1 ? `CRITICAL LAYOUT INSTRUCTION for this specific slide: ${layouts[i % layouts.length]}. You MUST change the spatial arrangement of the background shapes/elements so it looks like a DIFFERENT slide.` : "ADJUST the layout dynamically.";
-              
-              enhancedPrompt += ` USE THE PROVIDED REFERENCE IMAGE AS A STRICT STYLE AND BRANDING GUIDE ONLY. Create a NEW composition that belongs to the same visual family (same colors, textures, aesthetic rules), but you MUST change the background shapes and layout to fit the new content. ${dynamicLayout} It MUST NOT be an identical copy of the reference image. CRITICAL TYPOGRAPHY RULE: You MUST keep the EXACT SAME font family, font weight, and typography style for the text as seen in the reference image. Do NOT change the font style under any circumstances.`;
-            }
+          if (referenceImagePart && args.reference_intent !== 'edit') {
+            const layouts = ["Focus on the center", "Split screen horizontally", "Align graphic elements to the left, text to the right", "Align graphic elements to the right, text to the left", "Bottom heavy layout", "Top heavy layout", "Diagonal composition"];
+            const dynamicLayout = promptsToGenerate.length > 1 ? `CRITICAL LAYOUT INSTRUCTION for this specific slide: ${layouts[i % layouts.length]}. You MUST change the spatial arrangement of the background shapes/elements so it looks like a DIFFERENT slide.` : "ADJUST the layout dynamically.";
+            enhancedPrompt += ` USE THE PROVIDED REFERENCE IMAGE AS A STRICT STYLE AND BRANDING GUIDE ONLY. Create a NEW composition that belongs to the same visual family (same colors, textures, aesthetic rules), but you MUST change the background shapes and layout to fit the new content. ${dynamicLayout} It MUST NOT be an identical copy of the reference image. CRITICAL TYPOGRAPHY RULE: You MUST keep the EXACT SAME font family, font weight, and typography style for the text as seen in the reference image. Do NOT change the font style under any circumstances.`;
           }
 
           const parts: any[] = [{ text: enhancedPrompt }];
@@ -943,12 +957,16 @@ Generación de Contenido e Ideas (Copywriting & Estrategia):
 
 Generación de Imágenes:
 - Tenés la tool "generate_image" que genera imágenes con IA de forma automática usando el motor visual de Nano Banana (Gemini 3).
+- FORMATOS Y ASPECT RATIO: Siempre pasá el parámetro 'aspect_ratio' según lo que pida el usuario. Valores disponibles: '1:1' (post cuadrado del feed, default), '9:16' (historia / story / reel vertical), '4:5' (post vertical del feed portrait), '16:9' (landscape horizontal). Si el usuario dice "historia", "story", "para mis historias", "formato historia" → usá '9:16'. Si dice "post", "publicación", "para el feed" → usá '1:1' o '4:5'. Si no especifica, usá '1:1'. Si te piden historia Y post de lo mismo, generá ambas en llamadas separadas con sus respectivos aspect_ratio.
 - REGLA CRÍTICA DE FIDELIDAD DE TEXTO: Cuando generes imágenes para un carrusel o post que ya planificaste previamente, ESTÁS OBLIGADO a mandar EXACTAMENTE los títulos y subtítulos/textos que escribiste en tu idea original al motor de imágenes. NO resumas ni omitas el texto descriptivo, el usuario quiere ver exactamente tu propuesta plasmada en la gráfica.
 - REGLA CRÍTICA PARA CARRUSELES: Si el usuario te pide generar un carrusel nuevo o varias imágenes a la vez, DEBES usar el parámetro 'prompts' (un array de strings) en UNA ÚNICA llamada a la tool "generate_image". NUNCA llames a la tool varias veces por separado en este caso.
 - EDICIÓN DE SLIDE ÚNICO: Cuando el mensaje del usuario incluye un tag del tipo [@imagen_<id> (slide N)], eso significa que quiere editar ÚNICAMENTE ese slide. En ese caso: usá reference_intent: 'edit', reference_image_index: N, y generá EXACTAMENTE UNA imagen con el parámetro 'prompt' (no uses 'prompts'). NUNCA generes un carrusel completo cuando te piden editar un slide específico.
 - EXCEPCIÓN AL CARRUSEL: Si el usuario te pide EDITAR (reference_intent: 'edit') varios slides específicos de un carrusel ya existente, SÍ PODÉS y DEBÉS llamar a la tool varias veces (una llamada independiente por cada slide a editar). Esto es porque necesitás pasar un 'reference_image_index' distinto para cada imagen.
-- REGLA DE EDICIÓN CONTEXTUAL: Si el usuario te pide editar la última imagen/carrusel que generaste o de la que vienen hablando (ej. 'cambiale el fondo al slide 2' o 'agregale X a esa imagen'), NO le pidas que te la etiquete manualmente. Simplemente recordá el 'vault_item_id' que te devolvió la última llamada a 'generate_image' (o buscalo en el historial de llamadas) y pasalo como 'reference_image_id'.
-- IMÁGENES ADJUNTAS DEL USUARIO: Si el usuario adjuntó una imagen en el chat usando el botón de clip (paperclip), podés verla en el contexto de la conversación. Cuando te pida "usá esta imagen", "adaptá esto a mi negocio", "tomá de referencia este diseño", "haceme una portada con esta imagen" o algo similar, llamá a generate_image con use_uploaded_image=true y reference_intent='style_base' (si quiere nueva imagen con ese estilo) o reference_intent='edit' (si quiere modificar esa imagen exacta). El sistema inyectará automáticamente la imagen adjunta como referencia. Si el usuario pide generar algo usando su imagen pero quiere resultados distintos/múltiples, usá use_uploaded_image=true con el array 'prompts'.
+- REGLA DE EDICIÓN CONTEXTUAL — MÁXIMA PRIORIDAD: Si ya generaste al menos una imagen en esta conversación y el usuario pide editar, cambiar, modificar o ajustar algo (ej. 'cambiá los billetes', 'borrá la foto', 'cambiá el color', 'arreglá el texto'), SIEMPRE usá reference_image_id con el vault_item_id de la ÚLTIMA imagen generada. NUNCA uses use_uploaded_image=true para editar una imagen ya generada — use_uploaded_image SOLO sirve para la primera generación desde la imagen subida. Esta regla tiene prioridad absoluta sobre REFERENCIA PERSISTENTE.
+- IMÁGENES ADJUNTAS DEL USUARIO: Si el usuario adjuntó una imagen en el chat usando el botón de clip (paperclip), podés verla en el contexto de la conversación. Cuando te pida "usá esta imagen", "adaptá esto a mi negocio", "tomá de referencia este diseño", "haceme una portada con esta imagen" o algo similar, llamá a generate_image con use_uploaded_image=true y reference_intent='style_base' (si quiere nueva imagen con ese estilo) o reference_intent='edit' (si quiere modificar esa imagen exacta). El sistema inyectará automáticamente la imagen adjunta como referencia. Si el usuario pide generar algo usando su imagen pero quiere resultados distintos/múltiples, usá use_uploaded_image=true con el array 'prompts'. REGLA CRÍTICA DE ADAPTACIÓN: Cuando el usuario diga "adaptá esta imagen a mi contenido", "usá esta imagen de referencia", "tomá este diseño de base" o frases similares indicando que quiere mantener el MISMO diseño, usá reference_intent='edit' y en el prompt incluí EXPLÍCITAMENTE: "KEEP THE EXACT SAME COMPOSITION, LAYOUT, AND VISUAL STRUCTURE OF THE REFERENCE IMAGE. Only adapt: text/copy to match brand, colors to match brand palette. DO NOT reinvent the composition. Mirror the reference image almost exactly."
+- REFERENCIA PERSISTENTE EN LA CONVERSACIÓN: Si el usuario adjuntó una imagen en un mensaje anterior de esta misma conversación, esa imagen SIGUE DISPONIBLE como referencia activa aunque no la haya vuelto a adjuntar. Cuando el usuario te dé información adicional para completar la generación (texto, copy, colores, etc.) Y TODAVÍA NO GENERASTE ninguna imagen en esta conversación, usá use_uploaded_image=true. IMPORTANTE: Una vez que generaste una imagen (vault_item_id disponible), ya no uses use_uploaded_image=true para editar — usá reference_image_id con ese vault_item_id.
+- FLUJO DE PREGUNTAS PARA INSPIRACIÓN EXTERNA (Pinterest, etc.): Cuando el usuario adjunta una imagen de inspiración externa y dice "regenerala para mi perfil", "copiá este diseño", "haceme algo así", "adaptalo a mi marca" o similar, NO generes inmediatamente. Primero analizá la imagen visualmente y decíle: 1) Lo que ves en la imagen (composición, estilo, tipo de contenido), 2) Preguntale el TEXTO o COPY exacto que quiere en la imagen (titulares, subtítulos, call to action), 3) Si no es obvio, preguntá el mensaje principal que quiere transmitir. Una vez que tengas esa información, generá con use_uploaded_image=true y reference_intent='edit' para mantener la misma composición adaptada a su marca e Instagram.
+- POSTS DE INSTAGRAM MENCIONADOS: Si el mensaje del usuario incluye un tag del tipo [Post de Instagram mencionado: <URL>], ese post fue seleccionado directamente desde el gestor de contenido. Usá su 'URL imagen' como reference_image_url en generate_image con reference_intent='style_base'. Si el usuario pide adaptarlo manteniendo el diseño, usá reference_intent='edit' con las instrucciones de composición exacta del punto anterior.
 - POSTS DE INSTAGRAM COMO REFERENCIA: Si el usuario pega una URL de Instagram (https://www.instagram.com/p/...) o dice "usá el post de X fecha / el post con más likes / ese reel", llamá primero a ig_analyze_posts para obtener los datos de todos los posts, buscá el post cuyo permalink coincida o el que el usuario describe, y pasá su 'media_url' (o 'thumbnail_url' para videos) como reference_image_url en generate_image con reference_intent='style_base'.
 - IMPORTANTE: El sistema detecta AUTOMÁTICAMENTE el estilo visual del feed de Instagram del proyecto. Descarga TODAS las publicaciones, las analiza visualmente con IA, y usa esa información para que la imagen generada respete la paleta de colores, tipografía y estética de la marca. También obtiene el nombre real de la cuenta de Instagram para usarlo como marca de agua si hace falta.
 - Vos solo tenés que pasarle un prompt descriptivo EN INGLÉS con lo que querés que aparezca en la imagen. El sistema se encarga solo del estilo.
@@ -1013,6 +1031,7 @@ El usuario autenticado actualmente tiene ID: ${user.id}`,
     const MAX_ITERATIONS = 12;
     let iterations = 0;
     const generatedImages: string[] = []; // Collect generated images separately
+    let lastVaultItemId: string | null = null;
 
     while (result.candidates?.[0]?.content?.parts?.some((p: any) => p.functionCall) && iterations < MAX_ITERATIONS) {
       iterations++;
@@ -1031,10 +1050,12 @@ El usuario autenticado actualmente tiene ID: ${user.id}`,
         let resultForGemini = fnResult;
         if (name === 'generate_image' && (fnResult as any).image_previews) {
           generatedImages.push(...(fnResult as any).image_previews);
+          if ((fnResult as any).vault_item_id) lastVaultItemId = (fnResult as any).vault_item_id;
           // Send a lightweight result to Gemini
           resultForGemini = {
             success: (fnResult as any).success,
             message: (fnResult as any).message + ' Las imágenes ya se muestran al usuario en el chat automáticamente.',
+            vault_item_id: (fnResult as any).vault_item_id,
           };
         }
         
@@ -1085,7 +1106,7 @@ El usuario autenticado actualmente tiene ID: ${user.id}`,
       text = '⚠️ No pude generar una respuesta completa. Probá de nuevo o con una consulta más corta.';
     }
 
-    return NextResponse.json({ message: text, generatedImages });
+    return NextResponse.json({ message: text, generatedImages, vaultItemId: lastVaultItemId });
   } catch (error: any) {
     console.error('UcoBot error:', error);
     return NextResponse.json(

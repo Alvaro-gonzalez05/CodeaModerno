@@ -746,13 +746,24 @@ export default function ContentManagerTab({ projectId }: { projectId: string }) 
                       className="w-full h-full object-cover"
                     />
                     {/* Overlay on hover */}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                      <div className="flex items-center gap-1.5 text-white text-sm font-bold">
-                        <Heart size={16} /> {formatNumber(item.like_count)}
+                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-end p-2.5 gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5 text-white text-xs font-bold">
+                          <Heart size={13} /> {formatNumber(item.like_count)}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-white text-xs font-bold">
+                          <MessageCircle size={13} /> {formatNumber(item.comments_count)}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 text-white text-sm font-bold">
-                        <MessageCircle size={16} /> {formatNumber(item.comments_count)}
-                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.dispatchEvent(new CustomEvent('ucobot:mention-post', { detail: { post: item } }));
+                        }}
+                        className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-[hsl(76,85%,67%)]/20 hover:bg-[hsl(76,85%,67%)]/50 border border-[hsl(76,85%,67%)]/50 text-[hsl(76,85%,67%)] text-[9px] font-bold uppercase tracking-widest transition-colors"
+                      >
+                        <Sparkles size={10} /> Mencionar en UcoBot
+                      </button>
                     </div>
                     {/* Media type badge */}
                     {item.media_type !== 'IMAGE' && (

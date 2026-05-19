@@ -2,10 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc *)",
-      "Bash(npx next *)",
-      "Bash(npm install *)",
-      "Bash(Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue)",
-      "Bash(Write-Output \"Cache .next eliminado\")"
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "Bash(git stash *)",
+      "Bash(sed -n '14,21p' src/components/DashboardClient.tsx)",
+      "Bash(sed -n '187,197p' src/components/DashboardClient.tsx)",
+      "Bash(sed -n '232,253p' src/components/DashboardClient.tsx)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }
