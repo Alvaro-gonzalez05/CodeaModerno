@@ -1,12 +1,15 @@
+import dynamic from "next/dynamic";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Gallery from "@/components/Gallery";
-import Clients from "@/components/Clients";
-import Process from "@/components/Process";
-import Tools from "@/components/Tools";
-import LetsCode from "@/components/LetsCode";
 import Footer from "@/components/Footer";
 import type { Metadata } from "next";
+
+// Carga lazy de secciones below-the-fold para reducir el JS inicial
+const Clients = dynamic(() => import("@/components/Clients"));
+const Process = dynamic(() => import("@/components/Process"));
+const Tools = dynamic(() => import("@/components/Tools"));
+const LetsCode = dynamic(() => import("@/components/LetsCode"));
 
 export const metadata: Metadata = {
   alternates: {

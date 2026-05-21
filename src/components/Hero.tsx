@@ -40,6 +40,7 @@ export default function Hero() {
             muted
             loop
             playsInline
+            preload="metadata"
             poster="/hero-poster.jpg"
         >
             <source src="/hero-video.mp4" type="video/mp4" />

@@ -1,19 +1,22 @@
 ﻿"use client";
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
+import dynamic from 'next/dynamic';
 
-// Tabs
-import OverviewTab from './dashboard/OverviewTab';
-import ProjectsTab from './dashboard/ProjectsTab';
-import ClientsTab from './dashboard/ClientsTab';
-import FinanceTab from './dashboard/FinanceTab';
-import SettingsTab from './dashboard/SettingsTab';
-import CalendarTab from './dashboard/CalendarTab';
-import ProspectionTab from './dashboard/ProspectionTab';
+const tabFallback = <div className="flex-1 flex items-center justify-center text-white/30 text-sm">Cargando...</div>;
+
+// Carga lazy de tabs: sólo se descarga el JS del tab activo
+const OverviewTab = dynamic(() => import('./dashboard/OverviewTab'), { ssr: false, loading: () => tabFallback });
+const ProjectsTab = dynamic(() => import('./dashboard/ProjectsTab'), { ssr: false, loading: () => tabFallback });
+const ClientsTab = dynamic(() => import('./dashboard/ClientsTab'), { ssr: false, loading: () => tabFallback });
+const FinanceTab = dynamic(() => import('./dashboard/FinanceTab'), { ssr: false, loading: () => tabFallback });
+const SettingsTab = dynamic(() => import('./dashboard/SettingsTab'), { ssr: false, loading: () => tabFallback });
+const CalendarTab = dynamic(() => import('./dashboard/CalendarTab'), { ssr: false, loading: () => tabFallback });
+const ProspectionTab = dynamic(() => import('./dashboard/ProspectionTab'), { ssr: false, loading: () => tabFallback });
 
 const navItems = [
   { id: 'overview', name: 'PANEL PRINCIPAL', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },

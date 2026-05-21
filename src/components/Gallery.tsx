@@ -175,10 +175,12 @@ export default function Gallery() {
                   <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[30%] h-[8px] md:h-[18px] bg-black rounded-full z-30"></div>
                   
                   {/* Screen Content */}
-                  <img 
-                    src={service.image} 
-                    alt={service.title} 
-                    className="w-full h-full object-cover object-top bg-white" 
+                  <img
+                    src={service.image}
+                    alt={service.title}
+                    className="w-full h-full object-cover object-top bg-white"
+                    loading="lazy"
+                    decoding="async"
                   />
                   
                   {/* Screen Reflection/Gloss (Optional for realism) */}

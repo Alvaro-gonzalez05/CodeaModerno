@@ -4,10 +4,16 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   experimental: {
-    // optimizePackageImports: ['package-name'], // Add heavy packages here if needed
+    optimizePackageImports: ['gsap', '@gsap/react', 'lucide-react', 'react-awesome-reveal'],
   },
   images: {
     formats: ['image/avif', 'image/webp'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.pinimg.com',
+      },
+    ],
   },
 };
 
