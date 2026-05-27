@@ -314,6 +314,11 @@ const tools = [
               enum: ['1:1', '9:16', '4:5', '16:9'],
               description: "Relación de aspecto de la imagen. '1:1' cuadrado para posts del feed (default). '9:16' vertical para Historias y Reels. '4:5' vertical para posts del feed portrait. '16:9' horizontal landscape. Si el usuario dice 'historia', 'story', 'reel vertical' usá '9:16'. Si dice 'post', 'publicación', 'feed' usá '1:1' o '4:5'.",
             },
+            brand_source: {
+              type: SchemaType.STRING,
+              enum: ['instagram', 'uploaded_files', 'none'],
+              description: "De dónde tomar el estilo de marca para la generación. 'instagram' (default): analizar el feed de Instagram del proyecto automáticamente. 'uploaded_files': usar los archivos que el usuario adjuntó en el chat (imágenes de identidad, PDFs de guía de estilo, logos, paletas). 'none': no aplicar ningún estilo de marca — para ediciones directas sobre una imagen (borrar fondo, cambiar texto puntual, ajustar un color específico). Elegí conscientemente según lo que pidió el usuario.",
+            },
             project_id: {
               type: SchemaType.STRING,
               description: 'UUID del proyecto (opcional, para contexto)',
@@ -613,55 +618,77 @@ async function executeFunction(name: string, args: any, userId: string, uploaded
 
         console.log(`\n[UcoBot] Generando ${promptsToGenerate.length} imagen/es vía Nano Banana Pro...`);
 
-        // --- PASO 1: Detectar estilo visual + nombre de marca del feed de Instagram ---
+        // brand_source determina qué usar como referencia de estilo (lo elige el bot según el pedido)
+        const brandSource: 'instagram' | 'uploaded_files' | 'none' = args.brand_source || 'instagram';
+        const hasBrandFiles = brandSource === 'uploaded_files';
+
+        // --- PASO 1: Detectar nombre de marca y analizar estilo según brand_source ---
         let brandStyleContext = '';
+        let brandFileParts: Array<{ inlineData: { mimeType: string; data: string } }> = [];
         let brandName = '';
         if (args.project_id) {
           try {
             const conn = await getConnection(supabase, args.project_id);
             if (conn) {
               brandName = conn.ig_username || '';
-              console.log('[UcoBot] Marca detectada:', brandName);
-              const postsResult = await analyzePosts(conn, 25);
-              
-              const imageUrls: string[] = [];
-              for (const post of postsResult.posts) {
-                const url = post.media_type === 'VIDEO' ? post.thumbnail_url : post.media_url;
-                if (url) imageUrls.push(url);
-              }
 
-              if (imageUrls.length > 0) {
-                const imageParts: Array<{ inlineData: { data: string; mimeType: string } }> = [];
-                for (const url of imageUrls.slice(0, 10)) {
-                  try {
-                    const imgRes = await fetch(url);
-                    if (imgRes.ok) {
-                      const buffer = await imgRes.arrayBuffer();
-                      const base64 = Buffer.from(buffer).toString('base64');
-                      const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
-                      imageParts.push({ inlineData: { data: base64, mimeType: contentType } });
-                    }
-                  } catch (fetchErr) {}
-                }
-
-                if (imageParts.length > 0) {
-                  const styleAnalysis = await genAI.models.generateContent({
+              if (brandSource === 'uploaded_files' && (uploadedImages || []).length > 0) {
+                // Usar los archivos de identidad que el usuario adjuntó
+                brandFileParts = (uploadedImages || []).map(f => ({ inlineData: f }));
+                console.log(`[UcoBot] brand_source=uploaded_files — usando ${brandFileParts.length} archivo/s del usuario`);
+                try {
+                  const brandAnalysis = await genAI.models.generateContent({
                     model: 'gemini-2.5-flash',
-                    contents: [{
-                      role: 'user',
-                      parts: [
+                    contents: [{ role: 'user', parts: [
+                      ...brandFileParts,
+                      { text: 'You are a senior brand designer. Analyze these brand identity files. Extract ONLY: 1) Color palette (hex codes if visible), 2) Typography (font family, weights), 3) Graphic elements and patterns, 4) Overall visual style, 5) Any explicit design rules. Max 100 words. English only. Do NOT invent — describe only what you actually see.' }
+                    ]}],
+                  });
+                  brandStyleContext = brandAnalysis.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                  console.log('[UcoBot] Identidad extraída de archivos del usuario:', brandStyleContext);
+                } catch {}
+
+              } else if (brandSource === 'instagram') {
+                // Analizar el feed de Instagram
+                console.log('[UcoBot] brand_source=instagram — analizando feed de IG');
+                const postsResult = await analyzePosts(conn, 25);
+                const imageUrls: string[] = [];
+                for (const post of postsResult.posts) {
+                  const url = post.media_type === 'VIDEO' ? post.thumbnail_url : post.media_url;
+                  if (url) imageUrls.push(url);
+                }
+                if (imageUrls.length > 0) {
+                  const imageParts: Array<{ inlineData: { data: string; mimeType: string } }> = [];
+                  for (const url of imageUrls.slice(0, 10)) {
+                    try {
+                      const imgRes = await fetch(url);
+                      if (imgRes.ok) {
+                        const buffer = await imgRes.arrayBuffer();
+                        const base64 = Buffer.from(buffer).toString('base64');
+                        const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+                        imageParts.push({ inlineData: { data: base64, mimeType: contentType } });
+                      }
+                    } catch {}
+                  }
+                  if (imageParts.length > 0) {
+                    const styleAnalysis = await genAI.models.generateContent({
+                      model: 'gemini-2.5-flash',
+                      contents: [{ role: 'user', parts: [
                         ...imageParts,
                         { text: 'You are a senior graphic designer specializing in social media branding. Analyze ALL these Instagram posts from a brand. Describe their visual identity in a SINGLE paragraph (max 120 words) focusing ONLY on: 1) Dominant color palette (specific hex colors if possible), 2) Typography style (weight, size, font family), 3) Background treatment (dark, light, gradient, textures), 4) Decorative elements used (abstract 3D shapes, geometric patterns, glassmorphism cards, neon glows, chrome/metallic objects, line art, overlapping layers, etc), 5) Overall aesthetic vibe (minimalist, maximalist, futuristic, corporate, editorial, etc), 6) Variety of design approaches used across different posts. Be extremely specific and technical. Write in English. Do NOT describe content topics, ONLY visual design language.' }
-                      ]
-                    }],
-                  });
-                  brandStyleContext = styleAnalysis.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                  console.log('[UcoBot] Estilo visual detectado:', brandStyleContext);
+                      ]}],
+                    });
+                    brandStyleContext = styleAnalysis.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    console.log('[UcoBot] Estilo detectado (feed IG):', brandStyleContext);
+                  }
                 }
+              } else {
+                // brand_source === 'none' → edición directa, sin inyección de estilo
+                console.log('[UcoBot] brand_source=none — sin análisis de estilo de marca');
               }
             }
           } catch (styleErr) {
-            console.warn('[UcoBot] No pude analizar el estilo del feed:', styleErr);
+            console.warn('[UcoBot] Error analizando estilo de marca:', styleErr);
           }
         }
 
@@ -746,9 +773,11 @@ async function executeFunction(name: string, args: any, userId: string, uploaded
 
           if (referenceImagePart && args.reference_intent === 'edit') {
             // MODO RÉPLICA: La referencia manda — NO inyectar brandStyleContext para no pisarla
-            // Solo cambiar texto y ajuste mínimo de colores. La composición debe ser idéntica.
             const brandWatermark = brandName ? ` Brand name/watermark (if needed): "${brandName}".` : '';
             enhancedPrompt = `TASK: Recreate this reference image as closely as possible. You MUST preserve EXACTLY: the background color and texture, the font family and typography style (weight, size, hierarchy), the overall layout and composition, the placement and style of decorative objects and graphic elements, the color palette. You MUST ONLY change: the text content as instructed ("${currentPrompt}"), and optionally adapt minor color accents to match the brand if explicitly requested.${brandWatermark} THIS IS A CLOSE REPLICA — do NOT invent new colors, do NOT change the background treatment, do NOT switch to a dark background if the reference is light or vice versa, do NOT add elements that are not in the reference. ${aspectRatioInstruction} High quality. ALL text in SPANISH.`;
+          } else if (hasBrandFiles && brandStyleContext) {
+            // MODO IDENTIDAD DE MARCA PROPIA: usar los archivos del usuario, ignorar completamente el feed de IG
+            enhancedPrompt = `${currentPrompt}. BRAND IDENTITY (extracted from user-provided brand files — follow this STRICTLY, ignore any Instagram feed style): ${brandStyleContext}. DESIGN RULES: ${graphicBoost}${brandNameInstruction} CRITICAL: The brand identity files are provided directly in this request as images/documents. USE THEM as the visual reference — do NOT invent a style that contradicts them. High quality, 4k resolution.`;
           } else if (brandStyleContext) {
             enhancedPrompt = `${currentPrompt}. STYLE: ${brandStyleContext}. DESIGN RULES: ${graphicBoost}${brandNameInstruction} High quality, 4k resolution.`;
           } else {
@@ -763,7 +792,11 @@ async function executeFunction(name: string, args: any, userId: string, uploaded
 
           const parts: any[] = [{ text: enhancedPrompt }];
           if (referenceImagePart) {
-             parts.unshift(referenceImagePart); // La imagen va antes del texto en Gemini
+            parts.unshift(referenceImagePart); // Imagen de referencia va primero
+          } else if (brandFileParts.length > 0) {
+            // Sin referencia directa → incluir archivos de identidad de marca como contexto visual
+            // Van al principio para que Gemini los procese como contexto de estilo
+            parts.unshift(...brandFileParts);
           }
 
           const imgResponse = await genAI.models.generateContent({
@@ -969,8 +1002,22 @@ Generación de Imágenes:
 - FLUJO DE PREGUNTAS PARA INSPIRACIÓN EXTERNA (Pinterest, etc.): Cuando el usuario adjunta una imagen de inspiración externa y dice "regenerala para mi perfil", "copiá este diseño", "haceme algo así", "adaptalo a mi marca" o similar, NO generes inmediatamente. Primero analizá la imagen visualmente y decíle: 1) Lo que ves en la imagen (composición, estilo, tipo de contenido), 2) Preguntale el TEXTO o COPY exacto que quiere en la imagen (titulares, subtítulos, call to action), 3) Si no es obvio, preguntá el mensaje principal que quiere transmitir. Una vez que tengas esa información, generá con use_uploaded_image=true y reference_intent='edit' para mantener la misma composición adaptada a su marca e Instagram.
 - POSTS DE INSTAGRAM MENCIONADOS: Si el mensaje del usuario incluye un tag del tipo [Post de Instagram mencionado: <URL>], ese post fue seleccionado directamente desde el gestor de contenido. Usá su 'URL imagen' como reference_image_url en generate_image con reference_intent='style_base'. Si el usuario pide adaptarlo manteniendo el diseño, usá reference_intent='edit' con las instrucciones de composición exacta del punto anterior.
 - POSTS DE INSTAGRAM COMO REFERENCIA: Si el usuario pega una URL de Instagram (https://www.instagram.com/p/...) o dice "usá el post de X fecha / el post con más likes / ese reel", llamá primero a ig_analyze_posts para obtener los datos de todos los posts, buscá el post cuyo permalink coincida o el que el usuario describe, y pasá su 'media_url' (o 'thumbnail_url' para videos) como reference_image_url en generate_image con reference_intent='style_base'.
-- IMPORTANTE: El sistema detecta AUTOMÁTICAMENTE el estilo visual del feed de Instagram del proyecto. Descarga TODAS las publicaciones, las analiza visualmente con IA, y usa esa información para que la imagen generada respete la paleta de colores, tipografía y estética de la marca. También obtiene el nombre real de la cuenta de Instagram para usarlo como marca de agua si hace falta.
-- Vos solo tenés que pasarle un prompt descriptivo EN INGLÉS con lo que querés que aparezca en la imagen. El sistema se encarga solo del estilo.
+- REGLA DE BRAND_SOURCE — ELEGÍ CONSCIENTEMENTE SEGÚN EL PEDIDO DEL USUARIO:
+  Siempre debés elegir explícitamente el parámetro 'brand_source' en cada llamada a generate_image. No lo dejés vacío ni lo dejes en default. Analizá la intención del usuario y aplicá la regla correspondiente:
+
+  1. brand_source='none' → EDICIÓN DIRECTA SIN ESTILO. Cuando el usuario quiere modificar un detalle concreto de una imagen sin importar el estilo de marca: "borrá el fondo", "cambiá el texto", "sacá esa foto", "corregí el precio", "arreglá la tipografía". NO analices Instagram, NO busques archivos. Solo ejecutá el cambio puntual.
+
+  2. brand_source='uploaded_files' → IDENTIDAD PROPIA. Cuando el usuario adjuntó archivos de identidad (logos, guías de estilo, paletas, PDFs de marca) Y quiere generar contenido nuevo basado en esa identidad: "generá un carrusel con esta identidad", "haceme un post siguiendo este manual", "creá con este branding". Los archivos adjuntos mandan — ignorá completamente el feed de Instagram.
+
+  3. brand_source='instagram' → ESTILO DEL FEED. Cuando el usuario quiere contenido que se parezca a su feed de Instagram y NO adjuntó archivos de identidad propios: "generá un post para mi Instagram", "hacé algo como mis publicaciones", "adaptá esto a mi feed". También cuando dice "editá esta imagen en base a mi Instagram" (usar uploaded image + estilo IG juntos). Este es el caso default cuando no hay archivos adjuntos y no es edición directa.
+
+  EJEMPLOS CONCRETOS:
+  - "editá esta imagen en base a mi Instagram" → use_uploaded_image=true, reference_intent='style_base', brand_source='instagram'
+  - "borrá el fondo de esta imagen" → use_uploaded_image=true, reference_intent='edit', brand_source='none'
+  - "cambiá los pesos por dólares [imagen adjunta]" → use_uploaded_image=true, reference_intent='edit', brand_source='none'
+  - "haceme un carrusel nuevo [archivos de identidad adjuntos]" → brand_source='uploaded_files', sin use_uploaded_image
+  - "generá un post para mi Instagram" (sin archivos) → brand_source='instagram'
+  - "replicá este diseño pero con mi contenido" → use_uploaded_image=true, reference_intent='edit', brand_source='none'
 - REGLA SOBRE EMOJIS: NUNCA incluyas emojis en el prompt visual a menos que el usuario lo pida explícitamente. Si el usuario te pidió que NO haya emojis, incluí "NO EMOJIS, ABSOLUTELY NO EMOJIS" de forma explícita al final de cada prompt en inglés.
 - La imagen se guarda AUTOMÁTICAMENTE en el Baúl (Vault) del proyecto.
 - ADEMÁS, la respuesta de la tool incluye un campo "image_previews" con las URLs de las imágenes generadas. SIEMPRE que la tool devuelva este campo, no intentes imprimirlas en el chat. Simplemente decile al usuario "¡Listo! Ya generé las imágenes y te las dejé guardadas en el Baúl como un carrusel."
