@@ -63,6 +63,7 @@ function formatMarkdown(text: string): string {
 export default function UcoBotTab({ projectId, projectName }: { projectId: string; projectName: string }) {
   const CONVS_KEY = `ucobot-convs-${projectId}`;
   const ACTIVE_KEY = `ucobot-active-${projectId}`;
+  const PERSISTENT_FILES_IDB_KEY = `persistent-files-${projectId}`;
 
   const [isOpen, setIsOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -152,6 +153,10 @@ Preguntame lo que necesites sobre este proyecto.`,
     setConversations(convs);
     setActiveId(aid);
     setIsInitialized(true);
+    // Restaurar archivos persistentes desde IDB
+    loadPersistentFilesFromIDB().then(files => {
+      if (files.length > 0) setPersistentFiles(files);
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -331,8 +336,12 @@ Preguntame lo que necesites sobre este proyecto.`,
   const IDB_STORE = 'images';
 
   const openIDB = (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
-    const req = indexedDB.open(IDB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+    const req = indexedDB.open(IDB_NAME, 2);
+    req.onupgradeneeded = (e) => {
+      const db = (e.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains('images')) db.createObjectStore('images');
+      if (!db.objectStoreNames.contains('files')) db.createObjectStore('files');
+    };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
@@ -359,6 +368,30 @@ Preguntame lo que necesites sobre este proyecto.`,
         req.onerror = () => reject(req.error);
       });
     } catch { return null; }
+  };
+
+  const savePersistentFilesToIDB = async (files: AttachedFile[]) => {
+    try {
+      const db = await openIDB();
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction('files', 'readwrite');
+        tx.objectStore('files').put(files, PERSISTENT_FILES_IDB_KEY);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch {}
+  };
+
+  const loadPersistentFilesFromIDB = async (): Promise<AttachedFile[]> => {
+    try {
+      const db = await openIDB();
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction('files', 'readonly');
+        const req = tx.objectStore('files').get(PERSISTENT_FILES_IDB_KEY);
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    } catch { return []; }
   };
 
   const sendMessage = async () => {
@@ -403,7 +436,9 @@ Preguntame lo que necesites sobre este proyecto.`,
       setPersistentFiles(prev => {
         const existing = new Set(prev.map(f => f.name));
         const newFiles = attachedFiles.filter(f => !existing.has(f.name));
-        return [...prev, ...newFiles];
+        const updated = [...prev, ...newFiles];
+        savePersistentFilesToIDB(updated);
+        return updated;
       });
     }
     setInput('');
@@ -427,6 +462,16 @@ Preguntame lo que necesites sobre este proyecto.`,
         }
         return { role: m.role, content, images: m.images };
       });
+
+      // Si los archivos persistentes existen pero no están en el historial (ej. tras un refresh),
+      // inyectarlos en el mensaje actual para que el bot los tenga como contexto
+      const anyMsgHasFiles = apiMessages.some(m => m.role === 'user' && (m.images?.length ?? 0) > 0);
+      if (!anyMsgHasFiles && persistentFiles.length > 0) {
+        const lastUserIdx = apiMessages.reduce((idx: number, m: any, i: number) => (m.role === 'user' ? i : idx), -1);
+        if (lastUserIdx >= 0) {
+          apiMessages[lastUserIdx] = { ...apiMessages[lastUserIdx], images: persistentFiles.map(f => f.dataUrl) };
+        }
+      }
 
 
       const res = await fetch('/api/chat', {
@@ -473,6 +518,7 @@ Preguntame lo que necesites sobre este proyecto.`,
     setShowHistory(false);
     setInput('');
     setPersistentFiles([]);
+    savePersistentFilesToIDB([]);
     setReplyingTo(null);
     setTimeout(() => inputRef.current?.focus(), 0);
   };
@@ -494,6 +540,7 @@ Preguntame lo que necesites sobre este proyecto.`,
     setActiveId(id);
     setShowHistory(false);
     setPersistentFiles([]);
+    savePersistentFilesToIDB([]);
     setReplyingTo(null);
   };
 
