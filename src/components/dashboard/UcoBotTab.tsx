@@ -1,18 +1,25 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, X, MessageCircle, Plus, MessagesSquare, Trash2, Paperclip, Minimize2, CornerUpLeft } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, X, MessageCircle, Plus, MessagesSquare, Trash2, Paperclip, Minimize2, CornerUpLeft, FileText, Image } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+
+interface AttachedFile {
+  dataUrl: string;   // data:mimeType;base64,xxx
+  name: string;
+  mimeType: string;
+}
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  images?: string[];  // base64 — solo en memoria, se guarda en IndexedDB
+  images?: string[];      // dataUrls — imágenes o PDFs, en memoria
+  fileNames?: string[];   // nombres de archivo en paralelo con images[]
   reference?: { id: string; prompt: string; index?: number };
   mentionedPost?: { id: string; media_url: string; thumbnail_url?: string; permalink: string; caption?: string };
-  vaultItemId?: string;  // ID del vault cuando el mensaje tiene imágenes generadas
+  vaultItemId?: string;
   replyTo?: { id: string; role: 'user' | 'assistant'; contentPreview: string; hasImage: boolean };
 }
 
@@ -124,10 +131,10 @@ Preguntame lo que necesites sobre este proyecto.`,
   const [activeId, setActiveId] = useState<string>('');
 
   const [input, setInput] = useState('');
-  const [attachedImages, setAttachedImages] = useState<string[]>([]);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [editingReference, setEditingReference] = useState<{ id: string; prompt: string; index?: number } | null>(null);
   const [mentionedPost, setMentionedPost] = useState<{ id: string; media_url: string; thumbnail_url?: string; permalink: string; caption?: string } | null>(null);
-  const [persistentRefImage, setPersistentRefImage] = useState<string | null>(null);
+  const [persistentFiles, setPersistentFiles] = useState<AttachedFile[]>([]);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [idbImages, setIdbImages] = useState<Record<string, string[]>>({});
@@ -160,13 +167,20 @@ Preguntame lo que necesites sobre este proyecto.`,
     fetchUserName();
   }, []);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
     files.forEach(file => {
       const reader = new FileReader();
       reader.onload = (ev) => {
-        if (ev.target?.result) setAttachedImages(prev => [...prev, ev.target!.result as string]);
+        if (ev.target?.result) {
+          const attached: AttachedFile = {
+            dataUrl: ev.target.result as string,
+            name: file.name,
+            mimeType: file.type || 'application/octet-stream',
+          };
+          setAttachedFiles(prev => [...prev, attached]);
+        }
       };
       reader.readAsDataURL(file);
     });
@@ -370,7 +384,8 @@ Preguntame lo que necesites sobre este proyecto.`,
       content: messageContent,
       timestamp: new Date(),
       reference: effectiveReference ? { id: effectiveReference.id, prompt: effectiveReference.prompt, index: effectiveReference.index } : undefined,
-      images: attachedImages.length > 0 ? attachedImages : undefined,
+      images: attachedFiles.length > 0 ? attachedFiles.map(f => f.dataUrl) : undefined,
+      fileNames: attachedFiles.length > 0 ? attachedFiles.map(f => f.name) : undefined,
       mentionedPost: mentionedPost || undefined,
       replyTo: replyingTo ? { id: replyingTo.id, role: replyingTo.role, contentPreview: replyingTo.content.replace(/<[^>]+>/g, '').slice(0, 60), hasImage: !!(replyingTo.images?.length || idbImages[replyingTo.id]?.length) } : undefined,
     };
@@ -384,11 +399,15 @@ Preguntame lo que necesites sobre este proyecto.`,
       messages: [...c.messages, userMessage],
       updatedAt: new Date(),
     }));
-    if (attachedImages.length > 0) {
-      setPersistentRefImage(attachedImages[0]);
+    if (attachedFiles.length > 0) {
+      setPersistentFiles(prev => {
+        const existing = new Set(prev.map(f => f.name));
+        const newFiles = attachedFiles.filter(f => !existing.has(f.name));
+        return [...prev, ...newFiles];
+      });
     }
     setInput('');
-    setAttachedImages([]);
+    setAttachedFiles([]);
     setEditingReference(null);
     setMentionedPost(null);
     setReplyingTo(null);
@@ -453,7 +472,7 @@ Preguntame lo que necesites sobre este proyecto.`,
     setActiveId(c.id);
     setShowHistory(false);
     setInput('');
-    setPersistentRefImage(null);
+    setPersistentFiles([]);
     setReplyingTo(null);
     setTimeout(() => inputRef.current?.focus(), 0);
   };
@@ -474,7 +493,7 @@ Preguntame lo que necesites sobre este proyecto.`,
   const switchConversation = (id: string) => {
     setActiveId(id);
     setShowHistory(false);
-    setPersistentRefImage(null);
+    setPersistentFiles([]);
     setReplyingTo(null);
   };
 
@@ -753,11 +772,20 @@ Preguntame lo que necesites sobre este proyecto.`,
                           <>
                             {msg.images && msg.images.length > 0 && (
                               <div className="flex flex-wrap gap-2 mb-2">
-                                {msg.images.map((imgSrc, idx) => (
-                                  <div key={idx} className="w-16 h-16 rounded-lg overflow-hidden border border-white/20 flex-shrink-0">
-                                    <img src={imgSrc} alt="Imagen adjunta" className="w-full h-full object-cover" />
-                                  </div>
-                                ))}
+                                {msg.images.map((src, idx) => {
+                                  const isImage = src.startsWith('data:image/') || (!src.startsWith('data:') && !src.includes('pdf'));
+                                  const fileName = msg.fileNames?.[idx] || (isImage ? 'imagen' : 'archivo');
+                                  return isImage ? (
+                                    <div key={idx} className="w-16 h-16 rounded-lg overflow-hidden border border-white/20 flex-shrink-0">
+                                      <img src={src} alt="Archivo adjunto" className="w-full h-full object-cover" />
+                                    </div>
+                                  ) : (
+                                    <div key={idx} className="flex items-center gap-1.5 bg-white/5 border border-white/15 rounded-lg px-2.5 py-2 flex-shrink-0">
+                                      <FileText size={14} className="text-white/40 flex-shrink-0" />
+                                      <span className="text-[10px] text-white/50 max-w-[100px] truncate">{fileName}</span>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                             {msg.mentionedPost && (
@@ -931,38 +959,45 @@ Preguntame lo que necesites sobre este proyecto.`,
                     </button>
                   </div>
                 )}
-                {persistentRefImage && attachedImages.length === 0 && (
+                {/* Archivos persistentes del contexto de la conversación */}
+                {persistentFiles.length > 0 && attachedFiles.length === 0 && (
                   <div className="flex items-center gap-2 px-1 py-1">
-                    <div className="relative w-10 h-10 flex-shrink-0">
-                      <img src={persistentRefImage} className="w-full h-full object-cover rounded-md border border-[hsl(76,85%,67%)]/40" />
-                      <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[hsl(76,85%,67%)] flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-black" />
-                      </div>
+                    <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
+                      {persistentFiles.slice(0, 3).map((f, i) => (
+                        <div key={i} className="flex items-center gap-1 bg-white/5 border border-[hsl(76,85%,67%)]/20 rounded-md px-2 py-1">
+                          {f.mimeType.startsWith('image/') ? <Image size={9} className="text-[hsl(76,85%,67%)]" /> : <FileText size={9} className="text-[hsl(76,85%,67%)]" />}
+                          <span className="text-[8px] text-white/40 truncate max-w-[80px]">{f.name}</span>
+                        </div>
+                      ))}
+                      {persistentFiles.length > 3 && <span className="text-[8px] text-white/30">+{persistentFiles.length - 3} más</span>}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[9px] text-[hsl(76,85%,67%)] font-bold uppercase tracking-widest block">Referencia activa</span>
-                      <span className="text-[8px] text-white/30">El bot recuerda esta imagen — seguí dándole instrucciones</span>
-                    </div>
-                    <button
-                      onClick={() => setPersistentRefImage(null)}
-                      className="text-white/20 hover:text-white/60 transition-colors flex-shrink-0"
-                      title="Olvidar referencia"
-                    >
-                      <X size={12} />
+                    <span className="text-[8px] text-[hsl(76,85%,67%)]/50 uppercase tracking-widest font-bold whitespace-nowrap">Contexto activo</span>
+                    <button onClick={() => setPersistentFiles([])} className="text-white/20 hover:text-white/60 transition-colors flex-shrink-0" title="Borrar contexto">
+                      <X size={11} />
                     </button>
                   </div>
                 )}
-                {attachedImages.length > 0 && (
+                {/* Archivos que se van a adjuntar en este mensaje */}
+                {attachedFiles.length > 0 && (
                   <div className="flex flex-col gap-1.5 px-1">
-                    <span className="text-[9px] text-[hsl(76,85%,67%)]/60 uppercase tracking-widest font-bold">
-                      Imagen/es de referencia — el bot las usará al generar
+                    <span className="text-[9px] text-white/30 uppercase tracking-widest font-bold">
+                      Archivos adjuntos — el bot los leerá como contexto
                     </span>
-                    <div className="flex items-center gap-2 overflow-x-auto">
-                      {attachedImages.map((src, i) => (
-                        <div key={i} className="relative w-14 h-14 flex-shrink-0">
-                          <img src={src} className="w-full h-full object-cover rounded-lg border border-[hsl(76,85%,67%)]/30" />
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                      {attachedFiles.map((file, i) => (
+                        <div key={i} className="relative flex-shrink-0">
+                          {file.mimeType.startsWith('image/') ? (
+                            <div className="w-14 h-14 rounded-lg overflow-hidden border border-white/20">
+                              <img src={file.dataUrl} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-14 h-14 rounded-lg border border-white/20 bg-white/5 flex flex-col items-center justify-center gap-1">
+                              <FileText size={18} className="text-white/40" />
+                              <span className="text-[7px] text-white/30 text-center px-1 leading-tight truncate w-full text-center">{file.name.split('.').pop()?.toUpperCase()}</span>
+                            </div>
+                          )}
                           <button
-                            onClick={() => setAttachedImages(prev => prev.filter((_, idx) => idx !== i))}
+                            onClick={() => setAttachedFiles(prev => prev.filter((_, idx) => idx !== i))}
                             className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
                           >
                             <X size={9} />
@@ -975,12 +1010,19 @@ Preguntame lo que necesites sobre este proyecto.`,
                 <div className="flex items-end gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    title="Adjuntar imagen de referencia — el bot la usará para generar o adaptar diseños"
+                    title="Adjuntar imagen, PDF o documento de marca"
                     className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 text-white/40 hover:text-[hsl(76,85%,67%)] hover:bg-[hsl(76,85%,67%)]/10 transition-colors mb-0.5"
                   >
                     <Paperclip size={16} />
                   </button>
-                  <input type="file" accept="image/*" multiple className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,.txt,.doc,.docx"
+                    multiple
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                  />
                   <textarea
                     ref={inputRef}
                     value={input}
@@ -997,9 +1039,9 @@ Preguntame lo que necesites sobre este proyecto.`,
                   />
                   <button
                     onClick={sendMessage}
-                    disabled={(!input.trim() && attachedImages.length === 0) || isLoading}
+                    disabled={(!input.trim() && attachedFiles.length === 0) || isLoading}
                     className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all mb-0.5 ${
-                      (input.trim() || attachedImages.length > 0) && !isLoading
+                      (input.trim() || attachedFiles.length > 0) && !isLoading
                         ? 'bg-[hsl(76,85%,67%)] text-black hover:scale-105 shadow-lg shadow-[hsl(76,85%,67%)]/20'
                         : 'bg-white/5 text-white/20 cursor-not-allowed'
                     }`}

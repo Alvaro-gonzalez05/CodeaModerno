@@ -901,12 +901,12 @@ export async function POST(request: NextRequest) {
   try {
     const { messages, projectId } = await request.json();
 
-    // Recopilar imágenes adjuntas del usuario en toda la conversación
+    // Recopilar archivos adjuntos del usuario en toda la conversación (imágenes, PDFs, docs)
     const userUploadedImages: Array<{mimeType: string, data: string}> = [];
     messages.forEach((msg: any) => {
       if (msg.role === 'user' && msg.images?.length > 0) {
         msg.images.forEach((imgUrl: string) => {
-          const match = imgUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+          const match = imgUrl.match(/^data:([^;]+);base64,(.+)$/);
           if (match) userUploadedImages.push({ mimeType: match[1], data: match[2] });
         });
       }
@@ -963,7 +963,8 @@ Generación de Imágenes:
 - EDICIÓN DE SLIDE ÚNICO: Cuando el mensaje del usuario incluye un tag del tipo [@imagen_<id> (slide N)], eso significa que quiere editar ÚNICAMENTE ese slide. En ese caso: usá reference_intent: 'edit', reference_image_index: N, y generá EXACTAMENTE UNA imagen con el parámetro 'prompt' (no uses 'prompts'). NUNCA generes un carrusel completo cuando te piden editar un slide específico.
 - EXCEPCIÓN AL CARRUSEL: Si el usuario te pide EDITAR (reference_intent: 'edit') varios slides específicos de un carrusel ya existente, SÍ PODÉS y DEBÉS llamar a la tool varias veces (una llamada independiente por cada slide a editar). Esto es porque necesitás pasar un 'reference_image_index' distinto para cada imagen.
 - REGLA DE EDICIÓN CONTEXTUAL — MÁXIMA PRIORIDAD: Si ya generaste al menos una imagen en esta conversación y el usuario pide editar, cambiar, modificar o ajustar algo (ej. 'cambiá los billetes', 'borrá la foto', 'cambiá el color', 'arreglá el texto'), SIEMPRE usá reference_image_id con el vault_item_id de la ÚLTIMA imagen generada. NUNCA uses use_uploaded_image=true para editar una imagen ya generada — use_uploaded_image SOLO sirve para la primera generación desde la imagen subida. Esta regla tiene prioridad absoluta sobre REFERENCIA PERSISTENTE.
-- IMÁGENES ADJUNTAS DEL USUARIO: Si el usuario adjuntó una imagen en el chat usando el botón de clip (paperclip), podés verla en el contexto de la conversación. Cuando te pida "usá esta imagen", "adaptá esto a mi negocio", "tomá de referencia este diseño", "haceme una portada con esta imagen" o algo similar, llamá a generate_image con use_uploaded_image=true y reference_intent='style_base' (si quiere nueva imagen con ese estilo) o reference_intent='edit' (si quiere modificar esa imagen exacta). El sistema inyectará automáticamente la imagen adjunta como referencia. Si el usuario pide generar algo usando su imagen pero quiere resultados distintos/múltiples, usá use_uploaded_image=true con el array 'prompts'. REGLA CRÍTICA DE ADAPTACIÓN: Cuando el usuario diga "adaptá esta imagen a mi contenido", "usá esta imagen de referencia", "tomá este diseño de base" o frases similares indicando que quiere mantener el MISMO diseño, usá reference_intent='edit' y en el prompt incluí EXPLÍCITAMENTE: "KEEP THE EXACT SAME COMPOSITION, LAYOUT, AND VISUAL STRUCTURE OF THE REFERENCE IMAGE. Only adapt: text/copy to match brand, colors to match brand palette. DO NOT reinvent the composition. Mirror the reference image almost exactly."
+- ARCHIVOS ADJUNTOS — COMPORTAMIENTO POR DEFECTO ES CONTEXTO: Si el usuario adjuntó archivos (imágenes, PDFs, documentos de identidad de marca, guías de estilo) usando el botón de clip, esos archivos son CONTEXTO para que entiendas la marca, el estilo visual, las reglas de diseño, o la inspiración. NO generes imágenes automáticamente solo porque hay archivos adjuntos. En cambio: (1) Analizá el contenido de cada archivo, (2) Confirmale al usuario que lo leíste y describí brevemente qué encontraste, (3) Guardá esa información mentalmente para usarla en futuras generaciones cuando el usuario te las pida explícitamente. EXCEPCIÓN: Si el usuario adjunta un archivo Y explícitamente pide que generes algo ("regeneralo para mi perfil", "haceme una versión de esto", "copiá este diseño"), ahí sí procedés con la generación usando use_uploaded_image=true.
+- GENERACIÓN CON IMAGEN DE REFERENCIA: Solo cuando el usuario pide explícitamente generar/crear/adaptar algo a partir de un archivo adjunto, usá use_uploaded_image=true con reference_intent='style_base' (nueva composición con ese estilo) o reference_intent='edit' (réplica cercana del diseño). REGLA CRÍTICA DE ADAPTACIÓN: Cuando el usuario diga "adaptá esta imagen a mi contenido", "usá este diseño de base", "copiá este layout" → usá reference_intent='edit' e incluí en el prompt: "KEEP THE EXACT SAME COMPOSITION, LAYOUT, AND VISUAL STRUCTURE OF THE REFERENCE IMAGE. Only adapt: text/copy to match brand, colors to match brand palette. DO NOT reinvent the composition. Mirror the reference image almost exactly."
 - REFERENCIA PERSISTENTE EN LA CONVERSACIÓN: Si el usuario adjuntó una imagen en un mensaje anterior de esta misma conversación, esa imagen SIGUE DISPONIBLE como referencia activa aunque no la haya vuelto a adjuntar. Cuando el usuario te dé información adicional para completar la generación (texto, copy, colores, etc.) Y TODAVÍA NO GENERASTE ninguna imagen en esta conversación, usá use_uploaded_image=true. IMPORTANTE: Una vez que generaste una imagen (vault_item_id disponible), ya no uses use_uploaded_image=true para editar — usá reference_image_id con ese vault_item_id.
 - FLUJO DE PREGUNTAS PARA INSPIRACIÓN EXTERNA (Pinterest, etc.): Cuando el usuario adjunta una imagen de inspiración externa y dice "regenerala para mi perfil", "copiá este diseño", "haceme algo así", "adaptalo a mi marca" o similar, NO generes inmediatamente. Primero analizá la imagen visualmente y decíle: 1) Lo que ves en la imagen (composición, estilo, tipo de contenido), 2) Preguntale el TEXTO o COPY exacto que quiere en la imagen (titulares, subtítulos, call to action), 3) Si no es obvio, preguntá el mensaje principal que quiere transmitir. Una vez que tengas esa información, generá con use_uploaded_image=true y reference_intent='edit' para mantener la misma composición adaptada a su marca e Instagram.
 - POSTS DE INSTAGRAM MENCIONADOS: Si el mensaje del usuario incluye un tag del tipo [Post de Instagram mencionado: <URL>], ese post fue seleccionado directamente desde el gestor de contenido. Usá su 'URL imagen' como reference_image_url en generate_image con reference_intent='style_base'. Si el usuario pide adaptarlo manteniendo el diseño, usá reference_intent='edit' con las instrucciones de composición exacta del punto anterior.
@@ -989,14 +990,9 @@ El usuario autenticado actualmente tiene ID: ${user.id}`,
       const parts: any[] = [{ text: msg.content }];
       if (msg.role === 'user' && msg.images && msg.images.length > 0) {
         msg.images.forEach((imgUrl: string) => {
-          const match = imgUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+          const match = imgUrl.match(/^data:([^;]+);base64,(.+)$/);
           if (match) {
-            parts.push({
-              inlineData: {
-                mimeType: match[1],
-                data: match[2]
-              }
-            });
+            parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
           }
         });
       }
@@ -1012,14 +1008,9 @@ El usuario autenticado actualmente tiene ID: ${user.id}`,
     
     if (lastMsg.images && lastMsg.images.length > 0) {
       lastMsg.images.forEach((imgUrl: string) => {
-        const match = imgUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+        const match = imgUrl.match(/^data:([^;]+);base64,(.+)$/);
         if (match) {
-          lastMessageParts.push({
-            inlineData: {
-              mimeType: match[1],
-              data: match[2]
-            }
-          });
+          lastMessageParts.push({ inlineData: { mimeType: match[1], data: match[2] } });
         }
       });
     }
