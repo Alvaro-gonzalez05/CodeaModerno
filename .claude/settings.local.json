@@ -10,7 +10,8 @@
       "Bash(sed -n '232,253p' src/components/DashboardClient.tsx)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(dir \"c:\\\\Users\\\\agusg\\\\Documents\\\\proyectosAlva\\\\CodeaModerno\")"
     ]
   }
 }
