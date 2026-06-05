@@ -1,3 +1,5 @@
+import Footer from "@/components/Footer";
+
 export const metadata = {
   title: 'Política de Privacidad · Codea Desarrollos',
   description: 'Política de privacidad de Codea Desarrollos.',
@@ -5,6 +7,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
+    <>
     <main className="min-h-screen bg-black text-white px-6 py-16 flex justify-center">
       <div className="max-w-3xl space-y-8">
         <header className="space-y-2">
@@ -98,5 +101,7 @@ export default function PrivacyPage() {
         </section>
       </div>
     </main>
+    <Footer />
+    </>
   );
 }

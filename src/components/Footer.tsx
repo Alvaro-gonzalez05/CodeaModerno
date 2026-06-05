@@ -13,7 +13,6 @@ export default function Footer() {
                 <p className="text-gray-500 text-sm max-w-xs leading-relaxed">
                     Diseñamos el futuro digital de tu empresa con tecnología de vanguardia.
                 </p>
-                <p className="text-xs text-gray-400 mt-2 hidden md:block">© 2025 Codea Desarrollos</p>
             </div>
 
             {/* Center - Big Email & WhatsApp */}
@@ -45,8 +44,13 @@ export default function Footer() {
             </div>
         </div>
 
-        <div className="md:hidden mt-8 pt-6 border-t border-gray-100 text-center">
+        <div className="mt-8 pt-4 border-t border-gray-100">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-1">
             <p className="text-xs text-gray-400">© 2025 Codea Desarrollos.</p>
+            <p className="text-xs text-gray-400 text-center">
+              GONZALEZ VICARIO ALVARO SANTINO – CUIT 20-46866708-9
+            </p>
+          </div>
         </div>
       </div>
     </footer>

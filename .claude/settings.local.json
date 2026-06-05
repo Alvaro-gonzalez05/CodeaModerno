@@ -11,6 +11,7 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push *)",
+<<<<<<< HEAD
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\ULTRABYTES\\\\Documents\\\\CodeaModerno\" -Recurse -Force)",
       "Bash(Select-Object -Property FullName)",
       "Bash(ConvertTo-Csv -NoTypeInformation)",
@@ -18,6 +19,9 @@
       "Bash(xargs -I {} bash -c 'echo \"=== {} ===\" && head -30 \"{}\"')",
       "Bash(xargs wc -l)",
       "Bash(npx next *)"
+=======
+      "Bash(dir \"c:\\\\Users\\\\agusg\\\\Documents\\\\proyectosAlva\\\\CodeaModerno\")"
+>>>>>>> 05ac654adbb204aa9b51d1b82b905e538584ba5b
     ]
   }
 }

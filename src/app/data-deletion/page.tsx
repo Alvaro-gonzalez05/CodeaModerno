@@ -1,3 +1,5 @@
+import Footer from "@/components/Footer";
+
 export const metadata = {
   title: 'Eliminación de datos · Codea Desarrollos',
   description: 'Cómo solicitar la eliminación de tus datos en Codea Desarrollos.',
@@ -5,6 +7,7 @@ export const metadata = {
 
 export default function DataDeletionPage() {
   return (
+    <>
     <main className="min-h-screen bg-black text-white px-6 py-16 flex items-center justify-center">
       <div className="max-w-2xl space-y-6">
         <h1 className="text-3xl md:text-4xl font-black tracking-tighter">
@@ -40,5 +43,7 @@ export default function DataDeletionPage() {
         </p>
       </div>
     </main>
+    <Footer />
+    </>
   );
 }
