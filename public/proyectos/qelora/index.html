@@ -41,6 +41,9 @@
         height: auto;
         object-fit: initial;
       }
+      /* En móvil muchos navegadores no soportan el alfa del webm y pintan el
+         fondo del pájaro en negro, tapando el hero. Lo ocultamos. */
+      #bird-wrap { display: none !important; }
     }
 
     /* ── Nav ── */
