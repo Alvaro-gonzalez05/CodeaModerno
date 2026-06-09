@@ -676,17 +676,19 @@
   const tunnel = document.getElementById('content');
   // We don't set height on a section — we use scroll position relative to s3
 
-  // Draw a frame (cover)
+  // Draw a frame (cover) — se dibuja sobre el tamaño REAL del canvas
+  // (backing store en px del dispositivo) para que llene toda la pantalla
+  // en cualquier devicePixelRatio (móvil incluido).
   function drawFrame(idx){
     const i = Math.max(0, Math.min(Math.round(idx), TOTAL_FRAMES - 1));
     const img = frames[i];
     if(!img || !img.complete || !img.naturalWidth) return;
-    const cw = canvas.width  / window.devicePixelRatio;
-    const ch = canvas.height / window.devicePixelRatio;
+    const cw = canvas.width;
+    const ch = canvas.height;
     const scale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
     const dw = img.naturalWidth  * scale;
     const dh = img.naturalHeight * scale;
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.clearRect(0,0,cw,ch);
     ctx.drawImage(img, (cw-dw)/2, (ch-dh)/2, dw, dh);
   }
 
