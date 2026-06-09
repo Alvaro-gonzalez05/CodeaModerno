@@ -59,6 +59,9 @@
       .hero-content { padding: 0 20px 60px !important; }
       section { padding: 60px 20px !important; }
       nav { padding: 20px !important; }
+      .hero-panel { grid-template-columns: 1fr !important; padding: 26px 22px !important; border-radius: 22px !important; gap: 18px !important; }
+      .hero-panel #hero-left, .hero-panel #hero-right { grid-column: 1 / -1 !important; }
+      .hero-panel #hero-left h1 { margin-bottom: 22px !important; }
     }
     @media (max-width: 1024px) and (min-width: 769px) {
       .props-grid { grid-template-columns: repeat(2, 1fr) !important; }
@@ -122,7 +125,7 @@
 
     <!-- Hero content -->
     <div class="hero-content" style="flex:1; display:flex; align-items:flex-end; padding:0 40px 80px;">
-      <div style="display:grid; grid-template-columns:repeat(12,1fr); gap:24px; width:100%; align-items:end;">
+      <div class="hero-panel" style="display:grid; grid-template-columns:repeat(12,1fr); gap:24px 44px; width:100%; align-items:end; background:rgba(255,255,255,0.20); backdrop-filter:blur(30px) saturate(160%); -webkit-backdrop-filter:blur(30px) saturate(160%); border:1px solid rgba(255,255,255,0.45); border-radius:28px; box-shadow:0 24px 70px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.5); padding:40px 44px;">
 
         <!-- Headline + CTA -->
         <div id="hero-left" style="grid-column:span 7; opacity:0; transform:translateY(30px);">
@@ -136,7 +139,7 @@
 
         <!-- Subtext -->
         <div id="hero-right" style="grid-column:9 / span 4; opacity:0; transform:translateY(20px);">
-          <p style="color:#A5A5A5; font-size:clamp(15px,1.5vw,18px); line-height:1.4; font-weight:300;">
+          <p style="color:#3a3a3a; font-size:clamp(15px,1.5vw,18px); line-height:1.4; font-weight:400;">
             Experimentá más que una casa; encontrá un santuario donde tu camino se despliega, lleno de comodidad y oportunidades infinitas.
           </p>
         </div>
