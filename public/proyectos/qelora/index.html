@@ -170,11 +170,12 @@
 
 
 <!-- ══════ HERO ══════ -->
-<section id="hero" style="position:relative; width:100%; min-height:100vh; overflow:visible; font-family:'Zimula Trial Med',Georgia,sans-serif;">
+<section id="hero" style="position:relative; width:100%; min-height:100vh; overflow:visible; background:#e9e4da; font-family:'Zimula Trial Med',Georgia,sans-serif;">
 
   <!-- Layer 1 — BG video -->
-  <video autoplay muted loop playsinline
-    style="position:absolute; inset:0; width:100%; height:100vh; object-fit:cover; z-index:0;"
+  <video id="bg-hero" autoplay muted loop playsinline preload="auto"
+    poster="https://res.cloudinary.com/dy5er7kv5/video/upload/so_0/q_auto/f_jpg/v1779808200/bg-video_xsmysw.jpg"
+    style="position:absolute; inset:0; width:100%; height:100vh; object-fit:cover; background:#e9e4da; z-index:0;"
     src="https://res.cloudinary.com/dy5er7kv5/video/upload/q_auto/f_auto/v1779808200/bg-video_xsmysw.mp4">
   </video>
 
@@ -281,11 +282,12 @@
 
 
 <!-- ══════ SECTION 2 ══════ -->
-<section id="section2" id="section2" style="position:relative; width:100%; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; font-family:'Zimula Trial Med',Georgia,sans-serif; padding: 120px 24px 180px;">
+<section id="section2" style="position:relative; width:100%; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; background:#e9e4da; font-family:'Zimula Trial Med',Georgia,sans-serif; padding: 120px 24px 180px;">
 
   <!-- BG Video -->
-  <video autoplay muted loop playsinline
-    style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;"
+  <video id="bg-sec2" autoplay muted loop playsinline preload="auto"
+    poster="https://res.cloudinary.com/dy5er7kv5/video/upload/so_0/q_auto/f_jpg/v1779835701/bg-2-video_sgbpqt.jpg"
+    style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#e9e4da; z-index:0;"
     src="https://res.cloudinary.com/dy5er7kv5/video/upload/q_auto/f_auto/v1779835701/bg-2-video_sgbpqt.mp4">
   </video>
 
@@ -431,6 +433,19 @@ window.addEventListener('scroll', () => {
 
 // Init
 updateParallax(0);
+
+// ── Forzar reproducción de los videos de fondo (autoplay puede fallar en móvil) ──
+(function () {
+  const bgVids = [document.getElementById('bg-hero'), document.getElementById('bg-sec2')].filter(Boolean);
+  function playBg() {
+    bgVids.forEach(v => { const p = v.play(); if (p && p.catch) p.catch(() => {}); });
+  }
+  playBg();
+  window.addEventListener('load', playBg);
+  ['touchstart', 'pointerdown', 'click', 'scroll'].forEach(ev =>
+    window.addEventListener(ev, playBg, { once: true, passive: true })
+  );
+})();
 </script>
 </body>
 </html>
