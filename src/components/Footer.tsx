@@ -33,7 +33,7 @@ export default function Footer() {
                 <div className="flex flex-col gap-4">
                     <span className="font-bold text-lg">Menu</span>
                     <Link href="/" className="text-gray-500 hover:text-black transition-colors">Inicio</Link>
-                    <Link href="/trabajos" className="text-gray-500 hover:text-black transition-colors">Trabajos</Link>
+                    <Link href="/proyectos" className="text-gray-500 hover:text-black transition-colors">Proyectos</Link>
                     <Link href="/about" className="text-gray-500 hover:text-black transition-colors">Sobre nosotros</Link>
                 </div>
                 <div className="flex flex-col gap-4">
