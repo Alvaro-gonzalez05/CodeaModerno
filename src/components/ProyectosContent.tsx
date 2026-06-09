@@ -24,23 +24,44 @@ export default function ProyectosContent() {
       ease: "power3.out",
     });
 
-    // Aparición de cada tarjeta de proyecto
-    const cards = gsap.utils.toArray<HTMLElement>('.project-card');
-    cards.forEach((card) => {
-      gsap.fromTo(card,
-        { y: 80, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.8,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: card,
-            start: "top 90%",
-            toggleActions: "play none none reverse",
+    // Bloques de proyectos entrando desde los costados (igual a /trabajos)
+    const mm = gsap.matchMedia();
+
+    mm.add({
+      isDesktop: "(min-width: 768px)",
+      isMobile: "(max-width: 767px)"
+    }, (context) => {
+      const { isMobile } = context.conditions as { isMobile: boolean };
+
+      const projectBlocks = gsap.utils.toArray<HTMLElement>('.project-block');
+
+      projectBlocks.forEach((block, index) => {
+        const isLeft = index % 2 === 0;
+        const elementsToAnimate = block.querySelectorAll('.project-content');
+
+        const xOffset = isMobile ? (isLeft ? -50 : 50) : (isLeft ? -150 : 150);
+
+        gsap.fromTo(elementsToAnimate,
+          {
+            x: xOffset,
+            y: isMobile ? 50 : 0,
+            opacity: 0.2,
+          },
+          {
+            x: 0,
+            y: 0,
+            opacity: 1,
+            stagger: 0.1,
+            ease: "none",
+            scrollTrigger: {
+              trigger: block,
+              start: isMobile ? "top 90%" : "top 95%",
+              end: isMobile ? "center 70%" : "center 50%",
+              scrub: 1,
+            }
           }
-        }
-      );
+        );
+      });
     });
 
     // CTA final
@@ -59,10 +80,10 @@ export default function ProyectosContent() {
   }, { scope: containerRef });
 
   return (
-    <div ref={containerRef} className="w-full pt-32 pb-40 px-4 md:px-8 max-w-[1400px] mx-auto min-h-screen relative z-10">
+    <div ref={containerRef} className="w-full pt-32 pb-40 px-4 md:px-8 max-w-[1400px] mx-auto min-h-screen relative z-10 overflow-hidden">
 
       {/* Título Principal */}
-      <div className="text-center mb-20 md:mb-32 uppercase pt-10">
+      <div className="text-center mb-20 md:mb-40 uppercase pt-10">
         <p className="text-xs md:text-sm tracking-[0.3em] font-bold mb-6" style={{ color: 'hsl(76, 85%, 67%)' }}>PORTAFOLIO · {proyectos.length} PROYECTOS</p>
         <h1 className="text-[14vw] leading-[0.85] font-black tracking-tighter text-white overflow-hidden main-title flex flex-col justify-center items-center">
           <span className="inline-block text-transparent w-full break-words" style={{ WebkitTextStroke: '2px white' }}>NUESTROS</span>
@@ -73,55 +94,61 @@ export default function ProyectosContent() {
         </p>
       </div>
 
-      {/* Grilla de proyectos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
-        {proyectos.map((project) => (
-          <a
-            key={project.slug}
-            href={project.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="project-card group relative block rounded-[1.5rem] md:rounded-[2rem] overflow-hidden border border-white/10 bg-neutral-900 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:border-white/40"
-          >
-            <div className="relative w-full aspect-[16/9] overflow-hidden">
-              <Image
-                src={project.cover}
-                alt={`Portada del proyecto ${project.name}`}
-                fill
-                sizes="(max-width: 768px) 100vw, 640px"
-                className="object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              {/* Overlay degradado */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              {/* Glow de acento */}
-              <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                style={{ boxShadow: `inset 0 0 100px -30px ${project.accent}` }}
-              />
-            </div>
-
-            {/* Info inferior */}
-            <div className="flex items-center justify-between gap-4 p-5 md:p-7">
-              <div className="min-w-0">
-                <p className="text-[10px] md:text-xs tracking-[0.2em] font-bold uppercase text-gray-500 truncate">
+      {/* Lista de Proyectos (bloques alternados) */}
+      <div className="space-y-24 md:space-y-48">
+        {proyectos.map((project, index) => {
+          const isRight = index % 2 !== 0;
+          return (
+            <div
+              key={project.slug}
+              className={`project-block flex flex-col md:flex-row items-center gap-8 md:gap-24 ${isRight ? 'md:flex-row-reverse text-right' : 'text-left'}`}
+            >
+              {/* Texto del Proyecto */}
+              <div className={`w-full md:w-1/2 project-content ${isRight ? 'text-right' : 'text-left'}`}>
+                <p className="text-xs md:text-sm tracking-[0.2em] font-bold uppercase mb-2 md:mb-4 text-gray-400">
                   {project.category}
                 </p>
-                <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tighter text-white truncate mt-1 group-hover:text-[hsl(76,85%,67%)] transition-colors duration-300">
+                <h2
+                  className={`text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4 md:mb-8 leading-none ${isRight ? 'text-[#c2f254]' : 'text-white'}`}
+                  style={{ color: isRight ? 'hsl(76, 85%, 67%)' : undefined }}
+                >
                   {project.name}
                 </h2>
+                <div className="text-xs md:text-base tracking-[0.1em] font-semibold leading-relaxed text-gray-300 md:text-gray-200">
+                  <p>{project.description}</p>
+                </div>
+                <a
+                  href={project.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`mt-8 group inline-flex items-center gap-2 px-6 py-3 bg-transparent border border-white/30 text-white text-xs md:text-sm font-bold tracking-widest uppercase rounded-full hover:border-[hsl(76,85%,67%)] hover:text-[hsl(76,85%,67%)] transition-colors duration-300 w-fit ${isRight ? 'ml-auto' : ''}`}
+                >
+                  Ver Proyecto
+                  <span className="group-hover:translate-x-1 transition-transform">↗</span>
+                </a>
               </div>
-              <span className="shrink-0 flex items-center gap-2 px-4 py-2.5 md:px-5 md:py-3 bg-transparent border border-white/30 text-white text-[10px] md:text-xs font-bold tracking-widest uppercase rounded-full group-hover:bg-[hsl(76,85%,67%)] group-hover:border-[hsl(76,85%,67%)] group-hover:text-black transition-all duration-300">
-                Ver
-                <span className="group-hover:translate-x-0.5 transition-transform">↗</span>
-              </span>
-            </div>
 
-            {/* Badge de año */}
-            <span className="absolute top-4 right-4 md:top-5 md:right-5 px-3 py-1 text-[10px] md:text-xs font-bold tracking-widest text-white bg-black/50 backdrop-blur-sm border border-white/20 rounded-full">
-              {project.year}
-            </span>
-          </a>
-        ))}
+              {/* Portada del proyecto — completa, sin nada encima */}
+              <div className="w-full md:w-1/2 flex justify-center project-content">
+                <a
+                  href={project.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full max-w-[560px] rounded-2xl md:rounded-[1.75rem] overflow-hidden border border-white/10 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:border-white/40"
+                >
+                  <Image
+                    src={project.cover}
+                    alt={`Portada del proyecto ${project.name}`}
+                    width={project.width}
+                    height={project.height}
+                    sizes="(max-width: 768px) 100vw, 560px"
+                    className="w-full h-auto"
+                  />
+                </a>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* CTA Final */}

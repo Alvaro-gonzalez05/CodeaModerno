@@ -21,13 +21,13 @@ function ProjectCard({ project }: { project: Proyecto }) {
       href={project.href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative block mx-3 md:mx-5 w-[68vw] sm:w-[380px] md:w-[460px] aspect-[16/9] rounded-2xl md:rounded-[1.75rem] overflow-hidden border border-white/10 shadow-2xl shrink-0 transition-all duration-500 hover:-translate-y-3 hover:border-white/40"
+      className="group relative block mx-2.5 md:mx-4 w-[62vw] sm:w-[320px] md:w-[400px] aspect-[16/9] rounded-2xl md:rounded-[1.75rem] overflow-hidden border border-white/10 shadow-2xl shrink-0 transition-all duration-500 hover:-translate-y-3 hover:border-white/40"
     >
       <Image
         src={project.cover}
         alt={`Portada del proyecto ${project.name}`}
         fill
-        sizes="(max-width: 640px) 68vw, (max-width: 768px) 380px, 460px"
+        sizes="(max-width: 640px) 62vw, (max-width: 768px) 320px, 400px"
         className="object-cover transition-transform duration-700 group-hover:scale-105"
       />
       {/* Glow de acento al hacer hover */}
@@ -141,15 +141,15 @@ export default function Clients() {
   return (
     <>
       <div ref={spacerRef} className="h-[150vh] w-full relative z-0 pointer-events-none" />
-      <section ref={containerRef} className="clients-fixed-section py-16 md:py-24 bg-black text-white overflow-hidden fixed top-0 left-0 w-full z-[15] h-screen flex flex-col justify-center opacity-0 invisible">
+      <section ref={containerRef} className="clients-fixed-section py-10 md:py-16 bg-black text-white overflow-hidden fixed top-0 left-0 w-full z-[15] h-screen flex flex-col justify-center opacity-0 invisible">
 
-        <div className="container mx-auto px-4 mb-10 md:mb-16 flex flex-col md:flex-row justify-between md:items-end gap-6 relative z-30">
-          <div>
-            <p className="text-xs md:text-sm tracking-[0.3em] font-bold mb-4 uppercase" style={{ color: 'hsl(76, 85%, 67%)' }}>
+        <div className="container mx-auto px-4 md:px-8 mb-6 md:mb-10 flex flex-col md:flex-row justify-between md:items-end gap-4 md:gap-6 relative z-30">
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-xs md:text-sm tracking-[0.3em] font-bold mb-3 md:mb-4 uppercase" style={{ color: 'hsl(76, 85%, 67%)' }}>
               Nuestros Proyectos
             </p>
             <Slide key={`title-${key}`} direction="up" triggerOnce={false}>
-              <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter leading-[0.9] text-white">
+              <h2 className="text-[2rem] sm:text-5xl md:text-6xl font-black uppercase tracking-tighter leading-[0.95] md:leading-[0.9] text-white">
                 DISEÑO Y CÓDIGO <br className="hidden md:block" />
                 <span className="text-transparent" style={{ WebkitTextStroke: '2px white' }}>QUE GENERAN</span> <br className="hidden md:block" />
                 RESULTADOS
@@ -167,7 +167,7 @@ export default function Clients() {
 
         <div
           ref={rowsContainerRef}
-          className="flex flex-col gap-4 md:gap-6 opacity-0 relative z-20"
+          className="flex flex-col gap-3 md:gap-5 opacity-0 relative z-20"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
@@ -191,7 +191,7 @@ export default function Clients() {
         </div>
 
         {/* CTA mobile */}
-        <div className="container mx-auto px-4 mt-10 flex md:hidden justify-center relative z-30">
+        <div className="container mx-auto px-4 mt-6 flex md:hidden justify-center relative z-30">
           <Link
             href="/proyectos"
             className="group flex items-center gap-2 px-6 py-3 bg-transparent border border-white/30 text-white text-xs font-bold tracking-widest uppercase rounded-full hover:border-[hsl(76,85%,67%)] hover:text-[hsl(76,85%,67%)] transition-colors duration-300"
