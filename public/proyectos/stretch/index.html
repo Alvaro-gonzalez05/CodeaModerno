@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STRETCH — Belleza Ética, Impacto Sostenible</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { brand: '#C8A45C', cream: '#F9F4F0' },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #fff;
+      color: #1a1a1a;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Scrollbar hide ── */
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-type: none; }
+
+    /* ── Button primary ── */
+    .btn-primary {
+      position: relative; overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .btn-primary::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(120deg, transparent 0%, rgba(0,0,0,0.05) 50%, transparent 100%);
+      transform: translateX(-100%);
+      transition: transform 0.5s ease;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+    .btn-primary:hover::before { transform: translateX(100%); }
+    .btn-primary:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+    /* ── Scale-in keyframe ── */
+    @keyframes scale-in {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    .animate-scale-in { animation: scale-in 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+
+    /* ── Nav underline ── */
+    .nav-underline { position: relative; display: inline-block; }
+    .nav-underline::after {
+      content: '';
+      position: absolute; left: 0; bottom: -2px;
+      width: 0; height: 1px;
+      background: #fff;
+      transition: width 0.3s ease;
+    }
+    .nav-underline:hover::after { width: 100%; }
+
+    /* ── Fade-in utility ── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.9s ease, transform 0.9s ease;
+    }
+    .fade-up.on { opacity: 1; transform: translateY(0); }
+
+    /* ── Category card hover ── */
+    .cat-card-video { transition: transform 0.7s ease; }
+    .cat-card:hover .cat-card-video { transform: scale(1.05); }
+    .cat-card-overlay { background: rgba(0,0,0,0.10); transition: background 0.5s ease; }
+    .cat-card:hover .cat-card-overlay { background: rgba(0,0,0,0.20); }
+    .cat-label { transition: transform 0.3s ease; }
+    .cat-card:hover .cat-label { transform: rotate(180deg) translateY(2px); }
+
+    /* ── Product image hover ── */
+    .prod-img { transition: transform 0.5s ease; }
+    .prod-card:hover .prod-img { transform: scale(1.05); }
+
+    /* ── Mobile menu ── */
+    #mobile-menu {
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+    #mobile-menu.open { opacity: 1; pointer-events: all; }
+
+    /* ── CODEA mark ── */
+    .codea-mark {
+      opacity: 0.09;
+      transition: opacity 0.4s ease;
+      cursor: default;
+      user-select: none;
+      pointer-events: all;
+    }
+    .codea-mark:hover { opacity: 0.22; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #f0f0f0; }
+    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+
+    /* Vertical text */
+    .vertical-text {
+      writing-mode: vertical-lr;
+      transform: rotate(180deg);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════ HERO ════════════════════════════════════════════ -->
+<section id="hero" class="relative w-full min-h-screen flex flex-col lg:flex-row overflow-hidden bg-black">
+
+  <!-- Announcement bar -->
+  <div class="absolute top-0 left-0 right-0 z-30 bg-[#F9F4F0] text-black flex items-center justify-center py-2.5 md:py-3 gap-2">
+    <svg class="w-4 h-4 opacity-40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m15 18-6-6 6-6"/></svg>
+    <span class="text-xs tracking-wide">envío gratis en pedidos superiores a $15.000</span>
+    <svg class="w-4 h-4 opacity-40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m9 18 6-6-6-6"/></svg>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="absolute left-0 right-0 z-30 top-[38px] md:top-[42px] px-6 md:px-10 py-4 flex items-center justify-between text-white">
+
+    <!-- Logo -->
+    <a href="#" class="text-lg sm:text-xl font-bold tracking-[0.2em] uppercase">STRETCH</a>
+
+    <!-- Center links (desktop) -->
+    <div class="hidden md:flex items-center gap-10 text-sm">
+      <a href="#" class="nav-underline">tienda</a>
+      <a href="#" class="nav-underline">aprende</a>
+      <a href="#" class="nav-underline">diario</a>
+      <a href="#" class="nav-underline">tema</a>
+    </div>
+
+    <!-- Right icons -->
+    <div class="flex items-center gap-3">
+      <!-- Country selector (desktop) -->
+      <div class="hidden sm:flex items-center gap-1.5 text-sm cursor-pointer">
+        <div class="flex flex-col w-6 h-4 overflow-hidden rounded-sm">
+          <div class="flex-1" style="background:#74ACDF;"></div>
+          <div class="flex-1 bg-white"></div>
+          <div class="flex-1" style="background:#74ACDF;"></div>
+        </div>
+        <span class="text-xs">ars $</span>
+        <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="hidden sm:block w-px h-5 bg-white/30 mx-1"></div>
+      <button class="hidden sm:block hover:opacity-70 transition-opacity">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+      </button>
+      <button class="hover:opacity-70 transition-opacity">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+      </button>
+      <button class="hover:opacity-70 transition-opacity">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007Z"/></svg>
+      </button>
+      <!-- Hamburger -->
+      <button id="menu-btn" class="md:hidden hover:opacity-70 transition-opacity">
+        <svg id="menu-icon" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+        <svg id="close-icon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile menu overlay -->
+  <div id="mobile-menu" class="fixed inset-0 z-40 bg-black/95 backdrop-blur-sm flex items-center justify-center">
+    <div class="flex flex-col items-center gap-8 text-white">
+      <a href="#" class="text-3xl font-light hover:opacity-60 transition-opacity">tienda</a>
+      <a href="#" class="text-3xl font-light hover:opacity-60 transition-opacity">aprende</a>
+      <a href="#" class="text-3xl font-light hover:opacity-60 transition-opacity">diario</a>
+      <a href="#" class="text-3xl font-light hover:opacity-60 transition-opacity">tema</a>
+    </div>
+  </div>
+
+  <!-- Left half -->
+  <div class="relative w-full lg:w-1/2 min-h-[60vh] lg:min-h-screen overflow-hidden">
+    <!-- Background image -->
+    <img
+      src="https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260516_101925_8e509c31-4e75-4ae1-b164-2605265b2d47.png&w=1280&q=85"
+      alt=""
+      class="absolute inset-0 w-full h-full object-cover" />
+    <!-- Content -->
+    <div id="hero-content" class="fade-up relative z-10 h-full flex flex-col justify-end px-8 md:px-12 pb-12 pt-32 text-white">
+      <h1 class="font-light leading-[1.05] mb-6"
+          style="font-size: clamp(3rem, 5vw, 6rem); letter-spacing: -0.02em;">
+        belleza ética,<br/>
+        <span class="relative inline-block">
+          impacto sostenible.
+          <svg class="absolute -bottom-1 left-0 w-full h-4" viewBox="0 0 300 16" fill="none" preserveAspectRatio="none">
+            <path d="M0 8 Q75 2 150 8 Q225 14 300 8"  stroke="#C8A45C" stroke-width="2"   fill="none"/>
+            <path d="M0 10 Q75 4 150 10 Q225 16 300 10" stroke="#C8A45C" stroke-width="1.5" fill="none"/>
+            <path d="M0 12 Q75 6 150 12 Q225 18 300 12" stroke="#C8A45C" stroke-width="1"   fill="none"/>
+          </svg>
+        </span>
+      </h1>
+      <p class="text-sm md:text-base text-white/80 mb-10 max-w-md leading-relaxed">
+        Comprometidos con la belleza sostenible y minimizando nuestro impacto en el planeta.
+      </p>
+      <button class="btn-primary px-10 py-4 bg-white text-black rounded-full text-sm font-medium w-fit">
+        sobre nosotros
+      </button>
+    </div>
+  </div>
+
+  <!-- Right half: video slideshow -->
+  <div class="relative w-full lg:w-1/2 min-h-[40vh] lg:min-h-screen overflow-hidden">
+    <!-- Videos -->
+    <div id="slides" class="absolute inset-0">
+      <video class="slide absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+        autoplay loop muted playsinline
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260516_112022_cddf2487-4ffe-45b6-ba4c-99ab79003cc5.mp4"></video>
+      <video class="slide absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-0"
+        autoplay loop muted playsinline
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260518_175400_b46d1cd2-2050-45e2-9d13-b9c0bacb16b3.mp4"></video>
+      <video class="slide absolute inset-0 w-full h-full object-cover transition-opacity duration-700 opacity-0"
+        autoplay loop muted playsinline
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260518_182440_671605c8-2ed8-4507-a4cb-a62a8f61316f.mp4"></video>
+    </div>
+
+    <!-- Slide controls -->
+    <div class="absolute bottom-6 right-6 z-20 flex items-center gap-3">
+      <!-- Dots -->
+      <div class="flex items-center gap-1.5" id="dots">
+        <button class="dot w-2 h-2 rounded-full bg-white scale-125 transition-all duration-300"></button>
+        <button class="dot w-2 h-2 rounded-full bg-white/50 transition-all duration-300"></button>
+        <button class="dot w-2 h-2 rounded-full bg-white/50 transition-all duration-300"></button>
+      </div>
+      <!-- Pause/Play -->
+      <button id="slide-toggle"
+        class="w-8 h-8 rounded-full border border-white/50 flex items-center justify-center hover:bg-white/10 transition-colors">
+        <svg id="pause-icon" class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+        <svg id="play-icon"  class="w-3.5 h-3.5 text-white hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M5 3l14 9-14 9V3z"/></svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════ BEST SELLERS ════════════════════════════════════════════ -->
+<section id="shop" class="bg-[#F9F4F0] py-12 sm:py-16 px-0 overflow-hidden">
+
+  <!-- Tabs header -->
+  <div id="tabs-header" class="fade-up px-4 sm:px-6 lg:px-10 flex items-center gap-6 sm:gap-8 mb-8 sm:mb-10">
+    <button
+      id="tab-sellers"
+      class="flex items-center gap-3 text-2xl sm:text-4xl md:text-5xl font-medium text-[#1a1a1a] transition-colors"
+      onclick="setTab('sellers')">
+      <span id="dot-sellers" class="animate-scale-in w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#1a1a1a] shrink-0"></span>
+      más vendidos
+    </button>
+    <button
+      id="tab-sets"
+      class="flex items-center gap-3 text-2xl sm:text-4xl md:text-5xl font-medium text-gray-400 hover:text-gray-600 transition-colors"
+      onclick="setTab('sets')">
+      sets
+    </button>
+  </div>
+
+  <!-- Product carousel -->
+  <div
+    id="carousel"
+    class="scrollbar-hide flex overflow-x-auto px-4 sm:px-6 lg:px-10"
+    style="-webkit-overflow-scrolling: touch;">
+
+    <!-- Products injected by JS -->
+  </div>
+
+  <!-- Progress bar -->
+  <div class="mt-8 sm:mt-10 mx-auto max-w-[280px] px-4">
+    <div class="h-[2px] bg-gray-300 rounded-full overflow-hidden">
+      <div id="scroll-thumb" class="h-full bg-[#1a1a1a] rounded-full" style="width:30%; transform: translateX(0); transition: transform 0.1s;"></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════ CATEGORÍAS ════════════════════════════════════════════ -->
+<section id="categories" class="bg-black">
+  <div id="cats-grid" class="fade-up grid grid-cols-1 md:grid-cols-3">
+
+    <!-- Face -->
+    <div class="cat-card relative min-h-[400px] sm:min-h-[500px] md:min-h-[750px] overflow-hidden cursor-pointer">
+      <video class="cat-card-video absolute inset-0 w-full h-full object-cover"
+        autoplay loop muted playsinline
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260518_203023_87a26602-2898-4acc-a396-c7a2b5ad84fd.mp4"></video>
+      <div class="cat-card-overlay absolute inset-0"></div>
+      <div class="relative z-10 h-full p-6 sm:p-8 md:p-12 flex flex-col justify-between text-white">
+        <div></div>
+        <div class="flex flex-col items-start gap-6">
+          <span class="cat-label vertical-text text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-medium">rostro</span>
+          <button class="btn-primary px-8 py-3 bg-white text-black rounded-full text-sm font-medium">comprar rostro</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Beauty tools -->
+    <div class="cat-card relative min-h-[400px] sm:min-h-[500px] md:min-h-[750px] overflow-hidden cursor-pointer">
+      <video class="cat-card-video absolute inset-0 w-full h-full object-cover"
+        autoplay loop muted playsinline
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260518_203415_b86e3f19-2aec-46cd-9a86-b64c40118e38.mp4"></video>
+      <div class="cat-card-overlay absolute inset-0"></div>
+      <div class="relative z-10 h-full p-6 sm:p-8 md:p-12 flex flex-col justify-between text-white">
+        <div></div>
+        <div class="flex flex-col items-start gap-6">
+          <span class="cat-label vertical-text text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-medium">herramientas</span>
+          <button class="btn-primary px-8 py-3 bg-white text-black rounded-full text-sm font-medium">comprar herramientas</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="cat-card relative min-h-[400px] sm:min-h-[500px] md:min-h-[750px] overflow-hidden cursor-pointer">
+      <video class="cat-card-video absolute inset-0 w-full h-full object-cover"
+        autoplay loop muted playsinline
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260518_203051_85fee398-ea01-4aa0-972b-137a74213be5.mp4"></video>
+      <div class="cat-card-overlay absolute inset-0"></div>
+      <div class="relative z-10 h-full p-6 sm:p-8 md:p-12 flex flex-col justify-between text-white">
+        <div></div>
+        <div class="flex flex-col items-start gap-6">
+          <span class="cat-label vertical-text text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-medium">cuerpo</span>
+          <button class="btn-primary px-8 py-3 bg-white text-black rounded-full text-sm font-medium">comprar cuerpo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════ FOOTER ════════════════════════════════════════════ -->
+<footer class="bg-[#F9F4F0] border-t border-gray-200 px-6 md:px-10 pt-16 pb-8 overflow-hidden">
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Top -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-14">
+
+      <!-- Brand -->
+      <div class="lg:col-span-1">
+        <p class="text-2xl font-bold tracking-[0.2em] mb-4">STRETCH</p>
+        <p class="text-gray-500 text-sm leading-relaxed max-w-xs">
+          Belleza ética para quienes cuidan el planeta sin renunciar al lujo.
+        </p>
+        <div class="flex items-center gap-3 mt-6">
+          <!-- Instagram -->
+          <a href="#" class="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:text-black hover:border-black transition-colors">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+          </a>
+          <!-- TikTok -->
+          <a href="#" class="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:text-black hover:border-black transition-colors">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+          </a>
+          <!-- Pinterest -->
+          <a href="#" class="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:text-black hover:border-black transition-colors">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Links: Compañía -->
+      <div>
+        <p class="text-[10px] font-medium tracking-[0.25em] uppercase text-gray-400 mb-5">Compañía</p>
+        <ul class="space-y-3">
+          <li><a href="#" class="text-sm text-gray-600 hover:text-black transition-colors">Privacidad</a></li>
+          <li><a href="#" class="text-sm text-gray-600 hover:text-black transition-colors">Términos</a></li>
+          <li><a href="#" class="text-sm text-gray-600 hover:text-black transition-colors">Cookies</a></li>
+          <li><a href="#" class="text-sm text-gray-600 hover:text-black transition-colors">Sobre nosotros</a></li>
+        </ul>
+      </div>
+
+      <!-- Links: Soporte -->
+      <div>
+        <p class="text-[10px] font-medium tracking-[0.25em] uppercase text-gray-400 mb-5">Soporte</p>
+        <ul class="space-y-3">
+          <li><a href="#" class="text-sm text-gray-600 hover:text-black transition-colors">Documentación API</a></li>
+          <li><a href="#" class="text-sm text-gray-600 hover:text-black transition-colors">Centro de Ayuda</a></li>
+          <li><a href="#" class="text-sm text-gray-600 hover:text-black transition-colors">Contacto</a></li>
+          <li><a href="#" class="text-sm text-gray-600 hover:text-black transition-colors">Devoluciones</a></li>
+        </ul>
+      </div>
+
+      <!-- Newsletter -->
+      <div>
+        <p class="text-[10px] font-medium tracking-[0.25em] uppercase text-gray-400 mb-5">Newsletter</p>
+        <p class="text-sm text-gray-500 mb-4 leading-relaxed">Recibe novedades, consejos de belleza y ofertas exclusivas.</p>
+        <form class="flex gap-2" onsubmit="return false">
+          <input
+            type="email"
+            placeholder="tu@email.com"
+            class="flex-1 text-sm px-4 py-2.5 rounded-full border border-gray-300 bg-white focus:outline-none focus:border-gray-500 transition-colors" />
+          <button type="submit" class="btn-primary px-4 py-2.5 bg-black text-white text-sm rounded-full hover:bg-neutral-800 transition-colors">→</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Bottom legal -->
+    <div class="border-t border-gray-200 pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <p class="text-gray-400 text-xs">© 2025 STRETCH. Todos los derechos reservados.</p>
+      <p class="text-gray-400 text-xs">
+        una solución de <span class="uppercase font-medium tracking-wide text-gray-500">Codea Desarrollos</span>
+      </p>
+    </div>
+
+    <!-- CODEA wordmark -->
+    <div class="relative -mx-6 md:-mx-10 mt-6 -mb-8 overflow-hidden">
+      <p
+        class="codea-mark text-right font-black leading-none text-black"
+        style="font-size: clamp(3rem, 10vw, 8rem); letter-spacing: -0.04em; line-height: 0.85;">
+        CODEA
+      </p>
+    </div>
+  </div>
+</footer>
+
+
+<!-- ════════════════════════════════════════════ SCRIPTS ════════════════════════════════════════════ -->
+<script>
+// ── Mobile menu ──
+const menuBtn   = document.getElementById('menu-btn');
+const mobileMenu = document.getElementById('mobile-menu');
+const menuIcon  = document.getElementById('menu-icon');
+const closeIcon = document.getElementById('close-icon');
+let menuOpen = false;
+
+menuBtn.addEventListener('click', () => {
+  menuOpen = !menuOpen;
+  mobileMenu.classList.toggle('open', menuOpen);
+  menuIcon.classList.toggle('hidden', menuOpen);
+  closeIcon.classList.toggle('hidden', !menuOpen);
+});
+
+// ── Slideshow ──
+(function () {
+  const slides   = document.querySelectorAll('.slide');
+  const dots     = document.querySelectorAll('.dot');
+  const pauseIcon = document.getElementById('pause-icon');
+  const playIcon  = document.getElementById('play-icon');
+  let current = 0;
+  let playing = true;
+  let timer;
+
+  function goTo(i) {
+    slides[current].style.opacity = '0';
+    dots[current].classList.remove('bg-white', 'scale-125');
+    dots[current].classList.add('bg-white/50');
+    current = i;
+    slides[current].style.opacity = '1';
+    dots[current].classList.add('bg-white', 'scale-125');
+    dots[current].classList.remove('bg-white/50');
+  }
+
+  function next() { goTo((current + 1) % slides.length); }
+
+  function startTimer() { timer = setInterval(next, 5000); }
+  function stopTimer()  { clearInterval(timer); }
+
+  startTimer();
+
+  dots.forEach((d, i) => d.addEventListener('click', () => { stopTimer(); goTo(i); if (playing) startTimer(); }));
+
+  document.getElementById('slide-toggle').addEventListener('click', () => {
+    playing = !playing;
+    pauseIcon.classList.toggle('hidden', !playing);
+    playIcon.classList.toggle('hidden', playing);
+    playing ? startTimer() : stopTimer();
+  });
+})();
+
+// ── Products ──
+const products = [
+  {
+    cat: 'ILUMINAR', sub: null,
+    name: 'Gel limpiador iluminador',
+    price: '$36.000', old: null,
+    img: 'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260518_193822_8c95f5ed-b142-454f-ab87-59ad1f09e758.png&w=1280&q=85'
+  },
+  {
+    cat: 'UNIFICAR', sub: 'MINIMIZAR POROS',
+    name: 'Sérum spray unificador',
+    price: '$34.000', old: null,
+    img: 'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260518_194048_278bf3cc-7d1f-43c1-9dc7-73d8fcd9949c.png&w=1280&q=85'
+  },
+  {
+    cat: 'BRILLO NATURAL', sub: null,
+    name: 'Set super brillo',
+    price: '$92.000', old: '$99.000',
+    img: 'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260518_194058_d89610de-05f8-45e4-8196-0680296c565a.png&w=1280&q=85'
+  },
+  {
+    cat: 'PROTEGER', sub: 'ILUMINAR',
+    name: 'Aceite de día radiante',
+    price: '$59.000', old: null,
+    img: 'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260518_194112_1763cbb2-3171-4ad3-9f38-1b738b8f1bb6.png&w=1280&q=85'
+  },
+  {
+    cat: 'HIDRATAR', sub: 'NUTRIR',
+    name: 'Crema hidratación profunda',
+    price: '$48.000', old: null,
+    img: 'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260518_193822_8c95f5ed-b142-454f-ab87-59ad1f09e758.png&w=1280&q=85'
+  },
+  {
+    cat: 'RENOVAR', sub: null,
+    name: 'Elixir nocturno reparador',
+    price: '$72.000', old: '$79.000',
+    img: 'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260518_194048_278bf3cc-7d1f-43c1-9dc7-73d8fcd9949c.png&w=1280&q=85'
+  },
+  {
+    cat: 'SUAVIZAR', sub: 'REFINAR',
+    name: 'Tónico exfoliante suave',
+    price: '$42.000', old: null,
+    img: 'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260518_194058_d89610de-05f8-45e4-8196-0680296c565a.png&w=1280&q=85'
+  },
+];
+
+const carousel = document.getElementById('carousel');
+
+products.forEach((p, i) => {
+  const card = document.createElement('div');
+  card.className = 'prod-card fade-up shrink-0 border border-gray-200 flex flex-col -ml-[1px] first:ml-0 cursor-pointer';
+  card.style.width = 'clamp(260px, 25%, 300px)';
+  card.style.transitionDelay = `${200 + i * 80}ms`;
+
+  card.innerHTML = `
+    <div class="px-4 h-12 flex flex-col justify-center border-b border-gray-200">
+      <p class="text-xs font-medium tracking-wider uppercase">${p.cat}</p>
+      ${p.sub ? `<p class="text-xs text-gray-500 uppercase mt-0.5">${p.sub}</p>` : ''}
+    </div>
+    <div class="mx-4 my-4 aspect-[3/4] rounded-lg overflow-hidden bg-[#F9F4F0]">
+      <img src="${p.img}" alt="${p.name}" class="prod-img w-full h-full object-cover" loading="lazy" />
+    </div>
+    <div class="px-4 pb-5 text-center">
+      <p class="text-sm mb-1">${p.name}</p>
+      <div class="flex items-center justify-center gap-2">
+        <span class="text-sm font-medium">${p.price}</span>
+        ${p.old ? `<span class="text-xs text-gray-400 line-through">${p.old}</span>` : ''}
+      </div>
+    </div>`;
+
+  carousel.appendChild(card);
+});
+
+// Scroll progress bar
+carousel.addEventListener('scroll', () => {
+  const max = carousel.scrollWidth - carousel.clientWidth;
+  const progress = max > 0 ? carousel.scrollLeft / max : 0;
+  const thumb = document.getElementById('scroll-thumb');
+  const maxShift = (100 / 30) * 100 - 100; // 30% wide, need to shift to 100%
+  thumb.style.transform = `translateX(${progress * maxShift * 0.3}%)`;
+});
+
+// Hijack vertical wheel → horizontal scroll
+carousel.addEventListener('wheel', (e) => {
+  if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+    e.preventDefault();
+    carousel.scrollLeft += e.deltaY;
+  }
+}, { passive: false });
+
+// ── Tab switcher ──
+function setTab(tab) {
+  const sellers = document.getElementById('tab-sellers');
+  const sets    = document.getElementById('tab-sets');
+  const dotS    = document.getElementById('dot-sellers');
+
+  if (tab === 'sellers') {
+    sellers.classList.replace('text-gray-400', 'text-[#1a1a1a]');
+    sets.classList.replace('text-[#1a1a1a]', 'text-gray-400');
+    dotS.style.display = '';
+  } else {
+    sets.classList.replace('text-gray-400', 'text-[#1a1a1a]');
+    sellers.classList.replace('text-[#1a1a1a]', 'text-gray-400');
+    dotS.style.display = 'none';
+  }
+}
+
+// ── Intersection observer (fade-up) ──
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('on');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

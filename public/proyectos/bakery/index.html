@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bakery Facilities — Soluciones Premium para Panaderías</title>
+  <link href="https://fonts.googleapis.com/css2?family=Luxurious+Script&family=Manrope:wght@500&family=Open+Sans:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: auto; }
+
+    :root {
+      --bg: #171717;
+      --fg: #fff;
+      --gold: #CB9D06;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Open Sans', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ── CODEA ── */
+    .codea-mark { opacity: 0.09; transition: opacity 0.4s; cursor: default; user-select: none; }
+    .codea-mark:hover { opacity: 0.2; }
+
+    /* ── Navbar dropdown ── */
+    .nav-dd { position: relative; }
+    .nav-dd-menu {
+      position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: white; box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      min-width: 220px; z-index: 200; display: none; border-radius: 2px;
+    }
+    .nav-dd:hover .nav-dd-menu { display: block; }
+    .nav-dd-menu a {
+      display: block; padding: 10px 16px; font-size: 13px; color: #171717;
+      text-decoration: none; font-family: 'Open Sans', sans-serif;
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-dd-menu a:hover { background: #CB9D06; color: white; }
+    .nav-dd-menu-r { left: auto; right: 0; transform: none; }
+    .nav-dd-menu-l { right: auto; left: 0; transform: none; }
+
+    /* ── Floating nav ── */
+    .float-btn {
+      display: flex; align-items: center; height: 48px; border-radius: 9999px;
+      background: #111; color: white; overflow: hidden;
+      padding: 0 14px; max-width: 48px; cursor: pointer; border: none;
+      transition: max-width 0.35s ease, background 0.25s ease;
+      white-space: nowrap;
+    }
+    .float-btn:hover { max-width: 220px; background: #CB9D06; }
+    .float-btn svg { flex-shrink: 0; }
+    .float-btn-label {
+      font-size: 13px; margin-left: 10px; opacity: 0; max-width: 0;
+      overflow: hidden; font-family: 'Open Sans', sans-serif;
+      transition: opacity 0.3s ease 0.05s, max-width 0.3s ease;
+    }
+    .float-btn:hover .float-btn-label { opacity: 1; max-width: 160px; }
+
+    /* ── Gallery hover ── */
+    .g-img { width: 100%; height: 100%; object-fit: cover; transition: transform 6s cubic-bezier(0.22,0.61,0.36,1); display: block; }
+    .g-wrap:hover .g-img { transform: scale(1.2); }
+
+    /* ── Marquee ── */
+    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .marquee-inner { animation: marquee 20s linear infinite; display: flex; gap: 48px; width: max-content; }
+    .marquee-inner:hover { animation-play-state: paused; }
+
+    /* ── Partner cards ── */
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+    @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    @keyframes dash { 0% { stroke-dashoffset: 100; } 100% { stroke-dashoffset: 0; } }
+
+    /* ── Mobile menu ── */
+    #mob-menu {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.96);
+      backdrop-filter: blur(12px); z-index: 300;
+      display: none; flex-direction: column;
+      padding: 80px 32px 40px; overflow-y: auto;
+    }
+    #mob-menu.open { display: flex; }
+    .mob-item { border-bottom: 1px solid rgba(255,255,255,0.1); padding: 14px 0; }
+    .mob-item > button {
+      background: none; border: none; color: white; font-size: 17px;
+      font-family: 'Open Sans', sans-serif; cursor: pointer;
+      width: 100%; text-align: left; display: flex; justify-content: space-between;
+    }
+    .mob-sub { display: none; padding-left: 16px; margin-top: 8px; }
+    .mob-sub.open { display: block; }
+    .mob-sub a {
+      display: block; padding: 7px 0; color: rgba(255,255,255,0.55);
+      text-decoration: none; font-size: 14px; font-family: 'Open Sans', sans-serif;
+    }
+
+    /* ── About text words ── */
+    .aword { display: inline; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ NAVBAR ══════════════ -->
+<nav id="navbar" style="position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:16px 40px; transition:background 0.3s,padding 0.3s,box-shadow 0.3s;">
+
+  <!-- Left group -->
+  <div style="display:flex; align-items:center; gap:20px;">
+    <!-- Region -->
+    <div class="nav-dd">
+      <div style="display:flex; align-items:center; gap:6px; color:white; font-size:12px; cursor:pointer; letter-spacing:0.04em;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Hong Kong / Macao
+      </div>
+      <div class="nav-dd-menu nav-dd-menu-l">
+        <a href="#">China Continental</a>
+        <a href="#">Hong Kong / Macao</a>
+        <a href="#">Taiwán</a>
+      </div>
+    </div>
+
+    <!-- Nosotros (desktop) -->
+    <div class="nav-dd" id="dd-about" style="display:none;">
+      <button style="background:none;border:none;color:white;font-size:12px;font-family:'Open Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:4px;letter-spacing:0.04em;">
+        Nosotros
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-dd-menu nav-dd-menu-l">
+        <a href="#">Nuestra Historia</a>
+        <a href="#">Expertos en Alimentación</a>
+        <a href="#">Experiencias Culinarias Memorables</a>
+      </div>
+    </div>
+
+    <!-- Asociarse (desktop) -->
+    <div class="nav-dd" id="dd-partner" style="display:none;">
+      <button style="background:none;border:none;color:white;font-size:12px;font-family:'Open Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:4px;letter-spacing:0.04em;">
+        Asociarse
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-dd-menu nav-dd-menu-l">
+        <a href="#">Abastecimiento Confiable</a>
+        <a href="#">Potenciando al Cliente</a>
+        <a href="#">Nuestros Expertos</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center logo -->
+  <div style="position:absolute; left:50%; transform:translateX(-50%);">
+    <svg id="nav-logo" viewBox="0 0 305 304" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:48px; width:auto; transition:height 0.3s;">
+      <path d="M157.135 303.572C157.135 222.53 223.131 156.832 304.174 156.832V303.572H157.135Z" fill="white"/>
+      <path d="M147.039 303.572C147.039 222.53 81.0425 156.832 0 156.832V303.572H147.039Z" fill="white"/>
+      <path d="M157.135 0C157.135 81.0426 223.131 146.74 304.174 146.74C304.174 65.698 238.178 0 157.135 0Z" fill="white"/>
+      <path d="M147.039 0C147.039 81.0426 81.0425 146.74 0 146.74C0 65.698 65.9962 0 147.039 0Z" fill="white"/>
+    </svg>
+  </div>
+
+  <!-- Right group -->
+  <div style="display:flex; align-items:center; gap:20px;">
+
+    <!-- Productos (desktop) -->
+    <div class="nav-dd" id="dd-products" style="display:none;">
+      <button style="background:none;border:none;color:white;font-size:12px;font-family:'Open Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:4px;letter-spacing:0.04em;">
+        Nuestros Productos
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-dd-menu nav-dd-menu-r">
+        <a href="#">Pastelería Vienesa</a>
+        <a href="#">Pan</a>
+        <a href="#">Postres</a>
+        <a href="#">Salado</a>
+        <a href="#">Pastelería Especial</a>
+        <a href="#">Auxiliar Culinario</a>
+        <a href="#">Ingredientes</a>
+      </div>
+    </div>
+
+    <!-- Conectar (desktop) -->
+    <div class="nav-dd" id="dd-connect" style="display:none;">
+      <button style="background:none;border:none;color:white;font-size:12px;font-family:'Open Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:4px;letter-spacing:0.04em;">
+        ¡Conectémonos!
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-dd-menu nav-dd-menu-r">
+        <a href="#">Contacto</a>
+        <a href="#">LinkedIn</a>
+        <a href="#">WhatsApp</a>
+        <a href="#">Newsletter</a>
+        <a href="#">Catálogo</a>
+        <a href="#">Únete a Nosotros</a>
+      </div>
+    </div>
+
+    <!-- Language -->
+    <div style="display:flex; gap:4px;">
+      <button style="background:#CB9D06; color:white; border:none; padding:4px 10px; font-size:11px; font-family:'Open Sans',sans-serif; cursor:pointer; border-radius:2px; letter-spacing:0.05em;">ES</button>
+      <button style="background:none; color:rgba(255,255,255,0.6); border:1px solid rgba(255,255,255,0.2); padding:4px 10px; font-size:11px; font-family:'Open Sans',sans-serif; cursor:pointer; border-radius:2px; transition:border-color 0.2s;" onmouseover="this.style.borderColor='#CB9D06'" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'">繁</button>
+    </div>
+
+    <!-- Hamburger -->
+    <button id="hamburger" style="background:none; border:none; color:white; cursor:pointer; padding:2px;" onclick="openMob()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile menu -->
+<div id="mob-menu">
+  <button onclick="closeMob()" style="position:absolute; top:20px; right:20px; background:none; border:none; color:white; cursor:pointer;">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div class="mob-item"><button onclick="mobToggle(this)">Nosotros <span>+</span></button>
+    <div class="mob-sub"><a href="#">Nuestra Historia</a><a href="#">Expertos en Alimentación</a><a href="#">Experiencias Culinarias</a></div>
+  </div>
+  <div class="mob-item"><button onclick="mobToggle(this)">Asociarse <span>+</span></button>
+    <div class="mob-sub"><a href="#">Abastecimiento Confiable</a><a href="#">Potenciando al Cliente</a><a href="#">Nuestros Expertos</a></div>
+  </div>
+  <div class="mob-item"><button onclick="mobToggle(this)">Nuestros Productos <span>+</span></button>
+    <div class="mob-sub"><a href="#">Pastelería Vienesa</a><a href="#">Pan</a><a href="#">Postres</a><a href="#">Salado</a><a href="#">Pastelería Especial</a><a href="#">Auxiliar Culinario</a><a href="#">Ingredientes</a></div>
+  </div>
+  <div class="mob-item"><button onclick="mobToggle(this)">¡Conectémonos! <span>+</span></button>
+    <div class="mob-sub"><a href="#">Contacto</a><a href="#">LinkedIn</a><a href="#">WhatsApp</a><a href="#">Newsletter</a><a href="#">Catálogo</a></div>
+  </div>
+</div>
+
+<!-- ══════════════ FLOATING NAV ══════════════ -->
+<div id="float-nav" style="position:fixed; right:20px; top:50%; transform:translateY(-50%); z-index:50; display:flex; flex-direction:column; gap:14px;">
+  <button class="float-btn">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <span class="float-btn-label">Descargar Catálogo</span>
+  </button>
+  <button class="float-btn">
+    <svg width="17" height="17" viewBox="0 0 32 32" fill="currentColor">
+      <path d="M12.6186 9.69215C12.6186 10.6267 11.8085 11.3843 10.8093 11.3843C9.81004 11.3843 9 10.6267 9 9.69215C9 8.7576 9.81004 8 10.8093 8C11.8085 8 12.6186 8.7576 12.6186 9.69215Z"/>
+      <path d="M9.24742 12.6281H12.3402V22H9.24742V12.6281Z"/>
+      <path d="M17.3196 12.6281H14.2268V22H17.3196C17.3196 22 17.3196 19.0496 17.3196 17.2049C17.3196 16.0976 17.6977 14.9855 19.2062 14.9855C20.911 14.9855 20.9008 16.4345 20.8928 17.5571C20.8824 19.0244 20.9072 20.5219 20.9072 22H24V17.0537C23.9738 13.8954 23.1508 12.4401 20.4433 12.4401C18.8354 12.4401 17.8387 13.1701 17.3196 13.8305V12.6281Z"/>
+    </svg>
+    <span class="float-btn-label">LinkedIn</span>
+  </button>
+  <button class="float-btn">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span class="float-btn-label">Chatear con Nosotros</span>
+  </button>
+</div>
+
+
+<!-- ══════════════ SECTION 1: HERO ══════════════ -->
+<div id="hero-wrap" style="height:calc(100vh + 300vh); position:relative;">
+  <div style="position:sticky; top:0; width:100%; height:100vh; overflow:hidden;">
+
+    <!-- Slide 1 (base) -->
+    <div style="position:absolute; inset:0; z-index:1;">
+      <video autoplay loop muted playsinline
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260515_113235_88e0d62e-8103-40c1-948e-f0a4f886ffd1.mp4"
+        style="width:100%; height:100%; object-fit:cover;"></video>
+      <div style="position:absolute; inset:0; background:rgba(0,0,0,0.32);"></div>
+    </div>
+
+    <!-- Slide 2 -->
+    <div id="slide2" style="position:absolute; inset:0; z-index:2; clip-path:ellipse(5% 8% at 50% 50%);">
+      <video autoplay loop muted playsinline
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260515_114315_ee3663e6-bd79-41b4-9e5b-0fae62827eb9.mp4"
+        style="width:100%; height:100%; object-fit:cover;"></video>
+      <div style="position:absolute; inset:0; background:rgba(0,0,0,0.32);"></div>
+    </div>
+
+    <!-- Slide 3 -->
+    <div id="slide3" style="position:absolute; inset:0; z-index:3; clip-path:ellipse(5% 8% at 50% 50%);">
+      <video autoplay loop muted playsinline
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260515_114559_dca18b14-90f5-47c4-8a84-3cbae9bd8a0c.mp4"
+        style="width:100%; height:100%; object-fit:cover;"></video>
+      <div style="position:absolute; inset:0; background:rgba(0,0,0,0.32);"></div>
+    </div>
+
+    <!-- Hero text overlay -->
+    <div style="position:absolute; inset:0; z-index:10; pointer-events:none; overflow:visible;">
+
+      <!-- Subtitle desktop -->
+      <div id="sub-d" style="position:absolute; top:0; left:0; right:0; text-align:center; padding-top:calc(80px + 60px); display:none;">
+        <span id="sub-d-text" style="font-family:'Luxurious Script',cursive; color:white; font-size:3vw; line-height:1;">para Profesionales</span>
+      </div>
+
+      <!-- H1 desktop -->
+      <div id="h1-d" style="position:absolute; bottom:-26px; left:0; right:0; overflow:visible; display:none; padding:0 5%;">
+        <h1 id="h1-d-el" style="font-family:'Instrument Serif',serif; font-size:9.7vw; line-height:1; white-space:nowrap; letter-spacing:-0.04em; color:white; text-align:center;">
+          LA SOLUCIÓN INTELIGENTE DE PANADERÍA
+        </h1>
+      </div>
+
+      <!-- H1 + subtitle mobile -->
+      <div id="h1-m" style="position:absolute; bottom:48px; left:0; right:0; padding:0 16px; display:none; text-align:center;">
+        <h1 id="h1-m-el" style="font-family:'Instrument Serif',serif; font-size:clamp(28px,9vw,40px); line-height:1.1; color:white;">
+          LA SOLUCIÓN INTELIGENTE DE PANADERÍA
+        </h1>
+        <div style="margin-top:10px;">
+          <span id="sub-m-text" style="font-family:'Luxurious Script',cursive; color:white; font-size:12vw; line-height:1;">para Profesionales</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════ SECTION 2: GALLERY ══════════════ -->
+<section style="background:white; padding:64px 0 80px;">
+  <div style="width:90%; max-width:1100px; margin:0 auto;">
+
+    <div id="gallery" style="display:grid; gap:16px 8px;"></div>
+
+  </div>
+</section>
+
+
+<!-- ══════════════ SECTION 3: ABOUT ══════════════ -->
+<section style="background:white; padding:80px 0; display:flex; flex-direction:column; align-items:center; padding-left:8%; padding-right:8%;">
+
+  <h2 style="font-family:'Luxurious Script',cursive; font-size:36px; text-align:center; color:#171717; margin-bottom:24px;">
+    Sobre Nosotros
+  </h2>
+
+  <div id="about-body" style="font-family:'Instrument Serif',serif; text-transform:uppercase; font-size:clamp(20px,2.8vw,40px); line-height:clamp(32px,4vw,56px); text-align:center; color:#171717; max-width:880px; transform-origin:center;">
+    En 1976, el Sr. Louis Le Duff abrió el primer restaurante francés de comida casual. Desde entonces, Bakery Facilities ha evolucionado para convertirse en el principal proveedor de soluciones integrales de panadería para el sector profesional en Asia, combinando calidad francesa con excelencia operativa.
+  </div>
+
+  <button style="margin-top:48px; padding:12px 32px; background:#171717; color:white; font-family:'Manrope',sans-serif; font-size:13px; letter-spacing:0.08em; border:none; cursor:pointer; border-radius:2px; transition:background 0.3s;" onmouseover="this.style.background='#CB9D06'" onmouseout="this.style.background='#171717'">
+    Leer Más
+  </button>
+
+  <!-- Partners marquee -->
+  <div style="margin-top:100px; width:100vw; position:relative; overflow:hidden; margin-left:-8%;">
+    <div style="position:absolute; left:0; top:0; bottom:0; width:80px; background:linear-gradient(to right,white,transparent); z-index:10; pointer-events:none;"></div>
+    <div style="position:absolute; right:0; top:0; bottom:0; width:80px; background:linear-gradient(to left,white,transparent); z-index:10; pointer-events:none;"></div>
+    <div class="marquee-inner">
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Bridor de France</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Traiteur de Paris</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Panidor</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Boncolac</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Mademoiselle Desserts</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Mountry</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Pfalzgraf</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Dolceria Alba</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">St Michel</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Poppies Bakeries</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Alysse Food</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Les Délices du Chef</span>
+      <!-- Duplicate -->
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Bridor de France</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Traiteur de Paris</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Panidor</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Boncolac</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Mademoiselle Desserts</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Mountry</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Pfalzgraf</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Dolceria Alba</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">St Michel</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Poppies Bakeries</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Alysse Food</span>
+      <span style="font-family:'Open Sans',sans-serif; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(23,23,23,0.35); white-space:nowrap;">Les Délices du Chef</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════ SECTION 4: PARTNERING ══════════════ -->
+<section style="background:#171717; padding:80px 0 100px; display:flex; flex-direction:column; align-items:center;">
+
+  <h2 id="s4-title" style="font-family:'Instrument Serif',serif; font-size:clamp(26px,4vw,48px); text-transform:uppercase; color:white; text-align:center; letter-spacing:0.04em; line-height:1.4; margin-bottom:60px; max-width:80%;">
+    Asociarse con Nosotros
+  </h2>
+
+  <div id="partner-cards" style="display:grid; grid-template-columns:repeat(2,1fr); gap:8px; width:90%; max-width:900px;">
+
+    <!-- Card 1 -->
+    <div style="background:#0a0a0a; padding:32px 20px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:14px; opacity:0; transform:translateY(80px);">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#CB9D06" stroke-width="1.4" stroke-linecap="round" style="animation:spin 10s linear infinite;">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <p style="color:white; font-family:'Open Sans',sans-serif; font-size:13px; letter-spacing:0.06em; line-height:1.5;">Abastecimiento Confiable</p>
+    </div>
+
+    <!-- Card 2 -->
+    <div style="background:#0a0a0a; padding:32px 20px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:14px; opacity:0; transform:translateY(80px);">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#CB9D06" stroke-width="1.4" stroke-linecap="round" style="animation:pulse 3s ease-in-out infinite;">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>
+      </svg>
+      <p style="color:white; font-family:'Open Sans',sans-serif; font-size:13px; letter-spacing:0.06em; line-height:1.5;">Estándares de Seguridad Alimentaria</p>
+    </div>
+
+    <!-- Card 3 -->
+    <div style="background:#0a0a0a; padding:32px 20px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:14px; opacity:0; transform:translateY(80px);">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#CB9D06" stroke-width="1.4" stroke-linecap="round" style="animation:spin 8s linear infinite reverse;">
+        <circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="11"/>
+      </svg>
+      <p style="color:white; font-family:'Open Sans',sans-serif; font-size:13px; letter-spacing:0.06em; line-height:1.5;">Eficiencia Operativa</p>
+    </div>
+
+    <!-- Card 4 -->
+    <div style="background:#0a0a0a; padding:32px 20px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:14px; opacity:0; transform:translateY(80px);">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#CB9D06" stroke-width="1.4" stroke-linecap="round" style="animation:bob 2.5s ease-in-out infinite;">
+        <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="#CB9D06"/>
+      </svg>
+      <p style="color:white; font-family:'Open Sans',sans-serif; font-size:13px; letter-spacing:0.06em; line-height:1.5;">Soporte Especializado</p>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer style="background:white;">
+
+  <!-- Top -->
+  <div style="padding:56px 40px 40px; display:flex; flex-wrap:wrap; gap:48px; justify-content:space-between;">
+    <div>
+      <p style="font-size:12px; color:rgba(23,23,23,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:10px;">+852 2407 8840</p>
+      <a href="mailto:orders@bakeryfacilities.com" style="font-size:14px; font-weight:700; color:#171717; text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='#CB9D06'" onmouseout="this.style.color='#171717'">
+        orders@bakeryfacilities.com
+      </a>
+    </div>
+    <div style="display:flex; gap:56px; flex-wrap:wrap;">
+      <div>
+        <p style="font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:rgba(23,23,23,0.4); margin-bottom:16px;">Navegar</p>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <a href="#" style="font-size:15px; font-weight:500; color:#171717; text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='#CB9D06'" onmouseout="this.style.color='#171717'">Nosotros</a>
+          <a href="#" style="font-size:15px; font-weight:500; color:#171717; text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='#CB9D06'" onmouseout="this.style.color='#171717'">Asociarse</a>
+          <a href="#" style="font-size:15px; font-weight:500; color:#171717; text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='#CB9D06'" onmouseout="this.style.color='#171717'">Nuestros Productos</a>
+          <a href="#" style="font-size:15px; font-weight:500; color:#171717; text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='#CB9D06'" onmouseout="this.style.color='#171717'">¡Conectémonos!</a>
+        </div>
+      </div>
+      <div>
+        <p style="font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:rgba(23,23,23,0.4); margin-bottom:16px;">Social</p>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <a href="#" style="font-size:15px; font-weight:500; color:#171717; text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='#CB9D06'" onmouseout="this.style.color='#171717'">WhatsApp</a>
+          <a href="#" style="font-size:15px; font-weight:500; color:#171717; text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='#CB9D06'" onmouseout="this.style.color='#171717'">LinkedIn</a>
+          <a href="#" style="font-size:15px; font-weight:500; color:#171717; text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='#CB9D06'" onmouseout="this.style.color='#171717'">Newsletter</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Offices -->
+  <div id="offices-grid" style="padding:32px 40px; border-top:1px solid rgba(23,23,23,0.08); display:grid; grid-template-columns:repeat(2,1fr); gap:28px;">
+    <div>
+      <p style="font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(23,23,23,0.4); margin-bottom:6px;">Oficina Central</p>
+      <p style="font-size:13px; font-weight:600; color:#171717; margin-bottom:4px;">Bakery Facilities Ltd.</p>
+      <p style="font-size:12px; color:rgba(23,23,23,0.55); line-height:1.65;">Rm 1801-02, Metropole Sq., 2 On Yiu St., Shatin, N.T., Hong Kong</p>
+    </div>
+    <div>
+      <p style="font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(23,23,23,0.4); margin-bottom:6px;">China Continental</p>
+      <p style="font-size:13px; font-weight:600; color:#171717; margin-bottom:4px;">Bakery Facilities (Shanghai)</p>
+      <p style="font-size:12px; color:rgba(23,23,23,0.55); line-height:1.65;">Shanghai, China</p>
+    </div>
+    <div>
+      <p style="font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(23,23,23,0.4); margin-bottom:6px;">Taiwán</p>
+      <p style="font-size:13px; font-weight:600; color:#171717; margin-bottom:4px;">Bakery Facilities Taiwan</p>
+      <p style="font-size:12px; color:rgba(23,23,23,0.55); line-height:1.65;">New Taipei City, Taiwán</p>
+    </div>
+    <div>
+      <p style="font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(23,23,23,0.4); margin-bottom:6px;">Macao</p>
+      <p style="font-size:13px; font-weight:600; color:#171717; margin-bottom:4px;">Bakery Facilities Macau</p>
+      <p style="font-size:12px; color:rgba(23,23,23,0.55); line-height:1.65;">Macao S.A.R., China</p>
+    </div>
+  </div>
+
+  <!-- CODEA -->
+  <div style="padding:8px 5% 20px; overflow:hidden; border-top:1px solid rgba(23,23,23,0.07);">
+    <p class="codea-mark" style="text-align:right; font-weight:900; line-height:0.82; color:#171717; font-size:clamp(3rem,10vw,8rem); letter-spacing:-0.04em; font-family:'Open Sans',sans-serif;">
+      CODEA
+    </p>
+  </div>
+
+  <!-- Bottom bar -->
+  <div style="background:#171717; padding:14px 40px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+    <p style="font-size:12px; color:rgba(255,255,255,0.35);">© 2025 Bakery Facilities. Todos los derechos reservados.</p>
+    <div style="display:flex; gap:20px;">
+      <a href="#" style="font-size:12px; color:rgba(255,255,255,0.35); text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.35)'">Política de Privacidad</a>
+      <a href="#" style="font-size:12px; color:rgba(255,255,255,0.35); text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.35)'">Términos de Servicio</a>
+    </div>
+  </div>
+</footer>
+
+
+<!-- ══════════════ SCRIPTS ══════════════ -->
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+// ── Gallery ──
+const galleryData = [
+  { label: 'Pastelería Vienesa', img: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=600&h=800&fit=crop&auto=format' },
+  { label: 'Pan',               img: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&h=800&fit=crop&auto=format' },
+  { label: 'Postres',           img: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=600&h=800&fit=crop&auto=format' },
+  { label: 'Salado',            img: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&h=800&fit=crop&auto=format' },
+  { label: 'Dulces Especiales', img: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=600&h=800&fit=crop&auto=format' },
+  { label: 'Auxiliar Culinario',img: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&h=800&fit=crop&auto=format' },
+  { label: 'Ingredientes',      img: 'https://images.unsplash.com/photo-1603569283847-aa295f0d016a?w=600&h=800&fit=crop&auto=format' },
+];
+
+let galleryBuilt = false;
+function buildGallery() {
+  const g = document.getElementById('gallery');
+  const w = window.innerWidth;
+  const cols = w >= 1000 ? 4 : 2;
+  g.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  g.innerHTML = '';
+
+  galleryData.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.style.cssText = 'opacity:0; filter:blur(10px); transform:translateY(120px);';
+    if (cols === 4 && i === 5) el.style.gridColumn = 'span 2';
+
+    el.innerHTML = `
+      <div class="g-wrap" style="aspect-ratio:3/4; overflow:hidden; border-radius:2px; background:#e8e0d8;">
+        <img class="g-img" src="${item.img}" alt="${item.label}" loading="lazy"/>
+      </div>
+      <p style="font-family:'Manrope',sans-serif; font-size:13px; font-weight:500; color:#171717; margin-top:8px;">${item.label}</p>
+    `;
+    g.appendChild(el);
+
+    gsap.to(el, {
+      opacity: 1, y: 0, filter: 'blur(0px)',
+      duration: 0.8, ease: 'power3.out', delay: i * 0.05,
+      scrollTrigger: { trigger: el, start: 'top 88%', once: true }
+    });
+  });
+}
+buildGallery();
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { ScrollTrigger.getAll().forEach(t => t.kill()); buildGallery(); initAbout(); initCards(); }, 250);
+});
+
+// ── Hero clip-path ──
+const slide2 = document.getElementById('slide2');
+const slide3 = document.getElementById('slide3');
+function cubicEase(p) { return p < 0.5 ? 4*p*p*p : 1 - Math.pow(-2*p+2,3)/2; }
+function clamp(v,a,b) { return Math.max(a,Math.min(b,v)); }
+window.addEventListener('scroll', () => {
+  const sy = window.scrollY, vh = window.innerHeight;
+  const e2 = cubicEase(clamp(sy/(vh*1.5),0,1));
+  const e3 = cubicEase(clamp((sy-vh*1.5)/(vh*1.5),0,1));
+  slide2.style.clipPath = `ellipse(${5+e2*150}% ${8+e2*150}% at 50% 50%)`;
+  slide3.style.clipPath = `ellipse(${5+e3*150}% ${8+e3*150}% at 50% 50%)`;
+}, { passive: true });
+
+// ── Hero text split ──
+function splitAnimate(el, onDone) {
+  const txt = el.textContent.trim();
+  el.innerHTML = '';
+  const spans = [];
+  txt.split('').forEach(ch => {
+    const s = document.createElement('span');
+    s.textContent = ch === ' ' ? ' ' : ch;
+    s.style.cssText = 'display:inline-block; opacity:0; transform:translateY(40px); line-height:1;';
+    el.appendChild(s);
+    spans.push(s);
+  });
+  spans.forEach((s, i) => {
+    gsap.to(s, { opacity:1, y:0, duration:0.8, delay:i*0.03, ease:'power3.out',
+      onComplete: i === spans.length-1 && onDone ? onDone : undefined });
+  });
+}
+
+function applyResponsive() {
+  const mob = window.innerWidth < 768;
+  document.getElementById('h1-d').style.display = mob ? 'none' : 'block';
+  document.getElementById('h1-m').style.display = mob ? 'block' : 'none';
+  document.getElementById('sub-d').style.display = mob ? 'none' : 'block';
+  ['dd-about','dd-partner','dd-products','dd-connect'].forEach(id => {
+    document.getElementById(id).style.display = mob ? 'none' : 'flex';
+  });
+  document.getElementById('float-nav').style.display = mob ? 'none' : 'flex';
+  document.getElementById('hamburger').style.display = mob ? 'flex' : 'none';
+  // Partner cards: 4 cols on desktop
+  document.getElementById('partner-cards').style.gridTemplateColumns = mob ? 'repeat(2,1fr)' : 'repeat(4,1fr)';
+  // Offices: 4 cols on desktop
+  document.getElementById('offices-grid').style.gridTemplateColumns = mob ? 'repeat(2,1fr)' : 'repeat(4,1fr)';
+}
+applyResponsive();
+window.addEventListener('resize', applyResponsive);
+
+window.addEventListener('load', () => {
+  const mob = window.innerWidth < 768;
+  if (!mob) {
+    splitAnimate(document.getElementById('h1-d-el'), () => {
+      splitAnimate(document.getElementById('sub-d-text'), null);
+    });
+  } else {
+    splitAnimate(document.getElementById('h1-m-el'), () => {
+      splitAnimate(document.getElementById('sub-m-text'), null);
+    });
+  }
+});
+
+// ── Navbar scroll ──
+const navbar = document.getElementById('navbar');
+const navLogo = document.getElementById('nav-logo');
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 50) {
+    navbar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:8px 40px;background:rgba(0,0,0,0.9);backdrop-filter:blur(80px);box-shadow:0 1px 16px rgba(0,0,0,0.3);transition:background 0.3s,padding 0.3s,box-shadow 0.3s;';
+    navLogo.style.height = '32px';
+  } else {
+    navbar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 40px;background:transparent;transition:background 0.3s,padding 0.3s,box-shadow 0.3s;';
+    navLogo.style.height = '48px';
+  }
+}, { passive: true });
+
+// ── About scroll reveal ──
+function initAbout() {
+  const body = document.getElementById('about-body');
+  const words = body.textContent.trim().split(/\s+/);
+  body.innerHTML = '';
+  body.style.transform = 'rotate(3deg)';
+  words.forEach(w => {
+    const s = document.createElement('span');
+    s.textContent = w + ' ';
+    s.style.cssText = 'opacity:0.1; filter:blur(4px); display:inline;';
+    body.appendChild(s);
+  });
+  gsap.to(body, { rotation:0, scrollTrigger:{ trigger:body, start:'top bottom', end:'bottom bottom', scrub:true }});
+  gsap.to(body.querySelectorAll('span'), {
+    opacity:1, filter:'blur(0px)', stagger:0.05,
+    scrollTrigger:{ trigger:body, start:'top bottom-=20%', end:'bottom bottom', scrub:true }
+  });
+}
+initAbout();
+
+// ── Partner cards ──
+function initCards() {
+  document.querySelectorAll('#partner-cards > div').forEach((card, i) => {
+    gsap.to(card, { opacity:1, y:0, duration:0.7, ease:'power3.out', delay:i*0.15,
+      scrollTrigger:{ trigger:card, start:'top 90%', once:true }});
+  });
+}
+initCards();
+
+// ── Mobile menu ──
+function openMob() { document.getElementById('mob-menu').classList.add('open'); }
+function closeMob() { document.getElementById('mob-menu').classList.remove('open'); }
+function mobToggle(btn) {
+  const sub = btn.parentElement.querySelector('.mob-sub');
+  const sp = btn.querySelector('span');
+  const open = sub.classList.toggle('open');
+  sp.textContent = open ? '−' : '+';
+}
+</script>
+
+</body>
+</html>

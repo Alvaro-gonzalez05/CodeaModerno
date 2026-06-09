@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>securify — protege tu data</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            readex: ["'Readex Pro'", 'system-ui', '-apple-system', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #000; color: #fff; -webkit-font-smoothing: antialiased; }
+    body { font-family: 'Readex Pro', system-ui, -apple-system, sans-serif; }
+    .hero-title { letter-spacing: -0.04em; line-height: 0.95; }
+
+    /* Fade-in animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .anim-1 { animation: fadeUp 0.8s ease forwards 0.1s; opacity: 0; }
+    .anim-2 { animation: fadeUp 0.8s ease forwards 0.3s; opacity: 0; }
+    .anim-3 { animation: fadeUp 0.8s ease forwards 0.5s; opacity: 0; }
+    .anim-4 { animation: fadeUp 0.8s ease forwards 0.7s; opacity: 0; }
+    .anim-5 { animation: fadeIn 1s ease forwards 0.9s; opacity: 0; }
+
+    /* Section scroll fade */
+    .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* Feature card hover */
+    .feature-card { transition: border-color 0.3s ease, background 0.3s ease; }
+    .feature-card:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.04); }
+
+    /* Plan card */
+    .plan-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .plan-card:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+
+    /* Scrollbar dark */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #000; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ HERO ════════════════════════════════════════════ -->
+<section class="relative h-screen w-full overflow-hidden bg-black">
+
+  <!-- Background video -->
+  <video
+    class="absolute inset-0 w-full h-full object-cover"
+    autoplay loop muted playsinline
+    src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_063509_7d167302-4fd4-480b-8260-18ab572333d4.mp4">
+  </video>
+
+  <!-- Dark overlay so text is readable -->
+  <div class="absolute inset-0 bg-black/40"></div>
+
+  <!-- Navbar -->
+  <nav class="absolute z-20 top-0 left-0 right-0 px-6 md:px-10 pt-6 flex items-center justify-between gap-4">
+
+    <!-- Left pill: logo + brand -->
+    <div class="flex items-center gap-2 bg-neutral-900/90 backdrop-blur rounded-full pl-4 pr-6 py-3">
+      <svg viewBox="0 0 256 256" class="h-5 w-5" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M128 192 L128 256 L64.5 256 L32 223 L0 192 L0 128 L64 128 Z" fill="#ffffff"/>
+        <path d="M256 192 L256 256 L192.5 256 L160 223 L128 192 L128 128 L192 128 Z" fill="#ffffff"/>
+        <path d="M128 64 L128 128 L64.5 128 L32 95 L0 64 L0 0 L64 0 Z" fill="#ffffff"/>
+        <path d="M256 64 L256 128 L192.5 128 L160 95 L128 64 L128 0 L192 0 Z" fill="#ffffff"/>
+      </svg>
+      <span class="text-white text-sm font-normal tracking-tight">securify</span>
+    </div>
+
+    <!-- Center pill: nav links (hidden on mobile) -->
+    <div class="hidden md:flex items-center gap-1 bg-neutral-900/90 backdrop-blur rounded-full px-3 py-2">
+      <a href="#plataforma" class="text-neutral-300 hover:text-white transition-colors text-sm px-5 py-2 rounded-full">plataforma</a>
+      <a href="#soluciones" class="text-neutral-300 hover:text-white transition-colors text-sm px-5 py-2 rounded-full">soluciones</a>
+      <a href="#precios"    class="text-neutral-300 hover:text-white transition-colors text-sm px-5 py-2 rounded-full">precios</a>
+      <a href="#contacto"   class="text-neutral-300 hover:text-white transition-colors text-sm px-5 py-2 rounded-full">soporte</a>
+    </div>
+
+    <!-- Right CTA -->
+    <button class="bg-white text-black text-sm font-normal rounded-full px-6 py-3 hover:bg-neutral-200 transition-colors">
+      comenzar
+    </button>
+  </nav>
+
+  <!-- Foreground content -->
+  <div class="relative h-full w-full">
+
+    <!-- Headline: protege -->
+    <h1 class="hero-title absolute text-white font-medium text-[14vw] md:text-[13vw] left-4 md:left-10 top-[18%] anim-1">
+      protege
+    </h1>
+
+    <!-- Headline: tu -->
+    <h1 class="hero-title absolute text-white font-medium text-[14vw] md:text-[13vw] right-4 md:right-10 top-[38%] anim-2">
+      tu
+    </h1>
+
+    <!-- Headline: data -->
+    <h1 class="hero-title absolute text-white font-medium text-[14vw] md:text-[13vw] left-[18%] md:left-[28%] top-[58%] anim-3">
+      data
+    </h1>
+
+    <!-- Description paragraph -->
+    <p class="absolute left-6 md:left-10 top-[46%] max-w-[240px] text-[15px] leading-snug text-white/90 anim-4">
+      resguardamos tu información con el mayor cuidado, dándote privacidad y control en todo momento
+    </p>
+
+    <!-- Stat: top-right -->
+    <div class="absolute right-6 md:right-24 top-[14%] anim-5">
+      <div class="flex items-center gap-3 justify-end">
+        <div class="hidden md:block h-px w-24 bg-white/40 rotate-[20deg]"></div>
+        <span class="text-4xl md:text-5xl font-medium tracking-tight">+65k</span>
+      </div>
+      <p class="text-xs md:text-sm text-white/70 mt-1 text-right">startups confían</p>
+    </div>
+
+    <!-- Stat: bottom-left -->
+    <div class="absolute left-6 md:left-20 bottom-20 md:bottom-24 anim-5">
+      <div class="flex items-center gap-3">
+        <span class="text-4xl md:text-5xl font-medium tracking-tight">+1.5b</span>
+        <div class="hidden md:block h-px w-24 bg-white/40 rotate-[-20deg]"></div>
+      </div>
+      <p class="text-xs md:text-sm text-white/70 mt-1">gb de datos protegidos</p>
+    </div>
+
+    <!-- Stat: bottom-right -->
+    <div class="absolute right-6 md:right-20 bottom-16 md:bottom-20 anim-5">
+      <div class="flex items-center gap-3 justify-end">
+        <div class="hidden md:block h-px w-24 bg-white/40 rotate-[-20deg]"></div>
+        <span class="text-4xl md:text-5xl font-medium tracking-tight">+300k</span>
+      </div>
+      <p class="text-xs md:text-sm text-white/70 mt-1 text-right">descargas</p>
+    </div>
+
+    <!-- Bottom gradient -->
+    <div class="pointer-events-none absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-b from-transparent to-black"></div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════ SECCIÓN 1 — PLATAFORMA ════════════════════════════════════════════ -->
+<section id="plataforma" class="bg-black py-24 md:py-36 px-6 md:px-16">
+
+  <!-- Section label -->
+  <div class="flex items-center gap-3 mb-16 reveal">
+    <div class="h-px w-10 bg-white/30"></div>
+    <span class="text-white/40 text-xs tracking-widest uppercase">plataforma</span>
+  </div>
+
+  <!-- Heading -->
+  <div class="max-w-5xl mb-20">
+    <h2 class="text-white font-medium text-[8vw] md:text-[5.5vw] leading-none tracking-[-0.03em] reveal">
+      seguridad sin compromisos,<br/>privacidad por diseño
+    </h2>
+  </div>
+
+  <!-- Feature grid -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 border border-white/10 rounded-2xl overflow-hidden">
+
+    <div class="feature-card bg-neutral-950 p-8 md:p-10 border border-transparent reveal">
+      <div class="mb-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+        <!-- Shield icon -->
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.25c0 0-6.75 2.25-6.75 7.5v4.5l6.75 4.5 6.75-4.5v-4.5C18.75 4.5 12 2.25 12 2.25z"/>
+        </svg>
+      </div>
+      <h3 class="text-white font-medium text-xl mb-3 tracking-tight">cifrado extremo a extremo</h3>
+      <p class="text-white/50 text-sm leading-relaxed">
+        tus archivos y comunicaciones viajan encriptados con aes-256. ni nosotros podemos leerlos.
+      </p>
+    </div>
+
+    <div class="feature-card bg-neutral-950 p-8 md:p-10 border border-transparent reveal">
+      <div class="mb-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+        <!-- Eye-off icon -->
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 2.25 12c1.9 4.417 6.136 7.5 9.75 7.5a10.44 10.44 0 0 0 4.743-1.127M6.228 6.228A10.45 10.45 0 0 1 12 4.5c3.614 0 7.85 3.083 9.75 7.5a10.463 10.463 0 0 1-4.293 4.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/>
+        </svg>
+      </div>
+      <h3 class="text-white font-medium text-xl mb-3 tracking-tight">cero rastreo</h3>
+      <p class="text-white/50 text-sm leading-relaxed">
+        política estricta de no logs. no almacenamos tu actividad, historial ni metadatos de navegación.
+      </p>
+    </div>
+
+    <div class="feature-card bg-neutral-950 p-8 md:p-10 border border-transparent reveal">
+      <div class="mb-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+        <!-- Globe icon -->
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253"/>
+        </svg>
+      </div>
+      <h3 class="text-white font-medium text-xl mb-3 tracking-tight">red global de servidores</h3>
+      <p class="text-white/50 text-sm leading-relaxed">
+        más de 180 ubicaciones en 60 países. conecta desde cualquier punto con latencia mínima.
+      </p>
+    </div>
+
+    <div class="feature-card bg-neutral-950 p-8 md:p-10 border border-transparent reveal">
+      <div class="mb-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+        </svg>
+      </div>
+      <h3 class="text-white font-medium text-xl mb-3 tracking-tight">cumplimiento normativo</h3>
+      <p class="text-white/50 text-sm leading-relaxed">
+        certificaciones iso 27001, soc 2 tipo ii y conformidad con gdpr y lgpd incluidas.
+      </p>
+    </div>
+
+    <div class="feature-card bg-neutral-950 p-8 md:p-10 border border-transparent reveal">
+      <div class="mb-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+        </svg>
+      </div>
+      <h3 class="text-white font-medium text-xl mb-3 tracking-tight">detección en tiempo real</h3>
+      <p class="text-white/50 text-sm leading-relaxed">
+        motor de ia que detecta amenazas, intrusiones y anomalías antes de que impacten tu negocio.
+      </p>
+    </div>
+
+    <div class="feature-card bg-neutral-950 p-8 md:p-10 border border-transparent reveal">
+      <div class="mb-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 0 1 21.75 8.25z"/>
+        </svg>
+      </div>
+      <h3 class="text-white font-medium text-xl mb-3 tracking-tight">api segura para devs</h3>
+      <p class="text-white/50 text-sm leading-relaxed">
+        integra securify en tu stack con nuestra api rest. sdks disponibles para node, python y go.
+      </p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════ SECCIÓN 2 — CÓMO FUNCIONA ════════════════════════════════════════════ -->
+<section id="soluciones" class="bg-neutral-950 py-24 md:py-36 px-6 md:px-16">
+
+  <div class="flex items-center gap-3 mb-16 reveal">
+    <div class="h-px w-10 bg-white/30"></div>
+    <span class="text-white/40 text-xs tracking-widest uppercase">soluciones</span>
+  </div>
+
+  <div class="max-w-5xl mb-20">
+    <h2 class="text-white font-medium text-[8vw] md:text-[5.5vw] leading-none tracking-[-0.03em] reveal">
+      tres pasos para<br/>blindar tu empresa
+    </h2>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+
+    <div class="reveal">
+      <div class="flex items-start gap-5 mb-6">
+        <span class="text-[4rem] font-medium text-white/10 leading-none tracking-[-0.05em]">01</span>
+      </div>
+      <div class="border-t border-white/10 pt-6">
+        <h3 class="text-white font-medium text-lg mb-3 tracking-tight">conecta tus sistemas</h3>
+        <p class="text-white/50 text-sm leading-relaxed">
+          instala el agente en minutos o usa nuestra api. compatible con aws, gcp, azure y entornos on-premise.
+        </p>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <div class="flex items-start gap-5 mb-6">
+        <span class="text-[4rem] font-medium text-white/10 leading-none tracking-[-0.05em]">02</span>
+      </div>
+      <div class="border-t border-white/10 pt-6">
+        <h3 class="text-white font-medium text-lg mb-3 tracking-tight">define tus políticas</h3>
+        <p class="text-white/50 text-sm leading-relaxed">
+          controla quién accede, desde dónde y cuándo. crea reglas personalizadas con nuestro panel visual sin código.
+        </p>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <div class="flex items-start gap-5 mb-6">
+        <span class="text-[4rem] font-medium text-white/10 leading-none tracking-[-0.05em]">03</span>
+      </div>
+      <div class="border-t border-white/10 pt-6">
+        <h3 class="text-white font-medium text-lg mb-3 tracking-tight">monitorea y actúa</h3>
+        <p class="text-white/50 text-sm leading-relaxed">
+          recibe alertas en tiempo real, revisa reportes detallados y responde incidentes desde un solo lugar.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric bar -->
+  <div class="mt-24 md:mt-32 border border-white/10 rounded-2xl p-8 md:p-12 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-0 divide-y md:divide-y-0 md:divide-x divide-white/10 reveal">
+    <div class="md:pr-8">
+      <p class="text-4xl md:text-5xl font-medium tracking-[-0.03em] text-white">99.99%</p>
+      <p class="text-white/40 text-sm mt-2">uptime garantizado</p>
+    </div>
+    <div class="md:px-8">
+      <p class="text-4xl md:text-5xl font-medium tracking-[-0.03em] text-white">&lt; 2ms</p>
+      <p class="text-white/40 text-sm mt-2">latencia de detección</p>
+    </div>
+    <div class="md:px-8">
+      <p class="text-4xl md:text-5xl font-medium tracking-[-0.03em] text-white">180+</p>
+      <p class="text-white/40 text-sm mt-2">servidores globales</p>
+    </div>
+    <div class="md:pl-8">
+      <p class="text-4xl md:text-5xl font-medium tracking-[-0.03em] text-white">24/7</p>
+      <p class="text-white/40 text-sm mt-2">soporte especializado</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════ SECCIÓN 3 — PRECIOS ════════════════════════════════════════════ -->
+<section id="precios" class="bg-black py-24 md:py-36 px-6 md:px-16">
+
+  <div class="flex items-center gap-3 mb-16 reveal">
+    <div class="h-px w-10 bg-white/30"></div>
+    <span class="text-white/40 text-xs tracking-widest uppercase">precios</span>
+  </div>
+
+  <div class="max-w-5xl mb-20">
+    <h2 class="text-white font-medium text-[8vw] md:text-[5.5vw] leading-none tracking-[-0.03em] reveal">
+      planes que escalan<br/>con tu negocio
+    </h2>
+    <p class="text-white/50 text-sm md:text-base mt-6 max-w-lg leading-relaxed reveal">
+      sin sorpresas ni costos ocultos. cancela cuando quieras. todos los planes incluyen prueba de 14 días gratis.
+    </p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+    <!-- Starter -->
+    <div class="plan-card border border-white/10 rounded-2xl p-8 md:p-10 flex flex-col reveal">
+      <div class="mb-8">
+        <p class="text-white/40 text-xs tracking-widest uppercase mb-4">starter</p>
+        <p class="text-white text-5xl font-medium tracking-[-0.04em]">$0</p>
+        <p class="text-white/40 text-sm mt-1">para siempre · hasta 3 usuarios</p>
+      </div>
+      <ul class="space-y-3 flex-1 mb-10">
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white/40 shrink-0"></div>cifrado aes-256
+        </li>
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white/40 shrink-0"></div>10 gb de almacenamiento
+        </li>
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white/40 shrink-0"></div>panel de control básico
+        </li>
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white/40 shrink-0"></div>soporte por email
+        </li>
+      </ul>
+      <button class="w-full border border-white/20 text-white text-sm rounded-full py-3 hover:bg-white/5 transition-colors">
+        empezar gratis
+      </button>
+    </div>
+
+    <!-- Pro (highlighted) -->
+    <div class="plan-card border border-white bg-white/5 rounded-2xl p-8 md:p-10 flex flex-col relative reveal">
+      <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+        <span class="bg-white text-black text-xs font-medium rounded-full px-4 py-1 tracking-wide">más popular</span>
+      </div>
+      <div class="mb-8">
+        <p class="text-white/40 text-xs tracking-widest uppercase mb-4">pro</p>
+        <p class="text-white text-5xl font-medium tracking-[-0.04em]">$29</p>
+        <p class="text-white/40 text-sm mt-1">por mes · hasta 25 usuarios</p>
+      </div>
+      <ul class="space-y-3 flex-1 mb-10">
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white shrink-0"></div>todo lo de starter
+        </li>
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white shrink-0"></div>1 tb de almacenamiento
+        </li>
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white shrink-0"></div>detección de amenazas con ia
+        </li>
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white shrink-0"></div>alertas en tiempo real
+        </li>
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white shrink-0"></div>api access + sdks
+        </li>
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white shrink-0"></div>soporte prioritario 24/7
+        </li>
+      </ul>
+      <button class="w-full bg-white text-black text-sm rounded-full py-3 hover:bg-neutral-200 transition-colors">
+        comenzar prueba
+      </button>
+    </div>
+
+    <!-- Enterprise -->
+    <div class="plan-card border border-white/10 rounded-2xl p-8 md:p-10 flex flex-col reveal">
+      <div class="mb-8">
+        <p class="text-white/40 text-xs tracking-widest uppercase mb-4">enterprise</p>
+        <p class="text-white text-5xl font-medium tracking-[-0.04em]">custom</p>
+        <p class="text-white/40 text-sm mt-1">usuarios ilimitados · sla garantizado</p>
+      </div>
+      <ul class="space-y-3 flex-1 mb-10">
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white/40 shrink-0"></div>todo lo de pro
+        </li>
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white/40 shrink-0"></div>almacenamiento ilimitado
+        </li>
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white/40 shrink-0"></div>sso + ldap + saml
+        </li>
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white/40 shrink-0"></div>auditorías de seguridad
+        </li>
+        <li class="flex items-center gap-3 text-sm text-white/70">
+          <div class="w-1 h-1 rounded-full bg-white/40 shrink-0"></div>manager de cuenta dedicado
+        </li>
+      </ul>
+      <button class="w-full border border-white/20 text-white text-sm rounded-full py-3 hover:bg-white/5 transition-colors">
+        hablar con ventas
+      </button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════ FOOTER ════════════════════════════════════════════ -->
+<footer id="contacto" class="bg-neutral-950 border-t border-white/10 pt-20 pb-10 px-6 md:px-16">
+
+  <div class="grid grid-cols-1 md:grid-cols-5 gap-12 md:gap-8 mb-20">
+
+    <!-- Brand column -->
+    <div class="md:col-span-2">
+      <div class="flex items-center gap-2 mb-6">
+        <svg viewBox="0 0 256 256" class="h-6 w-6" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M128 192 L128 256 L64.5 256 L32 223 L0 192 L0 128 L64 128 Z" fill="#ffffff"/>
+          <path d="M256 192 L256 256 L192.5 256 L160 223 L128 192 L128 128 L192 128 Z" fill="#ffffff"/>
+          <path d="M128 64 L128 128 L64.5 128 L32 95 L0 64 L0 0 L64 0 Z" fill="#ffffff"/>
+          <path d="M256 64 L256 128 L192.5 128 L160 95 L128 64 L128 0 L192 0 Z" fill="#ffffff"/>
+        </svg>
+        <span class="text-white text-base font-normal tracking-tight">securify</span>
+      </div>
+      <p class="text-white/40 text-sm leading-relaxed max-w-xs">
+        la plataforma de seguridad de datos para equipos que no se conforman con menos.
+      </p>
+      <div class="flex items-center gap-4 mt-8">
+        <!-- Twitter/X -->
+        <a href="#" class="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:border-white/30 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.259 5.631ZM17.08 20.01h1.832L7.084 4.126H5.117Z"/></svg>
+        </a>
+        <!-- LinkedIn -->
+        <a href="#" class="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:border-white/30 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M4.98 3.5C4.98 4.881 3.87 6 2.5 6S.02 4.881.02 3.5C.02 2.12 1.13 1 2.5 1s2.48 1.12 2.48 2.5zM5 8H0v16h5V8zm7.982 0H8.014v16h4.969v-8.399c0-4.67 6.029-5.052 6.029 0V24H24V13.869c0-7.88-8.922-7.593-11.018-3.714V8z"/></svg>
+        </a>
+        <!-- GitHub -->
+        <a href="#" class="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:border-white/30 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Links columns -->
+    <div>
+      <p class="text-white text-sm font-medium mb-5">plataforma</p>
+      <ul class="space-y-3">
+        <li><a href="#" class="text-white/40 text-sm hover:text-white transition-colors">características</a></li>
+        <li><a href="#" class="text-white/40 text-sm hover:text-white transition-colors">seguridad</a></li>
+        <li><a href="#" class="text-white/40 text-sm hover:text-white transition-colors">integraciones</a></li>
+        <li><a href="#" class="text-white/40 text-sm hover:text-white transition-colors">changelog</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <p class="text-white text-sm font-medium mb-5">empresa</p>
+      <ul class="space-y-3">
+        <li><a href="#" class="text-white/40 text-sm hover:text-white transition-colors">nosotros</a></li>
+        <li><a href="#" class="text-white/40 text-sm hover:text-white transition-colors">blog</a></li>
+        <li><a href="#" class="text-white/40 text-sm hover:text-white transition-colors">trabajos</a></li>
+        <li><a href="#" class="text-white/40 text-sm hover:text-white transition-colors">prensa</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <p class="text-white text-sm font-medium mb-5">soporte</p>
+      <ul class="space-y-3">
+        <li><a href="#" class="text-white/40 text-sm hover:text-white transition-colors">documentación</a></li>
+        <li><a href="#" class="text-white/40 text-sm hover:text-white transition-colors">status</a></li>
+        <li><a href="#" class="text-white/40 text-sm hover:text-white transition-colors">contacto</a></li>
+        <li><a href="#" class="text-white/40 text-sm hover:text-white transition-colors">privacidad</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+    <p class="text-white/30 text-xs">© 2026 securify inc. todos los derechos reservados.</p>
+    <div class="flex items-center gap-6">
+      <a href="#" class="text-white/30 text-xs hover:text-white/60 transition-colors">términos</a>
+      <a href="#" class="text-white/30 text-xs hover:text-white/60 transition-colors">privacidad</a>
+      <a href="#" class="text-white/30 text-xs hover:text-white/60 transition-colors">cookies</a>
+    </div>
+  </div>
+
+  <!-- Giant CODEA wordmark -->
+  <div class="relative overflow-hidden -mx-6 md:-mx-16 mt-6 -mb-4 select-none">
+    <p
+      class="text-right font-black leading-none text-white cursor-default"
+      style="font-size: clamp(3rem, 10vw, 8rem); letter-spacing: -0.04em; line-height: 0.85; opacity: 0.08; transition: opacity 0.4s ease;"
+      onmouseenter="this.style.opacity='0.18'" onmouseleave="this.style.opacity='0.08'">
+      CODEA
+    </p>
+  </div>
+</footer>
+
+<!-- Scroll reveal script -->
+<script>
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+  reveals.forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

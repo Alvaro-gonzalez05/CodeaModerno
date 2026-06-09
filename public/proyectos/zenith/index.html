@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zenith Realty — Bienes Raíces de Lujo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Lato', sans-serif;
+      background: #F8F8F8;
+      color: #141414;
+      overflow-x: hidden;
+    }
+
+    /* ── Grid helpers ── */
+    .grid-12 { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; }
+    .col-7 { grid-column: span 7; }
+    .col-6 { grid-column: span 6; }
+    .col-5 { grid-column: span 5; }
+    .col-4 { grid-column: span 4; }
+    .col-8 { grid-column: span 8; }
+    .col-4-start-9 { grid-column: 9 / span 4; }
+    .col-4-start-9-flex { grid-column: 9 / span 4; display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── CODEA ── */
+    .codea-mark { opacity: 0.09; transition: opacity 0.4s; cursor: default; user-select: none; }
+    .codea-mark:hover { opacity: 0.2; }
+
+    /* ── Mobile menu ── */
+    #mobile-menu {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: 80%; max-width: 340px;
+      background: #141414; z-index: 200;
+      transform: translateX(100%);
+      transition: transform 0.4s cubic-bezier(0.4,0,0.2,1);
+      padding: 80px 32px 40px;
+      display: flex; flex-direction: column;
+    }
+    #mobile-menu.open { transform: translateX(0); }
+    #mobile-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4); z-index: 199;
+    }
+    #mobile-overlay.open { display: block; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .grid-12 { grid-template-columns: 1fr; gap: 16px; }
+      .col-7, .col-6, .col-5, .col-4, .col-8,
+      .col-4-start-9, .col-4-start-9-flex { grid-column: span 1; }
+      .how-grid { grid-template-columns: 1fr !important; }
+      .props-grid { grid-template-columns: 1fr !important; }
+      .charts-grid { grid-template-columns: 1fr !important; }
+      .hero-content { padding: 0 20px 60px !important; }
+      section { padding: 60px 20px !important; }
+      nav { padding: 20px !important; }
+    }
+    @media (max-width: 1024px) and (min-width: 769px) {
+      .props-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      .charts-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════ HERO ══════ -->
+<section style="height:100vh; overflow:hidden; position:relative;">
+
+  <!-- Video BG -->
+  <video autoplay muted loop playsinline
+    style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:0;"
+    src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260503_144509_89e2d612-8af2-45c3-90f4-4831bc60715d.mp4">
+  </video>
+
+  <!-- Content overlay -->
+  <div style="position:relative; z-index:10; background:rgba(255,255,255,0.08); height:100%; display:flex; flex-direction:column;">
+
+    <!-- Navbar -->
+    <nav style="display:flex; align-items:center; justify-content:space-between; padding:24px 40px;">
+
+      <!-- Logo -->
+      <div style="font-size:18px; font-weight:900; line-height:0.85; letter-spacing:-0.04em; color:#141414; cursor:pointer; user-select:none;">
+        ZENITH<br/>REALTY
+      </div>
+
+      <!-- Desktop links -->
+      <div id="nav-links" style="display:flex; align-items:center; gap:28px;">
+        <a href="#" class="nav-link" style="font-size:13px; font-weight:500; letter-spacing:-0.02em; color:#141414; text-decoration:none; display:flex; align-items:center; gap:4px; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.45'" onmouseout="this.style.opacity='1'">
+          Propiedades
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </a>
+        <a href="#" class="nav-link" style="font-size:13px; font-weight:500; letter-spacing:-0.02em; color:#141414; text-decoration:none; display:flex; align-items:center; gap:6px; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.45'" onmouseout="this.style.opacity='1'">
+          Hipotecas
+          <span style="background:#141414; color:white; font-size:9px; padding:2px 6px; border-radius:2px; line-height:1.4; font-weight:700; letter-spacing:0.03em;">NUEVO</span>
+        </a>
+        <a href="#" class="nav-link" style="font-size:13px; font-weight:500; letter-spacing:-0.02em; color:#141414; text-decoration:none; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.45'" onmouseout="this.style.opacity='1'">Empresa</a>
+        <a href="#" class="nav-link" style="font-size:13px; font-weight:500; letter-spacing:-0.02em; color:#141414; text-decoration:none; display:flex; align-items:center; gap:4px; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.45'" onmouseout="this.style.opacity='1'">
+          Carreras
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </a>
+        <a href="#" class="nav-link" style="font-size:13px; font-weight:500; letter-spacing:-0.02em; color:#141414; text-decoration:none; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.45'" onmouseout="this.style.opacity='1'">Blog</a>
+      </div>
+
+      <!-- Action + hamburger -->
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button id="post-btn"
+          style="border:1px solid rgba(20,20,20,0.12); background:rgba(255,255,255,0.82); backdrop-filter:blur(12px); padding:10px 24px; font-size:13px; font-weight:500; letter-spacing:-0.01em; cursor:pointer; display:flex; align-items:center; gap:8px; transition:background 0.2s; font-family:'Lato',sans-serif;"
+          onmouseover="this.style.background='rgba(255,255,255,1)'" onmouseout="this.style.background='rgba(255,255,255,0.82)'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Publicar propiedad
+        </button>
+        <button id="hamburger" style="display:none; background:none; border:none; cursor:pointer; padding:4px;" onclick="openMenu()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Hero content -->
+    <div class="hero-content" style="flex:1; display:flex; align-items:flex-end; padding:0 40px 80px;">
+      <div style="display:grid; grid-template-columns:repeat(12,1fr); gap:24px; width:100%; align-items:end;">
+
+        <!-- Headline + CTA -->
+        <div id="hero-left" style="grid-column:span 7; opacity:0; transform:translateY(30px);">
+          <h1 style="font-size:clamp(34px,5.5vw,80px); font-weight:500; letter-spacing:-0.04em; line-height:1.05; color:#141414; margin-bottom:36px;">
+            Descubrí el espacio<br/>en el que realmente<br/>pertenecés
+          </h1>
+          <button style="background:#141414; color:white; padding:16px 36px; font-size:13px; font-weight:500; text-transform:uppercase; letter-spacing:0.1em; cursor:pointer; box-shadow:0 20px 60px rgba(0,0,0,0.25); border:none; font-family:'Lato',sans-serif; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+            Agendar llamada
+          </button>
+        </div>
+
+        <!-- Subtext -->
+        <div id="hero-right" style="grid-column:9 / span 4; opacity:0; transform:translateY(20px);">
+          <p style="color:#A5A5A5; font-size:clamp(15px,1.5vw,18px); line-height:1.4; font-weight:300;">
+            Experimentá más que una casa; encontrá un santuario donde tu camino se despliega, lleno de comodidad y oportunidades infinitas.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Mobile menu -->
+<div id="mobile-overlay" onclick="closeMenu()"></div>
+<div id="mobile-menu">
+  <button onclick="closeMenu()" style="position:absolute; top:24px; right:24px; background:none; border:none; cursor:pointer;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div style="display:flex; flex-direction:column; gap:28px; flex:1;">
+    <a href="#" style="font-size:18px; font-weight:500; color:white; text-decoration:none; opacity:0.9;">Propiedades</a>
+    <a href="#" style="font-size:18px; font-weight:500; color:white; text-decoration:none; opacity:0.9;">Hipotecas</a>
+    <a href="#" style="font-size:18px; font-weight:500; color:white; text-decoration:none; opacity:0.9;">Empresa</a>
+    <a href="#" style="font-size:18px; font-weight:500; color:white; text-decoration:none; opacity:0.9;">Carreras</a>
+    <a href="#" style="font-size:18px; font-weight:500; color:white; text-decoration:none; opacity:0.9;">Blog</a>
+  </div>
+  <button style="background:white; color:#141414; border:none; padding:16px; font-size:13px; font-weight:700; cursor:pointer; letter-spacing:0.06em; width:100%; font-family:'Lato',sans-serif; text-transform:uppercase;">
+    Publicar propiedad
+  </button>
+</div>
+
+
+<!-- ══════ SECTION 2: PROPERTIES ══════ -->
+<section style="background:#F8F8F8; padding:100px 40px;">
+
+  <!-- Header -->
+  <div class="grid-12" style="margin-bottom:60px; align-items:end;">
+    <div class="col-7">
+      <h2 id="props-h2" style="font-size:clamp(26px,4vw,52px); font-weight:500; letter-spacing:-0.04em; line-height:1.1; color:#141414; opacity:0; transform:translateY(30px);">
+        Guiándote hacia la<br/>residencia de tus sueños
+      </h2>
+    </div>
+    <div class="col-4-start-9">
+      <p id="props-sub" style="color:#A5A5A5; font-size:14px; line-height:1.75; font-weight:400; opacity:0; transform:translateY(20px);">
+        Nuestra visión une equilibrio, diseño y atención para que cada cliente resida en un espacio que refleje sus valores.
+      </p>
+    </div>
+  </div>
+
+  <!-- Cards -->
+  <div class="props-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:24px;">
+
+    <!-- Card 1 -->
+    <div class="prop-card" style="background:white; overflow:hidden; opacity:0; transform:translateY(40px);">
+      <div style="overflow:hidden; aspect-ratio:4/3;">
+        <img src="https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260503_145701_de344c15-5eac-4c64-8bd6-19a2811bba4a.png&w=1280&q=85"
+          alt="Aether Heights"
+          style="width:100%; height:100%; object-fit:cover; transition:transform 0.7s ease;"
+          onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"/>
+      </div>
+      <div style="padding:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <h3 style="font-size:17px; font-weight:700; letter-spacing:-0.02em;">Aether Heights</h3>
+          <span style="font-size:15px; font-weight:700;">$345.000</span>
+        </div>
+        <p style="font-size:11px; color:#A5A5A5; margin-bottom:14px; letter-spacing:0.04em; text-transform:uppercase;">EE.UU. / California / Malibu</p>
+        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+          <span style="display:flex; align-items:center; gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A5A5A5" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18"/></svg><span style="font-size:11px; font-weight:500;">300 m²</span></span>
+          <span style="display:flex; align-items:center; gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A5A5A5" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg><span style="font-size:11px; font-weight:500;">1 piso</span></span>
+          <span style="display:flex; align-items:center; gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A5A5A5" stroke-width="2.5" stroke-linecap="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg><span style="font-size:11px; font-weight:500;">6 hab.</span></span>
+          <span style="display:flex; align-items:center; gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A5A5A5" stroke-width="2.5" stroke-linecap="round"><path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-1-.5C4.683 3 4 3.683 4 4.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><line x1="10" x2="8" y1="5" y2="7"/><line x1="2" x2="22" y1="12" y2="12"/><line x1="7" x2="7" y1="12" y2="17"/></svg><span style="font-size:11px; font-weight:500;">2 baños</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="prop-card" style="background:white; overflow:hidden; opacity:0; transform:translateY(40px);">
+      <div style="overflow:hidden; aspect-ratio:4/3;">
+        <img src="https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260503_145923_c1a9880c-0fab-4a76-8289-bd650d5e5dce.png&w=1280&q=85"
+          alt="Azure Sanctuary"
+          style="width:100%; height:100%; object-fit:cover; transition:transform 0.7s ease;"
+          onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"/>
+      </div>
+      <div style="padding:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <h3 style="font-size:17px; font-weight:700; letter-spacing:-0.02em;">Azure Sanctuary</h3>
+          <span style="font-size:15px; font-weight:700;">$225.000</span>
+        </div>
+        <p style="font-size:11px; color:#A5A5A5; margin-bottom:14px; letter-spacing:0.04em; text-transform:uppercase;">Caribe / Bahamas / Bimini</p>
+        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+          <span style="display:flex; align-items:center; gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A5A5A5" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18"/></svg><span style="font-size:11px; font-weight:500;">250 m²</span></span>
+          <span style="display:flex; align-items:center; gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A5A5A5" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg><span style="font-size:11px; font-weight:500;">1 piso</span></span>
+          <span style="display:flex; align-items:center; gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A5A5A5" stroke-width="2.5" stroke-linecap="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg><span style="font-size:11px; font-weight:500;">4 hab.</span></span>
+          <span style="display:flex; align-items:center; gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A5A5A5" stroke-width="2.5" stroke-linecap="round"><path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-1-.5C4.683 3 4 3.683 4 4.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><line x1="10" x2="8" y1="5" y2="7"/><line x1="2" x2="22" y1="12" y2="12"/><line x1="7" x2="7" y1="12" y2="17"/></svg><span style="font-size:11px; font-weight:500;">1 baño</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="prop-card" style="background:white; overflow:hidden; opacity:0; transform:translateY(40px);">
+      <div style="overflow:hidden; aspect-ratio:4/3;">
+        <img src="https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260503_150022_cdda0eaa-1c17-4f59-8188-4f98b328619f.png&w=1280&q=85"
+          alt="Summit Pavilion"
+          style="width:100%; height:100%; object-fit:cover; transition:transform 0.7s ease;"
+          onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"/>
+      </div>
+      <div style="padding:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+          <h3 style="font-size:17px; font-weight:700; letter-spacing:-0.02em;">Summit Pavilion</h3>
+          <span style="font-size:15px; font-weight:700;">$510.000</span>
+        </div>
+        <p style="font-size:11px; color:#A5A5A5; margin-bottom:14px; letter-spacing:0.04em; text-transform:uppercase;">EE.UU. / Colorado / Vail</p>
+        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+          <span style="display:flex; align-items:center; gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A5A5A5" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18"/></svg><span style="font-size:11px; font-weight:500;">400 m²</span></span>
+          <span style="display:flex; align-items:center; gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A5A5A5" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg><span style="font-size:11px; font-weight:500;">3 pisos</span></span>
+          <span style="display:flex; align-items:center; gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A5A5A5" stroke-width="2.5" stroke-linecap="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg><span style="font-size:11px; font-weight:500;">6 hab.</span></span>
+          <span style="display:flex; align-items:center; gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A5A5A5" stroke-width="2.5" stroke-linecap="round"><path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-1-.5C4.683 3 4 3.683 4 4.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><line x1="10" x2="8" y1="5" y2="7"/><line x1="2" x2="22" y1="12" y2="12"/><line x1="7" x2="7" y1="12" y2="17"/></svg><span style="font-size:11px; font-weight:500;">3 baños</span></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════ SECTION 3: CÓMO FUNCIONA ══════ -->
+<section style="background:#F8F8F8; padding:100px 40px;">
+
+  <!-- Header -->
+  <div class="grid-12" style="margin-bottom:60px; align-items:end;">
+    <div class="col-7">
+      <h2 id="how-h2" style="font-size:clamp(26px,4vw,52px); font-weight:500; letter-spacing:-0.04em; line-height:1.1; color:#141414; opacity:0; transform:translateY(30px);">
+        Explorá nuestro<br/>servicio y el proceso
+      </h2>
+    </div>
+    <div class="col-4-start-9">
+      <p id="how-sub" style="color:#A5A5A5; font-size:14px; line-height:1.75; opacity:0; transform:translateY(20px);">
+        Recorridos digitales, portafolios selectos e información profesional — todas las herramientas para buscar y asegurar con facilidad.
+      </p>
+    </div>
+  </div>
+
+  <!-- Content grid -->
+  <div class="how-grid" style="display:grid; grid-template-columns:repeat(12,1fr); gap:0;">
+
+    <!-- Left block -->
+    <div id="how-left" style="grid-column:span 4; background:white; padding:48px 40px 40px; display:flex; flex-direction:column; justify-content:space-between; min-height:520px; opacity:0; transform:translateX(-30px);">
+      <div>
+        <h3 style="font-size:20px; font-weight:700; letter-spacing:-0.03em; margin-bottom:14px;">Colección exclusiva</h3>
+        <p style="font-size:14px; color:#A5A5A5; line-height:1.75; margin-bottom:28px;">
+          Nuestros consultores elaboran listas personalizadas de propiedades verificadas. Incluyen medios, recorridos VR y visitas físicas privadas.
+        </p>
+        <button style="border:1px solid rgba(20,20,20,0.15); background:transparent; padding:12px 24px; font-size:13px; font-weight:500; cursor:pointer; font-family:'Lato',sans-serif; transition:background 0.2s;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='transparent'">
+          Consulta gratuita
+        </button>
+      </div>
+      <nav style="display:flex; flex-direction:column; gap:18px; border-top:1px solid rgba(0,0,0,0.07); padding-top:28px; margin-top:40px;">
+        <button class="nav-item-btn" style="background:none; border:none; text-align:left; font-size:13px; font-weight:500; color:#A5A5A5; cursor:pointer; font-family:'Lato',sans-serif; padding:0; transition:color 0.2s;" onmouseover="this.style.color='#141414'" onmouseout="this.style.color='#A5A5A5'">Análisis de mercado</button>
+        <button class="nav-item-btn active" style="background:none; border:none; text-align:left; font-size:13px; font-weight:500; color:#141414; cursor:pointer; font-family:'Lato',sans-serif; padding:0;">Colección exclusiva</button>
+        <button class="nav-item-btn" style="background:none; border:none; text-align:left; font-size:13px; font-weight:500; color:#A5A5A5; cursor:pointer; font-family:'Lato',sans-serif; padding:0; transition:color 0.2s;" onmouseover="this.style.color='#141414'" onmouseout="this.style.color='#A5A5A5'">Asesoramiento legal</button>
+        <button class="nav-item-btn" style="background:none; border:none; text-align:left; font-size:13px; font-weight:500; color:#A5A5A5; cursor:pointer; font-family:'Lato',sans-serif; padding:0; transition:color 0.2s;" onmouseover="this.style.color='#141414'" onmouseout="this.style.color='#A5A5A5'">Cierre de operación</button>
+      </nav>
+    </div>
+
+    <!-- Right image -->
+    <div id="how-right" style="grid-column:span 8; overflow:hidden; opacity:0; transform:translateX(30px);">
+      <img src="https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260503_150112_2b0e700f-7af4-4459-b326-7d9e2f468daa.png&w=1280&q=85"
+        alt="Cómo funciona"
+        style="width:100%; height:100%; object-fit:cover; min-height:500px; display:block;"/>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════ SECTION 4: INVERSIÓN ══════ -->
+<section style="background:#F8F8F8; padding:100px 40px 120px;">
+
+  <!-- Header -->
+  <div class="grid-12" style="margin-bottom:60px; align-items:start;">
+    <div class="col-6">
+      <h2 id="inv-h2" style="font-size:clamp(26px,4vw,52px); font-weight:500; letter-spacing:-0.04em; line-height:1.1; color:#141414; opacity:0; transform:translateY(30px);">
+        Marcos confiables<br/>para un crecimiento<br/>seguro
+      </h2>
+    </div>
+    <div class="col-4-start-9-flex">
+      <p id="inv-sub1" style="color:#A5A5A5; font-size:14px; line-height:1.75; opacity:0; transform:translateY(20px);">
+        Nuestras propiedades van más allá de planos; representan un vehículo para que tu patrimonio prospere de manera constante.
+      </p>
+      <p id="inv-sub2" style="color:#A5A5A5; font-size:14px; line-height:1.75; opacity:0; transform:translateY(20px);">
+        Examinamos meticulosamente las mejores ofertas del mercado para nuestros socios.
+      </p>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:24px;">
+
+    <div class="chart-card" style="background:white; padding:24px; display:flex; flex-direction:column; justify-content:space-between; aspect-ratio:1.8/1; min-height:200px; opacity:0; transform:translateY(30px);">
+      <div>
+        <p style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(20,20,20,0.35); margin-bottom:10px;">Crecimiento anual</p>
+        <p style="font-size:clamp(28px,3vw,40px); font-weight:500; color:#141414; letter-spacing:-0.03em; line-height:1;">19%</p>
+      </div>
+      <div style="height:96px; margin-top:16px;">
+        <svg width="100%" height="96" preserveAspectRatio="none" id="chart1"></svg>
+      </div>
+    </div>
+
+    <div class="chart-card" style="background:white; padding:24px; display:flex; flex-direction:column; justify-content:space-between; aspect-ratio:1.8/1; min-height:200px; opacity:0; transform:translateY(30px);">
+      <div>
+        <p style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(20,20,20,0.35); margin-bottom:10px;">Ganancia total acumulada</p>
+        <p style="font-size:clamp(24px,2.5vw,40px); font-weight:500; color:#141414; letter-spacing:-0.03em; line-height:1;">$820.000</p>
+      </div>
+      <div style="height:96px; margin-top:16px;">
+        <svg width="100%" height="96" preserveAspectRatio="none" id="chart2"></svg>
+      </div>
+    </div>
+
+    <div class="chart-card" style="background:white; padding:24px; display:flex; flex-direction:column; justify-content:space-between; aspect-ratio:1.8/1; min-height:200px; opacity:0; transform:translateY(30px);">
+      <div>
+        <p style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(20,20,20,0.35); margin-bottom:10px;">Retornos medianos</p>
+        <p style="font-size:clamp(28px,3vw,40px); font-weight:500; color:#141414; letter-spacing:-0.03em; line-height:1;">14%</p>
+      </div>
+      <div style="height:96px; margin-top:16px;">
+        <svg width="100%" height="96" preserveAspectRatio="none" id="chart3"></svg>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════ CODEA ══════ -->
+<div style="background:#F8F8F8; overflow:hidden; padding:12px 5% 20px; border-top:1px solid rgba(20,20,20,0.07);">
+  <p class="codea-mark" style="text-align:right; font-weight:900; line-height:0.82; color:#141414; font-size:clamp(3rem,10vw,8rem); letter-spacing:-0.04em; font-family:'Lato',sans-serif;">
+    CODEA
+  </p>
+</div>
+
+
+<!-- ══════ SCRIPTS ══════ -->
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+// ── Hero ──
+gsap.to('#hero-left',  { opacity:1, y:0, duration:0.9, ease:'power2.out' });
+gsap.to('#hero-right', { opacity:1, y:0, duration:0.8, delay:0.4, ease:'power2.out' });
+
+// ── Properties ──
+gsap.to('#props-h2',  { opacity:1, y:0, duration:0.8, ease:'power2.out', scrollTrigger:{ trigger:'#props-h2', start:'top 85%' }});
+gsap.to('#props-sub', { opacity:1, y:0, duration:0.7, delay:0.12, ease:'power2.out', scrollTrigger:{ trigger:'#props-sub', start:'top 85%' }});
+gsap.utils.toArray('.prop-card').forEach((el, i) => {
+  gsap.to(el, { opacity:1, y:0, duration:0.7, delay:i*0.12, ease:'power2.out',
+    scrollTrigger:{ trigger:el, start:'top 88%' }});
+});
+
+// ── How it works ──
+gsap.to('#how-h2',    { opacity:1, y:0, duration:0.8, ease:'power2.out', scrollTrigger:{ trigger:'#how-h2', start:'top 85%' }});
+gsap.to('#how-sub',   { opacity:1, y:0, duration:0.7, delay:0.12, ease:'power2.out', scrollTrigger:{ trigger:'#how-sub', start:'top 85%' }});
+gsap.to('#how-left',  { opacity:1, x:0, duration:0.8, ease:'power2.out', scrollTrigger:{ trigger:'#how-left', start:'top 85%' }});
+gsap.to('#how-right', { opacity:1, x:0, duration:0.8, delay:0.12, ease:'power2.out', scrollTrigger:{ trigger:'#how-right', start:'top 85%' }});
+
+// ── Investment ──
+gsap.to('#inv-h2',   { opacity:1, y:0, duration:0.8, ease:'power2.out', scrollTrigger:{ trigger:'#inv-h2', start:'top 85%' }});
+gsap.to('#inv-sub1', { opacity:1, y:0, duration:0.7, delay:0.1,  ease:'power2.out', scrollTrigger:{ trigger:'#inv-sub1', start:'top 85%' }});
+gsap.to('#inv-sub2', { opacity:1, y:0, duration:0.7, delay:0.2,  ease:'power2.out', scrollTrigger:{ trigger:'#inv-sub2', start:'top 85%' }});
+gsap.utils.toArray('.chart-card').forEach((el, i) => {
+  gsap.to(el, { opacity:1, y:0, duration:0.7, delay:i*0.1, ease:'power2.out',
+    scrollTrigger:{ trigger:el, start:'top 88%' }});
+});
+
+// ── Bar charts ──
+function drawChart(svgId, data) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  const W = svg.parentElement.offsetWidth || 200;
+  const H = 96;
+  const gap = 5;
+  const n = data.length;
+  const barW = Math.max(2, (W - gap * (n - 1)) / n);
+  const maxVal = Math.max(...data);
+  let html = '';
+  data.forEach((val, i) => {
+    const barH = (val / maxVal) * (H - 4);
+    const x = i * (barW + gap);
+    const y = H - barH;
+    html += `<rect x="${x.toFixed(1)}" y="0" width="${barW.toFixed(1)}" height="${H}" fill="#141414" fill-opacity="0.05" rx="0"/>`;
+    html += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="2" fill="#141414" rx="0"/>`;
+  });
+  svg.innerHTML = html;
+}
+
+const data1 = [35,60,45,40,55,75,60,80,55,30];
+const data2 = [8,12,18,28,32,38,55,70,85];
+const data3 = [10,75,20,35,30,65,55,25,40];
+
+function renderCharts() {
+  drawChart('chart1', data1);
+  drawChart('chart2', data2);
+  drawChart('chart3', data3);
+}
+window.addEventListener('load', renderCharts);
+window.addEventListener('resize', renderCharts);
+renderCharts();
+
+// ── Mobile menu ──
+function openMenu()  { document.getElementById('mobile-menu').classList.add('open'); document.getElementById('mobile-overlay').classList.add('open'); }
+function closeMenu() { document.getElementById('mobile-menu').classList.remove('open'); document.getElementById('mobile-overlay').classList.remove('open'); }
+
+// ── Responsive nav ──
+function applyResponsive() {
+  const mob = window.innerWidth < 768;
+  document.getElementById('nav-links').style.display = mob ? 'none' : 'flex';
+  document.getElementById('post-btn').style.display  = mob ? 'none' : 'flex';
+  document.getElementById('hamburger').style.display = mob ? 'block' : 'none';
+}
+applyResponsive();
+window.addEventListener('resize', applyResponsive);
+</script>
+
+</body>
+</html>

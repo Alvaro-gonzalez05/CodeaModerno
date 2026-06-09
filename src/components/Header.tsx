@@ -66,6 +66,7 @@ export default function Header() {
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center space-x-8 text-sm font-medium mix-blend-difference text-white">
             <Link href="/servicios" className="relative after:content-[''] after:absolute after:left-0 after:-bottom-1 after:w-0 after:h-[1px] after:bg-[hsl(76,85%,67%)] after:transition-all after:duration-300 hover:after:w-full hover:text-[hsl(76,85%,67%)] transition-colors">servicios</Link>
+            <Link href="/proyectos" className="relative after:content-[''] after:absolute after:left-0 after:-bottom-1 after:w-0 after:h-[1px] after:bg-[hsl(76,85%,67%)] after:transition-all after:duration-300 hover:after:w-full hover:text-[hsl(76,85%,67%)] transition-colors">proyectos</Link>
             <Link href="/trabajos" className="relative after:content-[''] after:absolute after:left-0 after:-bottom-1 after:w-0 after:h-[1px] after:bg-[hsl(76,85%,67%)] after:transition-all after:duration-300 hover:after:w-full hover:text-[hsl(76,85%,67%)] transition-colors">trabajos</Link>
             <Link href="/about" className="relative after:content-[''] after:absolute after:left-0 after:-bottom-1 after:w-0 after:h-[1px] after:bg-[hsl(76,85%,67%)] after:transition-all after:duration-300 hover:after:w-full hover:text-[hsl(76,85%,67%)] transition-colors">sobre nosotros</Link>
             <button onClick={openModal} className="group flex items-center gap-2 px-5 py-2 bg-transparent border border-white rounded-full hover:bg-[hsl(76,85%,67%)] hover:border-[hsl(76,85%,67%)] hover:text-black transition-all duration-300">
@@ -103,6 +104,7 @@ export default function Header() {
 
               <nav className="flex flex-col space-y-8 text-center text-2xl font-bold text-white items-center">
                 <Link href="/servicios" onClick={toggleMenu} className="hover:text-[hsl(76,85%,67%)] transition-colors">servicios</Link>
+                <Link href="/proyectos" onClick={toggleMenu} className="hover:text-[hsl(76,85%,67%)] transition-colors">proyectos</Link>
                 <Link href="/trabajos" onClick={toggleMenu} className="hover:text-[hsl(76,85%,67%)] transition-colors">trabajos</Link>
                 <Link href="/about" onClick={toggleMenu} className="hover:text-[hsl(76,85%,67%)] transition-colors">sobre nosotros</Link>
                 <button onClick={() => { toggleMenu(); openModal(); }} className="group flex items-center gap-3 px-6 py-3 bg-transparent border border-white rounded-full hover:bg-[hsl(76,85%,67%)] hover:border-[hsl(76,85%,67%)] hover:text-black transition-all text-xl">

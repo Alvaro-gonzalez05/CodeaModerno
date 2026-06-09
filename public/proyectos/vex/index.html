@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VEX — Visión y Acción</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+        },
+      },
+    }
+  </script>
+
+  <!-- GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #000;
+      color: #fff;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* ── Liquid Glass ── */
+    .liquid-glass {
+      background: rgba(0, 0, 0, 0.4);
+      background-blend-mode: luminosity;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border: none;
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .liquid-glass::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1.4px;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 20%,
+        rgba(255,255,255,0)   40%, rgba(255,255,255,0)   60%,
+        rgba(255,255,255,0.1) 80%, rgba(255,255,255,0.3) 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    /* ── Animated heading chars ── */
+    .anim-char {
+      display: inline-block;
+      opacity: 0;
+      transform: translateX(-18px);
+      transition: opacity 500ms ease, transform 500ms ease;
+    }
+    .anim-char.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* ── Fade in elements ── */
+    .fade-el {
+      opacity: 0;
+      transition: opacity 1000ms ease;
+    }
+    .fade-el.visible { opacity: 1; }
+
+    /* ── Explore Now hover ── */
+    .btn-explore {
+      transition: background 0.25s ease, color 0.25s ease;
+    }
+    .btn-explore:hover {
+      background: #fff !important;
+      color: #000 !important;
+    }
+
+    /* ── Nav links ── */
+    .nav-link {
+      color: #fff;
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: #d1d5db; }
+
+    /* ── Section reveal ── */
+    .s-reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.75s ease, transform 0.75s ease;
+    }
+    .s-reveal.on { opacity: 1; transform: translateY(0); }
+
+    /* ── Number counter ── */
+    .counter { font-variant-numeric: tabular-nums; }
+
+    /* ── Horizontal marquee ── */
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .marquee-inner { animation: marquee 22s linear infinite; display: flex; white-space: nowrap; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #000; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    /* ── Process step line ── */
+    .step-line { width: 1px; background: linear-gradient(to bottom, rgba(255,255,255,0.12), transparent); }
+
+    /* ── Card hover ── */
+    .portfolio-card { transition: transform 0.35s ease, box-shadow 0.35s ease; }
+    .portfolio-card:hover { transform: translateY(-6px); box-shadow: 0 24px 60px rgba(0,0,0,0.5); }
+
+    /* ── CODEA hover ── */
+    .codea-mark {
+      opacity: 0.09;
+      transition: opacity 0.4s ease;
+      cursor: default;
+      user-select: none;
+    }
+    .codea-mark:hover { opacity: 0.2; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════ HERO ══════════════════════════════════ -->
+<section id="hero" class="relative h-screen w-full overflow-hidden bg-black">
+
+  <!-- Raw video — no overlays -->
+  <video
+    class="absolute inset-0 w-full h-full object-cover"
+    autoplay loop muted playsinline
+    src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260403_050628_c4e32401-fab4-4a27-b7a8-6e9291cd5959.mp4">
+  </video>
+
+  <!-- Navbar -->
+  <div class="relative z-20 px-6 md:px-12 lg:px-16 pt-6">
+    <div class="liquid-glass rounded-xl px-4 py-2 flex items-center justify-between">
+
+      <!-- Logo -->
+      <span class="text-2xl font-semibold tracking-tight text-white">VEX</span>
+
+      <!-- Center links (desktop) -->
+      <nav class="hidden md:flex items-center gap-8">
+        <a href="#proceso" class="nav-link">Historia</a>
+        <a href="#portafolio" class="nav-link">Inversión</a>
+        <a href="#ventajas" class="nav-link">Construcción</a>
+        <a href="#contacto" class="nav-link">Consultoría</a>
+      </nav>
+
+      <!-- CTA -->
+      <button class="bg-white text-black px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+        Iniciar Chat
+      </button>
+    </div>
+  </div>
+
+  <!-- Hero content: fills remaining height, content at bottom -->
+  <div class="relative z-10 px-6 md:px-12 lg:px-16 flex flex-col h-[calc(100vh-80px)] pb-12 lg:pb-16">
+    <div class="flex-1 flex flex-col justify-end">
+      <div class="lg:grid lg:grid-cols-2 lg:items-end gap-8">
+
+        <!-- Left: heading + sub + buttons -->
+        <div>
+          <!-- Animated heading -->
+          <h1
+            id="hero-heading"
+            class="font-normal mb-4 text-4xl md:text-5xl lg:text-6xl xl:text-7xl"
+            style="letter-spacing: -0.04em; line-height: 1.05;">
+          </h1>
+
+          <!-- Subheading -->
+          <p id="hero-sub"
+            class="fade-el text-base md:text-lg text-gray-300 mb-5 max-w-lg">
+            Respaldamos visionarios y construimos proyectos que definen lo que viene a continuación.
+          </p>
+
+          <!-- Buttons -->
+          <div id="hero-btns" class="fade-el flex flex-wrap gap-4">
+            <button class="bg-white text-black px-8 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+              Iniciar Chat
+            </button>
+            <button class="btn-explore liquid-glass border border-white/20 text-white px-8 py-3 rounded-lg font-medium">
+              Explorar Ahora
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: tag -->
+        <div id="hero-tag" class="fade-el flex items-end justify-start lg:justify-end mt-8 lg:mt-0">
+          <div class="liquid-glass border border-white/20 px-6 py-3 rounded-xl">
+            <p class="text-lg md:text-xl lg:text-2xl font-light text-white">
+              Inversión. Construcción. Consultoría.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════ MARQUEE STRIP ══════════════════════════════════ -->
+<div class="bg-neutral-950 py-3 overflow-hidden border-y border-white/5">
+  <div class="marquee-inner">
+    <span class="text-white/20 text-xs tracking-[0.35em] uppercase px-8">visión</span>
+    <span class="text-white/10 text-xs px-4">·</span>
+    <span class="text-white/20 text-xs tracking-[0.35em] uppercase px-8">acción</span>
+    <span class="text-white/10 text-xs px-4">·</span>
+    <span class="text-white/20 text-xs tracking-[0.35em] uppercase px-8">inversión</span>
+    <span class="text-white/10 text-xs px-4">·</span>
+    <span class="text-white/20 text-xs tracking-[0.35em] uppercase px-8">construcción</span>
+    <span class="text-white/10 text-xs px-4">·</span>
+    <span class="text-white/20 text-xs tracking-[0.35em] uppercase px-8">consultoría</span>
+    <span class="text-white/10 text-xs px-4">·</span>
+    <span class="text-white/20 text-xs tracking-[0.35em] uppercase px-8">innovación</span>
+    <span class="text-white/10 text-xs px-4">·</span>
+    <!-- duplicate -->
+    <span class="text-white/20 text-xs tracking-[0.35em] uppercase px-8">visión</span>
+    <span class="text-white/10 text-xs px-4">·</span>
+    <span class="text-white/20 text-xs tracking-[0.35em] uppercase px-8">acción</span>
+    <span class="text-white/10 text-xs px-4">·</span>
+    <span class="text-white/20 text-xs tracking-[0.35em] uppercase px-8">inversión</span>
+    <span class="text-white/10 text-xs px-4">·</span>
+    <span class="text-white/20 text-xs tracking-[0.35em] uppercase px-8">construcción</span>
+    <span class="text-white/10 text-xs px-4">·</span>
+    <span class="text-white/20 text-xs tracking-[0.35em] uppercase px-8">consultoría</span>
+    <span class="text-white/10 text-xs px-4">·</span>
+    <span class="text-white/20 text-xs tracking-[0.35em] uppercase px-8">innovación</span>
+    <span class="text-white/10 text-xs px-4">·</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════ SECCIÓN 1: PROCESO ══════════════════════════════════ -->
+<section id="proceso" class="bg-black py-24 md:py-36 px-6 md:px-12 lg:px-16">
+
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-20 md:mb-28 flex flex-col md:flex-row md:items-end md:justify-between gap-8">
+      <div>
+        <p class="s-reveal text-white/30 text-xs tracking-[0.3em] uppercase mb-4">Nuestro proceso</p>
+        <h2 class="s-reveal text-4xl md:text-5xl lg:text-6xl font-normal leading-[1.05]" style="letter-spacing:-0.03em;">
+          Cómo construimos<br/>el mañana
+        </h2>
+      </div>
+      <p class="s-reveal text-gray-400 text-sm md:text-base max-w-xs leading-relaxed">
+        Un método probado que convierte ideas ambiciosas en ventures que escalan globalmente.
+      </p>
+    </div>
+
+    <!-- Steps -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0">
+
+      <div class="s-reveal border-t border-white/10 pt-8 pr-8 pb-16">
+        <span class="text-white/20 text-xs font-medium tracking-widest mb-6 block">01</span>
+        <h3 class="text-white text-xl font-normal mb-3" style="letter-spacing:-0.02em;">Identificación</h3>
+        <p class="text-gray-500 text-sm leading-relaxed">
+          Mapeamos oportunidades de mercado antes de que se vuelvan obvias. Velocidad y contexto son nuestra ventaja.
+        </p>
+      </div>
+
+      <div class="s-reveal border-t border-white/10 pt-8 pr-8 pb-16 md:pl-8">
+        <span class="text-white/20 text-xs font-medium tracking-widest mb-6 block">02</span>
+        <h3 class="text-white text-xl font-normal mb-3" style="letter-spacing:-0.02em;">Validación</h3>
+        <p class="text-gray-500 text-sm leading-relaxed">
+          Prototipos rápidos, feedback real. Eliminamos supuestos y construimos sobre evidencia sólida.
+        </p>
+      </div>
+
+      <div class="s-reveal border-t border-white/10 pt-8 pr-8 pb-16 lg:pl-8">
+        <span class="text-white/20 text-xs font-medium tracking-widest mb-6 block">03</span>
+        <h3 class="text-white text-xl font-normal mb-3" style="letter-spacing:-0.02em;">Construcción</h3>
+        <p class="text-gray-500 text-sm leading-relaxed">
+          Equipos pequeños y focalizados que ejecutan con velocidad sin perder calidad de diseño o ingeniería.
+        </p>
+      </div>
+
+      <div class="s-reveal border-t border-white/10 pt-8 pb-16 lg:pl-8">
+        <span class="text-white/20 text-xs font-medium tracking-widest mb-6 block">04</span>
+        <h3 class="text-white text-xl font-normal mb-3" style="letter-spacing:-0.02em;">Escala</h3>
+        <p class="text-gray-500 text-sm leading-relaxed">
+          Capital, red y estrategia para llevar cada venture del producto al mercado global.
+        </p>
+      </div>
+    </div>
+
+    <!-- Metrics bar -->
+    <div class="s-reveal mt-4 border border-white/8 rounded-2xl grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-white/8">
+      <div class="px-8 py-8">
+        <p class="counter text-4xl md:text-5xl font-light text-white" style="letter-spacing:-0.04em;" data-target="48">0</p>
+        <p class="text-white/30 text-xs mt-2 uppercase tracking-widest">ventures lanzados</p>
+      </div>
+      <div class="px-8 py-8">
+        <p class="counter text-4xl md:text-5xl font-light text-white" style="letter-spacing:-0.04em;" data-target="320">0</p>
+        <p class="text-white/30 text-xs mt-2 uppercase tracking-widest">M USD gestionados</p>
+      </div>
+      <div class="px-8 py-8">
+        <p class="counter text-4xl md:text-5xl font-light text-white" style="letter-spacing:-0.04em;" data-target="19">0</p>
+        <p class="text-white/30 text-xs mt-2 uppercase tracking-widest">países activos</p>
+      </div>
+      <div class="px-8 py-8">
+        <p class="counter text-4xl md:text-5xl font-light text-white" style="letter-spacing:-0.04em;" data-target="94">0</p>
+        <p class="text-white/30 text-xs mt-2 uppercase tracking-widest">% tasa de retención</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════ SECCIÓN 2: PORTAFOLIO ══════════════════════════════════ -->
+<section id="portafolio" class="bg-neutral-950 py-24 md:py-36 px-6 md:px-12 lg:px-16">
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-16 md:mb-20 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+      <div>
+        <p class="s-reveal text-white/30 text-xs tracking-[0.3em] uppercase mb-4">Portafolio</p>
+        <h2 class="s-reveal text-4xl md:text-5xl lg:text-6xl font-normal leading-[1.05]" style="letter-spacing:-0.03em;">
+          Ventures que<br/>redefinen industrias
+        </h2>
+      </div>
+      <a href="#" class="s-reveal inline-flex items-center gap-2 text-white/50 text-sm hover:text-white transition-colors group">
+        Ver todos
+        <svg class="w-4 h-4 -rotate-45 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
+
+    <!-- Cards grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+      <!-- Card 1 -->
+      <div class="s-reveal portfolio-card bg-black border border-white/8 rounded-2xl overflow-hidden group">
+        <div class="h-48 bg-gradient-to-br from-neutral-800 to-neutral-900 relative overflow-hidden">
+          <div class="absolute inset-0 flex items-center justify-center">
+            <span class="text-6xl font-bold text-white/5 tracking-[-0.06em]">NOVA</span>
+          </div>
+          <div class="absolute bottom-4 left-4">
+            <span class="liquid-glass rounded-full px-3 py-1 text-[10px] text-white/70 tracking-widest uppercase border border-white/10">FinTech · Serie A</span>
+          </div>
+        </div>
+        <div class="p-6">
+          <h3 class="text-white font-normal text-xl mb-2" style="letter-spacing:-0.02em;">Nova Capital</h3>
+          <p class="text-gray-500 text-sm leading-relaxed mb-4">
+            Infraestructura de pagos B2B para mercados emergentes. Procesa más de $2B anuales en 8 países de LATAM.
+          </p>
+          <div class="flex items-center justify-between">
+            <span class="text-white/30 text-xs">2021 — presente</span>
+            <a href="#" class="text-white/50 hover:text-white text-xs transition-colors">Ver más →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="s-reveal portfolio-card bg-black border border-white/8 rounded-2xl overflow-hidden group">
+        <div class="h-48 bg-gradient-to-br from-neutral-900 to-black relative overflow-hidden">
+          <div class="absolute inset-0 flex items-center justify-center">
+            <span class="text-6xl font-bold text-white/5 tracking-[-0.06em]">ARC</span>
+          </div>
+          <div class="absolute bottom-4 left-4">
+            <span class="liquid-glass rounded-full px-3 py-1 text-[10px] text-white/70 tracking-widest uppercase border border-white/10">ClimaTech · Seed</span>
+          </div>
+        </div>
+        <div class="p-6">
+          <h3 class="text-white font-normal text-xl mb-2" style="letter-spacing:-0.02em;">Arc Systems</h3>
+          <p class="text-gray-500 text-sm leading-relaxed mb-4">
+            Monitoreo de carbono en tiempo real para cadenas de suministro industriales. Reducción media del 34% en emisiones.
+          </p>
+          <div class="flex items-center justify-between">
+            <span class="text-white/30 text-xs">2022 — presente</span>
+            <a href="#" class="text-white/50 hover:text-white text-xs transition-colors">Ver más →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="s-reveal portfolio-card bg-black border border-white/8 rounded-2xl overflow-hidden group">
+        <div class="h-48 bg-gradient-to-br from-neutral-800 to-neutral-950 relative overflow-hidden">
+          <div class="absolute inset-0 flex items-center justify-center">
+            <span class="text-6xl font-bold text-white/5 tracking-[-0.06em]">LUMI</span>
+          </div>
+          <div class="absolute bottom-4 left-4">
+            <span class="liquid-glass rounded-full px-3 py-1 text-[10px] text-white/70 tracking-widest uppercase border border-white/10">HealthTech · Serie B</span>
+          </div>
+        </div>
+        <div class="p-6">
+          <h3 class="text-white font-normal text-xl mb-2" style="letter-spacing:-0.02em;">Lumi Health</h3>
+          <p class="text-gray-500 text-sm leading-relaxed mb-4">
+            Diagnóstico preventivo asistido por IA para clínicas de primer nivel. Presente en 3 continentes.
+          </p>
+          <div class="flex items-center justify-between">
+            <span class="text-white/30 text-xs">2023 — presente</span>
+            <a href="#" class="text-white/50 hover:text-white text-xs transition-colors">Ver más →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════ SECCIÓN 3: VENTAJAS / CTA ══════════════════════════════════ -->
+<section id="ventajas" class="bg-black py-24 md:py-36 px-6 md:px-12 lg:px-16">
+  <div class="max-w-7xl mx-auto">
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+
+      <!-- Left -->
+      <div>
+        <p class="s-reveal text-white/30 text-xs tracking-[0.3em] uppercase mb-4">Por qué VEX</p>
+        <h2 class="s-reveal text-4xl md:text-5xl lg:text-6xl font-normal leading-[1.05] mb-8" style="letter-spacing:-0.03em;">
+          Capital que piensa<br/>como fundador
+        </h2>
+        <p class="s-reveal text-gray-400 text-base leading-relaxed mb-10 max-w-md">
+          No solo ponemos dinero. Nos sentamos al lado de los founders, abrimos puertas y construimos junto a ellos. Nuestro modelo es simple: si tú ganas, ganamos todos.
+        </p>
+        <a href="#contacto"
+          class="s-reveal inline-flex items-center gap-3 bg-white text-black px-8 py-3.5 rounded-lg font-medium hover:bg-gray-100 transition-colors group">
+          Habla con nosotros
+          <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+      </div>
+
+      <!-- Right: feature list -->
+      <div class="space-y-0">
+        <div class="s-reveal flex items-start gap-5 border-t border-white/8 py-7">
+          <div class="w-8 h-8 rounded-full border border-white/15 flex items-center justify-center shrink-0 mt-0.5">
+            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/>
+            </svg>
+          </div>
+          <div>
+            <h4 class="text-white font-normal text-base mb-1" style="letter-spacing:-0.01em;">Red global de operadores</h4>
+            <p class="text-gray-500 text-sm leading-relaxed">Acceso a más de 200 ejecutivos y founders que han escalado empresas a 9 cifras.</p>
+          </div>
+        </div>
+
+        <div class="s-reveal flex items-start gap-5 border-t border-white/8 py-7">
+          <div class="w-8 h-8 rounded-full border border-white/15 flex items-center justify-center shrink-0 mt-0.5">
+            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/>
+            </svg>
+          </div>
+          <div>
+            <h4 class="text-white font-normal text-base mb-1" style="letter-spacing:-0.01em;">Capital flexible en todo el ciclo</h4>
+            <p class="text-gray-500 text-sm leading-relaxed">Desde pre-seed hasta crecimiento. Seguimos en las rondas que importan.</p>
+          </div>
+        </div>
+
+        <div class="s-reveal flex items-start gap-5 border-t border-white/8 py-7">
+          <div class="w-8 h-8 rounded-full border border-white/15 flex items-center justify-center shrink-0 mt-0.5">
+            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/>
+            </svg>
+          </div>
+          <div>
+            <h4 class="text-white font-normal text-base mb-1" style="letter-spacing:-0.01em;">Studio in-house de diseño e ingeniería</h4>
+            <p class="text-gray-500 text-sm leading-relaxed">Equipos listos para acelerar el producto desde el día uno sin necesidad de contratar.</p>
+          </div>
+        </div>
+
+        <div class="s-reveal flex items-start gap-5 border-t border-b border-white/8 py-7">
+          <div class="w-8 h-8 rounded-full border border-white/15 flex items-center justify-center shrink-0 mt-0.5">
+            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/>
+            </svg>
+          </div>
+          <div>
+            <h4 class="text-white font-normal text-base mb-1" style="letter-spacing:-0.01em;">Decisiones en menos de 3 semanas</h4>
+            <p class="text-gray-500 text-sm leading-relaxed">Proceso de due diligence ágil para no frenar el momentum del founder.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════ FOOTER ══════════════════════════════════ -->
+<footer id="contacto" class="bg-neutral-950 border-t border-white/5 px-6 md:px-12 lg:px-16 pt-16 md:pt-20 pb-10 overflow-hidden">
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Top row -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-12 mb-16">
+      <div>
+        <p class="text-4xl md:text-6xl font-semibold tracking-tight text-white mb-3" style="letter-spacing:-0.04em;">VEX</p>
+        <p class="text-gray-600 text-sm max-w-xs leading-relaxed">
+          una solución desarrollada por<br/>
+          <span class="text-white/50 font-medium tracking-wide uppercase text-xs">codea desarrollos</span>
+        </p>
+      </div>
+
+      <!-- Contact CTA -->
+      <div class="flex flex-col items-start md:items-end gap-4">
+        <p class="text-white/30 text-xs tracking-widest uppercase">¿Listo para construir?</p>
+        <a href="mailto:hola@vex.studio"
+          class="inline-flex items-center gap-3 bg-white text-black px-8 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors group">
+          Iniciar conversación
+          <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Links -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+      <div>
+        <p class="text-white/30 text-[10px] tracking-[0.25em] uppercase mb-5">Compañía</p>
+        <ul class="space-y-3">
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Historia</a></li>
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Equipo</a></li>
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Prensa</a></li>
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Empleos</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="text-white/30 text-[10px] tracking-[0.25em] uppercase mb-5">Servicios</p>
+        <ul class="space-y-3">
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Inversión</a></li>
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Construcción</a></li>
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Consultoría</a></li>
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Workshops</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="text-white/30 text-[10px] tracking-[0.25em] uppercase mb-5">Legal</p>
+        <ul class="space-y-3">
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Privacidad</a></li>
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Términos</a></li>
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Cookies</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="text-white/30 text-[10px] tracking-[0.25em] uppercase mb-5">Soporte</p>
+        <ul class="space-y-3">
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Documentación</a></li>
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Centro de ayuda</a></li>
+          <li><a href="#" class="text-gray-500 text-sm hover:text-white transition-colors">Contacto</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Bottom legal -->
+    <div class="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <p class="text-white/20 text-xs">© 2025 VEX. Todos los derechos reservados.</p>
+      <p class="text-white/20 text-xs">Diseño editorial v2.0</p>
+    </div>
+
+    <!-- CODEA wordmark -->
+    <div class="relative -mx-6 md:-mx-12 lg:-mx-16 mt-6 -mb-10">
+      <p
+        class="codea-mark text-right font-black leading-none text-white"
+        style="font-size: clamp(3rem, 10vw, 8rem); letter-spacing: -0.04em; line-height: 0.85;">
+        CODEA
+      </p>
+    </div>
+
+  </div>
+</footer>
+
+
+<!-- ══════════════════════════════════ SCRIPTS ══════════════════════════════════ -->
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+// ── Animated heading ──
+(function () {
+  const container = document.getElementById('hero-heading');
+  const lines = [
+    'Moldeando el mañana',
+    'con visión y acción.'
+  ];
+  const charDelay = 30; // ms
+  const initialDelay = 200; // ms
+
+  let globalIndex = 0;
+  const allSpans = [];
+
+  lines.forEach((line, lineIndex) => {
+    if (lineIndex > 0) container.appendChild(document.createElement('br'));
+    [...line].forEach((char, charIndex) => {
+      const span = document.createElement('span');
+      span.className = 'anim-char';
+      span.textContent = char === ' ' ? ' ' : char;
+      container.appendChild(span);
+      allSpans.push({ span, delay: initialDelay + (lineIndex * line.length * charDelay) + (charIndex * charDelay) });
+    });
+  });
+
+  allSpans.forEach(({ span, delay }) => {
+    setTimeout(() => {
+      span.classList.add('visible');
+    }, delay);
+  });
+})();
+
+// ── Hero fade-ins ──
+(function () {
+  const sub  = document.getElementById('hero-sub');
+  const btns = document.getElementById('hero-btns');
+  const tag  = document.getElementById('hero-tag');
+
+  setTimeout(() => sub  && sub.classList.add('visible'),  800);
+  setTimeout(() => btns && btns.classList.add('visible'), 1200);
+  setTimeout(() => tag  && tag.classList.add('visible'),  1400);
+})();
+
+// ── Scroll reveals ──
+(function () {
+  const reveals = document.querySelectorAll('.s-reveal');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('on');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  reveals.forEach(el => obs.observe(el));
+})();
+
+// ── Number counters ──
+(function () {
+  const counters = document.querySelectorAll('.counter[data-target]');
+
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      obs.unobserve(e.target);
+      const target = parseInt(e.target.dataset.target);
+      const suffix = e.target.dataset.suffix || '';
+      const duration = 1800;
+      const start = performance.now();
+
+      function tick(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        e.target.textContent = Math.floor(eased * target) + suffix;
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }, { threshold: 0.5 });
+
+  counters.forEach(el => obs.observe(el));
+})();
+
+// ── Hero video parallax ──
+gsap.to('#hero video', {
+  y: '15%',
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '#hero',
+    start: 'top top',
+    end: 'bottom top',
+    scrub: true,
+  }
+});
+</script>
+</body>
+</html>

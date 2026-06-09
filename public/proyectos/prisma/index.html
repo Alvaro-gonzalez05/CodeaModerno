@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prisma — Creative Studio</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { primary: '#DEDBC8' },
+          fontFamily: {
+            sans:  ["'Almarai'", 'system-ui', 'sans-serif'],
+            serif: ["'Instrument Serif'", 'serif'],
+          },
+        },
+      },
+    }
+  </script>
+
+  <!-- GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/SplitText.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Almarai', system-ui, sans-serif;
+      background: #000;
+      color: #E1E0CC;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise textures ── */
+    .noise-overlay::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.7;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      background-size: 300px 300px;
+    }
+    .bg-noise {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      background-size: 300px 300px;
+    }
+
+    /* ── Hero word pull-up ── */
+    .word-wrap { overflow: hidden; display: inline-block; }
+    .word-inner { display: inline-block; transform: translateY(100%); }
+
+    /* ── Char reveal ── */
+    .char-letter { opacity: 0.2; transition: opacity 0.05s; display: inline; }
+
+    /* ── Feature cards ── */
+    .feature-card { opacity: 0; transform: scale(0.95); }
+
+    /* ── Parallax ── */
+    .parallax-video { will-change: transform; }
+
+    /* ── Custom scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #000; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    /* ── Cursor glow ── */
+    .cursor-glow {
+      position: fixed;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(222,219,200,0.06) 0%, transparent 70%);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      transition: transform 0.1s;
+    }
+
+    /* ── Marquee ── */
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .marquee-track { animation: marquee 20s linear infinite; white-space: nowrap; display: flex; }
+    .marquee-track:hover { animation-play-state: paused; }
+
+    /* ── Nav link ── */
+    .nav-link { color: rgba(225,224,204,0.8); transition: color 0.2s; text-decoration: none; }
+    .nav-link:hover { color: #E1E0CC; }
+
+    /* ── About chars ── */
+    .about-char { display: inline; }
+
+    /* ── Section fade ── */
+    .section-hidden { opacity: 0; }
+
+    /* ── Video parallax wrapper ── */
+    .hero-video-wrap { position: absolute; inset: 0; overflow: hidden; }
+  </style>
+</head>
+<body>
+
+<!-- Cursor glow -->
+<div class="cursor-glow" id="cursor-glow"></div>
+
+<!-- ════════════════════════════════════════ HERO ════════════════════════════════════════ -->
+<section id="hero" class="relative h-screen p-4 md:p-6 flex flex-col">
+  <div class="relative flex-1 rounded-2xl md:rounded-[2rem] overflow-hidden noise-overlay">
+
+    <!-- Video (with parallax) -->
+    <div class="hero-video-wrap">
+      <video
+        id="hero-video"
+        class="parallax-video absolute inset-0 w-full h-full object-cover scale-110"
+        autoplay loop muted playsinline
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260405_170732_8a9ccda6-5cff-4628-b164-059c500a2b41.mp4">
+      </video>
+    </div>
+
+    <!-- Gradient overlay -->
+    <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 pointer-events-none"></div>
+
+    <!-- Navbar -->
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 z-20">
+      <div class="bg-black rounded-b-2xl md:rounded-b-3xl px-4 py-2 md:px-8 md:py-3">
+        <nav class="flex items-center gap-3 sm:gap-6 md:gap-12 lg:gap-14">
+          <a href="#" class="nav-link text-[10px] sm:text-xs md:text-sm">our story</a>
+          <a href="#" class="nav-link text-[10px] sm:text-xs md:text-sm">collective</a>
+          <a href="#about" class="nav-link text-[10px] sm:text-xs md:text-sm">workshops</a>
+          <a href="#features" class="nav-link text-[10px] sm:text-xs md:text-sm">programs</a>
+          <a href="#" class="nav-link text-[10px] sm:text-xs md:text-sm">inquiries</a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Hero content (bottom) -->
+    <div class="absolute bottom-0 left-0 right-0 z-10 px-4 md:px-8 pb-4 md:pb-6">
+      <div class="grid grid-cols-12 items-end gap-4">
+
+        <!-- Giant heading -->
+        <div class="col-span-12 lg:col-span-8">
+          <h1
+            id="hero-heading"
+            class="font-medium leading-[0.85] tracking-[-0.07em] select-none relative"
+            style="font-size: clamp(18vw, 20vw, 22vw); color: #E1E0CC;">
+            Prism<span class="relative">a<sup
+              class="absolute font-medium"
+              style="font-size:0.31em; top:0.65em; right:-0.3em; color:#E1E0CC;">*</sup></span>
+          </h1>
+        </div>
+
+        <!-- Description + CTA -->
+        <div class="col-span-12 lg:col-span-4 pb-2 flex flex-col gap-5" id="hero-right">
+          <p class="text-primary/70 text-xs sm:text-sm md:text-base" style="line-height:1.2; opacity:0; transform:translateY(20px);" id="hero-desc">
+            Prisma is a worldwide network of visual artists, filmmakers and storytellers bound not by place, status or labels but by passion and hunger to unlock potential through our unique perspectives.
+          </p>
+
+          <!-- CTA button -->
+          <a href="#"
+            id="hero-cta"
+            class="group inline-flex items-center gap-2 bg-primary rounded-full pl-5 pr-2 py-2 w-fit"
+            style="opacity:0; transform:translateY(20px);">
+            <span class="text-black font-medium text-sm sm:text-base">Join the lab</span>
+            <span class="bg-black rounded-full w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+              <!-- Arrow right -->
+              <svg class="w-4 h-4" style="color:#DEDBC8;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Marquee strip between hero and about -->
+<div class="bg-black py-3 overflow-hidden border-y border-white/5">
+  <div class="marquee-track">
+    <span class="text-primary/30 text-xs tracking-[0.3em] uppercase px-8">visual arts</span>
+    <span class="text-primary/10 text-xs px-4">✦</span>
+    <span class="text-primary/30 text-xs tracking-[0.3em] uppercase px-8">filmmaking</span>
+    <span class="text-primary/10 text-xs px-4">✦</span>
+    <span class="text-primary/30 text-xs tracking-[0.3em] uppercase px-8">color grading</span>
+    <span class="text-primary/10 text-xs px-4">✦</span>
+    <span class="text-primary/30 text-xs tracking-[0.3em] uppercase px-8">narrative design</span>
+    <span class="text-primary/10 text-xs px-4">✦</span>
+    <span class="text-primary/30 text-xs tracking-[0.3em] uppercase px-8">visual effects</span>
+    <span class="text-primary/10 text-xs px-4">✦</span>
+    <span class="text-primary/30 text-xs tracking-[0.3em] uppercase px-8">storytelling</span>
+    <span class="text-primary/10 text-xs px-4">✦</span>
+    <!-- duplicate for seamless loop -->
+    <span class="text-primary/30 text-xs tracking-[0.3em] uppercase px-8">visual arts</span>
+    <span class="text-primary/10 text-xs px-4">✦</span>
+    <span class="text-primary/30 text-xs tracking-[0.3em] uppercase px-8">filmmaking</span>
+    <span class="text-primary/10 text-xs px-4">✦</span>
+    <span class="text-primary/30 text-xs tracking-[0.3em] uppercase px-8">color grading</span>
+    <span class="text-primary/10 text-xs px-4">✦</span>
+    <span class="text-primary/30 text-xs tracking-[0.3em] uppercase px-8">narrative design</span>
+    <span class="text-primary/10 text-xs px-4">✦</span>
+    <span class="text-primary/30 text-xs tracking-[0.3em] uppercase px-8">visual effects</span>
+    <span class="text-primary/10 text-xs px-4">✦</span>
+    <span class="text-primary/30 text-xs tracking-[0.3em] uppercase px-8">storytelling</span>
+    <span class="text-primary/10 text-xs px-4">✦</span>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════ ABOUT ════════════════════════════════════════ -->
+<section id="about" class="bg-black py-24 md:py-36 px-4 md:px-6">
+  <div class="max-w-6xl mx-auto">
+    <div class="bg-[#101010] rounded-2xl md:rounded-[2rem] p-8 md:p-16 lg:p-24">
+
+      <!-- Label -->
+      <p class="text-primary text-[10px] sm:text-xs tracking-widest uppercase mb-8 md:mb-12 text-center" id="about-label" style="opacity:0;">
+        Visual arts
+      </p>
+
+      <!-- Multi-style heading -->
+      <div
+        id="about-heading"
+        class="text-center leading-[0.95] sm:leading-[0.9] mb-10 md:mb-16"
+        style="font-size: clamp(2rem, 6vw, 4.5rem);">
+
+        <!-- Segment 1: normal -->
+        <span id="about-seg1" class="inline font-normal" style="color:#E1E0CC;">
+          I am Marcus Chen,&nbsp;
+        </span>
+        <!-- Segment 2: italic serif -->
+        <span id="about-seg2" class="inline font-serif italic" style="color:#E1E0CC;">
+          a self-taught director.&nbsp;
+        </span>
+        <!-- Segment 3: normal -->
+        <span id="about-seg3" class="inline font-normal" style="color:#E1E0CC;">
+          I have skills in color grading, visual effects, and narrative design.
+        </span>
+      </div>
+
+      <!-- Scroll-linked char reveal paragraph -->
+      <div class="max-w-3xl mx-auto text-center" id="about-body-wrap">
+        <p id="about-body" class="text-xs sm:text-sm md:text-base leading-relaxed" style="color:#DEDBC8;">
+          Over the last seven years, I have worked with Parallax, a Berlin-based production house that crafts cinema, series, and Noir Studio in Paris. Together, we have created work that has earned international acclaim at several major festivals.
+        </p>
+      </div>
+
+      <!-- Stats row -->
+      <div class="mt-16 md:mt-24 grid grid-cols-3 gap-4 md:gap-8 border-t border-white/10 pt-10 md:pt-14" id="about-stats">
+        <div class="text-center" style="opacity:0; transform:translateY(20px);">
+          <p class="text-3xl md:text-5xl font-light text-primary tracking-[-0.04em]">7+</p>
+          <p class="text-gray-500 text-[10px] sm:text-xs mt-1 uppercase tracking-widest">años de exp.</p>
+        </div>
+        <div class="text-center" style="opacity:0; transform:translateY(20px);">
+          <p class="text-3xl md:text-5xl font-light text-primary tracking-[-0.04em]">42</p>
+          <p class="text-gray-500 text-[10px] sm:text-xs mt-1 uppercase tracking-widest">festivales</p>
+        </div>
+        <div class="text-center" style="opacity:0; transform:translateY(20px);">
+          <p class="text-3xl md:text-5xl font-light text-primary tracking-[-0.04em]">2</p>
+          <p class="text-gray-500 text-[10px] sm:text-xs mt-1 uppercase tracking-widest">estudios globales</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════ FEATURES ════════════════════════════════════════ -->
+<section id="features" class="min-h-screen bg-black py-24 md:py-36 px-4 md:px-6 relative">
+
+  <!-- Noise bg -->
+  <div class="absolute inset-0 bg-noise opacity-[0.15] pointer-events-none"></div>
+
+  <div class="relative max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-10 md:mb-14 max-w-3xl" id="features-header">
+      <p class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-normal mb-2" style="color:#DEDBC8; opacity:0; transform:translateY(24px);" id="feat-line1">
+        Studio-grade workflows for visionary creators.
+      </p>
+      <p class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-normal text-gray-500" style="opacity:0; transform:translateY(24px);" id="feat-line2">
+        Built for pure vision. Powered by art.
+      </p>
+    </div>
+
+    <!-- Cards grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-2 md:gap-1 lg:h-[480px]">
+
+      <!-- Card 1: Video -->
+      <div class="feature-card relative rounded-2xl overflow-hidden lg:h-full h-60 sm:h-72" id="feat-card-0">
+        <video class="absolute inset-0 w-full h-full object-cover"
+          autoplay loop muted playsinline
+          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260406_133058_0504132a-0cf3-4450-a370-8ea3b05c95d4.mp4">
+        </video>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"></div>
+        <p class="absolute bottom-5 left-5 text-base font-normal" style="color:#E1E0CC;">Your creative canvas.</p>
+      </div>
+
+      <!-- Card 2: Project Storyboard -->
+      <div class="feature-card bg-[#212121] rounded-2xl p-6 flex flex-col" id="feat-card-1">
+        <img
+          src="https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260405_171918_4a5edc79-d78f-4637-ac8b-53c43c220606.png&w=1280&q=85"
+          alt=""
+          class="w-10 h-10 sm:w-12 sm:h-12 rounded object-cover mb-auto" />
+
+        <div class="mt-auto">
+          <div class="flex items-start justify-between mb-4">
+            <h3 class="text-primary font-normal text-base md:text-lg">Project Storyboard.</h3>
+            <span class="text-gray-600 text-xs font-light mt-1">01</span>
+          </div>
+          <ul class="space-y-2 mb-6">
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+              <span class="text-gray-400 text-xs leading-snug">organiza escenas con paneles drag-and-drop</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+              <span class="text-gray-400 text-xs leading-snug">referencias visuales con notas de dirección</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+              <span class="text-gray-400 text-xs leading-snug">exporta en pdf, ppt o video animado</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+              <span class="text-gray-400 text-xs leading-snug">colaboración en tiempo real con el equipo</span>
+            </li>
+          </ul>
+          <a href="#" class="inline-flex items-center gap-1 text-primary text-xs group">
+            Learn more
+            <svg class="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-0 -rotate-45" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 3: Smart Critiques -->
+      <div class="feature-card bg-[#212121] rounded-2xl p-6 flex flex-col" id="feat-card-2">
+        <img
+          src="https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260405_171741_ed9845ab-f5b2-4018-8ce7-07cc01823522.png&w=1280&q=85"
+          alt=""
+          class="w-10 h-10 sm:w-12 sm:h-12 rounded object-cover mb-auto" />
+
+        <div class="mt-auto">
+          <div class="flex items-start justify-between mb-4">
+            <h3 class="text-primary font-normal text-base md:text-lg">Smart Critiques.</h3>
+            <span class="text-gray-600 text-xs font-light mt-1">02</span>
+          </div>
+          <ul class="space-y-2 mb-6">
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+              <span class="text-gray-400 text-xs leading-snug">análisis de composición con ia visual</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+              <span class="text-gray-400 text-xs leading-snug">notas creativas contextuales por frame</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+              <span class="text-gray-400 text-xs leading-snug">integra premiere, davinci & after effects</span>
+            </li>
+          </ul>
+          <a href="#" class="inline-flex items-center gap-1 text-primary text-xs group">
+            Learn more
+            <svg class="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-0 -rotate-45" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 4: Immersion Capsule -->
+      <div class="feature-card bg-[#212121] rounded-2xl p-6 flex flex-col" id="feat-card-3">
+        <img
+          src="https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260405_171809_f56666dc-c099-4778-ad82-9ad4f209567b.png&w=1280&q=85"
+          alt=""
+          class="w-10 h-10 sm:w-12 sm:h-12 rounded object-cover mb-auto" />
+
+        <div class="mt-auto">
+          <div class="flex items-start justify-between mb-4">
+            <h3 class="text-primary font-normal text-base md:text-lg">Immersion Capsule.</h3>
+            <span class="text-gray-600 text-xs font-light mt-1">03</span>
+          </div>
+          <ul class="space-y-2 mb-6">
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+              <span class="text-gray-400 text-xs leading-snug">silencia notificaciones en modo creativo</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+              <span class="text-gray-400 text-xs leading-snug">paisajes sonoros ambientales curados</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+              <span class="text-gray-400 text-xs leading-snug">sincroniza sesiones con tu calendario</span>
+            </li>
+          </ul>
+          <a href="#" class="inline-flex items-center gap-1 text-primary text-xs group">
+            Learn more
+            <svg class="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-0 -rotate-45" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+    </div><!-- /grid -->
+
+    <!-- Bottom CTA row -->
+    <div class="mt-12 md:mt-16 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-t border-white/5 pt-10" id="features-cta" style="opacity:0; transform:translateY(20px);">
+      <p class="text-gray-600 text-xs max-w-xs leading-relaxed">
+        Todas las herramientas que necesitas para llevar tu visión creativa al siguiente nivel.
+      </p>
+      <a href="#"
+        class="group inline-flex items-center gap-2 border border-primary/30 rounded-full pl-5 pr-2 py-2 hover:border-primary/60 transition-colors">
+        <span class="text-primary text-sm">Ver todos los programas</span>
+        <span class="border border-primary/30 rounded-full w-8 h-8 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+          <svg class="w-3.5 h-3.5 text-primary -rotate-45" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════ FOOTER ════════════════════════════════════════ -->
+<footer class="bg-black border-t border-white/5 px-4 md:px-6 py-16 md:py-20">
+  <div class="max-w-7xl mx-auto">
+
+    <div class="flex flex-col md:flex-row items-start md:items-end justify-between gap-12 mb-16">
+      <!-- Brand -->
+      <div>
+        <p class="text-primary text-5xl md:text-7xl font-medium tracking-[-0.06em] leading-none mb-4">Prisma</p>
+        <p class="text-gray-600 text-sm max-w-xs leading-relaxed">
+          un estudio creativo global para artistas que se atreven a ver diferente.
+        </p>
+      </div>
+      <!-- CTA -->
+      <a href="#"
+        class="group inline-flex items-center gap-2 bg-primary rounded-full pl-5 pr-2 py-2">
+        <span class="text-black font-medium text-sm">Join the lab</span>
+        <span class="bg-black rounded-full w-9 h-9 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+          <svg class="w-4 h-4" style="color:#DEDBC8;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+    </div>
+
+    <div class="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <p class="text-gray-700 text-xs">© 2026 Prisma Studio. Todos los derechos reservados.</p>
+      <div class="flex items-center gap-6">
+        <a href="#" class="text-gray-700 text-xs hover:text-primary transition-colors">privacidad</a>
+        <a href="#" class="text-gray-700 text-xs hover:text-primary transition-colors">términos</a>
+        <a href="#" class="text-gray-700 text-xs hover:text-primary transition-colors">contacto</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Giant CODEA wordmark -->
+  <div class="relative overflow-hidden -mx-4 md:-mx-6 mt-6 -mb-4 select-none">
+    <p
+      class="text-right font-black leading-none text-white cursor-default"
+      style="font-size: clamp(3rem, 10vw, 8rem); letter-spacing: -0.04em; line-height: 0.85; opacity: 0.1; transition: opacity 0.4s ease;"
+      onmouseenter="this.style.opacity='0.22'" onmouseleave="this.style.opacity='0.1'">
+      CODEA
+    </p>
+  </div>
+</footer>
+
+
+<!-- ════════════════════════════════════════ GSAP SCRIPTS ════════════════════════════════════════ -->
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+// ── Cursor glow ──
+const glow = document.getElementById('cursor-glow');
+window.addEventListener('mousemove', e => {
+  gsap.to(glow, { x: e.clientX, y: e.clientY, duration: 0.6, ease: 'power2.out' });
+});
+
+// ── Hero heading: words pull-up ──
+(function () {
+  const heading = document.getElementById('hero-heading');
+  if (!heading) return;
+
+  // Get the text — we'll leave the HTML as-is and just animate the whole heading
+  gsap.fromTo(heading,
+    { opacity: 0, y: 40 },
+    {
+      opacity: 1, y: 0, duration: 1.2,
+      ease: 'power4.out', delay: 0.1
+    }
+  );
+})();
+
+// ── Hero description ──
+gsap.to('#hero-desc', {
+  opacity: 1, y: 0, duration: 1,
+  ease: 'power3.out', delay: 0.5
+});
+
+// ── Hero CTA ──
+gsap.to('#hero-cta', {
+  opacity: 1, y: 0, duration: 1,
+  ease: 'power3.out', delay: 0.7
+});
+
+// ── Hero video parallax ──
+gsap.to('#hero-video', {
+  y: '20%',
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '#hero',
+    start: 'top top',
+    end: 'bottom top',
+    scrub: true,
+  }
+});
+
+// ── ABOUT SECTION ──
+
+// Label fade in
+gsap.to('#about-label', {
+  opacity: 1,
+  duration: 0.8,
+  ease: 'power2.out',
+  scrollTrigger: {
+    trigger: '#about-label',
+    start: 'top 85%',
+  }
+});
+
+// Heading segments: staggered slide-up
+(function () {
+  const segs = ['#about-seg1', '#about-seg2', '#about-seg3'];
+  segs.forEach((sel, i) => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    gsap.fromTo(el,
+      { opacity: 0, y: 30 },
+      {
+        opacity: 1, y: 0, duration: 0.9,
+        ease: 'power3.out',
+        delay: i * 0.15,
+        scrollTrigger: {
+          trigger: '#about-heading',
+          start: 'top 80%',
+        }
+      }
+    );
+  });
+})();
+
+// About body: scroll-linked character opacity reveal
+(function () {
+  const para = document.getElementById('about-body');
+  if (!para) return;
+
+  const text = para.innerText;
+  para.innerHTML = '';
+
+  const chars = [...text].map((char, i) => {
+    const span = document.createElement('span');
+    span.className = 'about-char';
+    span.style.opacity = '0.15';
+    span.textContent = char;
+    para.appendChild(span);
+    return span;
+  });
+
+  ScrollTrigger.create({
+    trigger: '#about-body-wrap',
+    start: 'top 75%',
+    end: 'bottom 25%',
+    scrub: 0.5,
+    onUpdate(self) {
+      const progress = self.progress;
+      chars.forEach((span, i) => {
+        const charProgress = i / chars.length;
+        const localProgress = (progress - (charProgress - 0.1)) / 0.15;
+        const opacity = Math.min(1, Math.max(0.15, localProgress));
+        span.style.opacity = opacity;
+      });
+    }
+  });
+})();
+
+// About stats
+(function () {
+  const stats = document.querySelectorAll('#about-stats > div');
+  stats.forEach((el, i) => {
+    gsap.to(el, {
+      opacity: 1, y: 0, duration: 0.8,
+      ease: 'power3.out',
+      delay: i * 0.12,
+      scrollTrigger: {
+        trigger: '#about-stats',
+        start: 'top 85%',
+      }
+    });
+  });
+})();
+
+// ── FEATURES SECTION ──
+
+// Header lines
+gsap.to('#feat-line1', {
+  opacity: 1, y: 0, duration: 0.9,
+  ease: 'power3.out',
+  scrollTrigger: { trigger: '#features-header', start: 'top 82%' }
+});
+gsap.to('#feat-line2', {
+  opacity: 1, y: 0, duration: 0.9, delay: 0.15,
+  ease: 'power3.out',
+  scrollTrigger: { trigger: '#features-header', start: 'top 82%' }
+});
+
+// Feature cards staggered scale+fade
+(function () {
+  for (let i = 0; i < 4; i++) {
+    gsap.to(`#feat-card-${i}`, {
+      opacity: 1,
+      scale: 1,
+      duration: 0.85,
+      ease: 'power3.out',
+      delay: i * 0.12,
+      scrollTrigger: {
+        trigger: '#feat-card-0',
+        start: 'top 85%',
+      }
+    });
+  }
+})();
+
+// Features CTA
+gsap.to('#features-cta', {
+  opacity: 1, y: 0, duration: 0.8,
+  ease: 'power3.out',
+  scrollTrigger: { trigger: '#features-cta', start: 'top 88%' }
+});
+
+// ── Parallax: About card ──
+gsap.fromTo('#about > .max-w-6xl > .bg-\\[\\#101010\\]',
+  { y: 40 },
+  {
+    y: -30,
+    ease: 'none',
+    scrollTrigger: {
+      trigger: '#about',
+      start: 'top bottom',
+      end: 'bottom top',
+      scrub: 1.5,
+    }
+  }
+);
+
+// ── Parallax: Feature cards subtle drift ──
+document.querySelectorAll('.feature-card').forEach((card, i) => {
+  const direction = i % 2 === 0 ? -15 : 15;
+  gsap.fromTo(card,
+    { y: 20 },
+    {
+      y: direction,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '#features',
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: 1.2 + i * 0.2,
+      }
+    }
+  );
+});
+
+// ── Horizontal marquee speed on scroll ──
+ScrollTrigger.create({
+  trigger: 'body',
+  start: 'top top',
+  end: 'bottom bottom',
+  onUpdate(self) {
+    const speed = 20 - self.getVelocity() * 0.002;
+    const clamped = Math.max(5, Math.min(30, speed));
+    document.querySelector('.marquee-track').style.animationDuration = `${clamped}s`;
+  }
+});
+
+// ── Page load: fade in body ──
+gsap.from('body', { opacity: 0, duration: 0.6, ease: 'power2.out' });
+</script>
+</body>
+</html>
